@@ -1,0 +1,4673 @@
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GlobalStore = exports.PUBLICATION_STATUS = exports.LANGUAGES = exports.CONTENT_RATINGS = exports.DEMOGRAPHICS = exports.RESULT_LIMIT = exports.STAFF_PICKS_LIST_ID = exports.LAST_SEASONAL_LIST_ID = exports.SEASONAL_LIST_ID = exports.ADULT_TAG_IDS = exports.COVER_URL = exports.API_URL = void 0;
+const store_1 = require("./store");
+exports.API_URL = "https://api.mangadex.org";
+exports.COVER_URL = "https://uploads.mangadex.org/covers";
+exports.ADULT_TAG_IDS = [
+    "b29d6a3d-1569-4e7a-8caf-7557bc92cd5d",
+    "97893a4c-12af-4dac-b6be-0dffb353568e",
+    "5bd0e105-4481-44ca-b6e7-7544da56b1a3",
+];
+exports.SEASONAL_LIST_ID = "907b6e91-b511-4095-927f-30227ccadfdc";
+exports.LAST_SEASONAL_LIST_ID = "1b9f88f8-9880-464d-9ed9-59b7e36392e2";
+exports.STAFF_PICKS_LIST_ID = "805ba886-dd99-4aa4-b460-4bd7c7b71352";
+exports.RESULT_LIMIT = 30;
+exports.DEMOGRAPHICS = ["shounen", "shoujo", "seinen", "josei", "none"];
+exports.CONTENT_RATINGS = [
+    "safe",
+    "suggestive",
+    "erotica",
+    "pornographic",
+];
+exports.LANGUAGES = ["en", "ko", "ja", "zh", "zh-hk"];
+exports.PUBLICATION_STATUS = [
+    "ongoing",
+    "completed",
+    "hiatus",
+    "cancelled",
+];
+exports.GlobalStore = new store_1.MDStore();
+
+},{"./store":21}],2:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDBasicAuthProvider = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const network_1 = require("../network");
+exports.MDBasicAuthProvider = {
+    BasicAuthUIIdentifier: daisuke_1.BasicAuthenticationUIIdentifier.USERNAME,
+    async handleBasicAuth(username, password) {
+        const response = await (0, network_1.POST)("/auth/login", {
+            body: {
+                username,
+                password,
+            },
+        });
+        const session = response.token.session;
+        const refresh = response.token.refresh;
+        await SecureStore.set("session", session);
+        await SecureStore.set("refresh", refresh);
+    },
+    async getAuthenticatedUser() {
+        const token = await SecureStore.get("session");
+        if (!token) {
+            return null;
+        }
+        const { data } = await (0, network_1.GET)(`/user/me`);
+        const user = {
+            handle: data.attributes.username,
+            avatar: "https://mangadex.org/avatar.png",
+        };
+        return user;
+    },
+    async handleUserSignOut() {
+        try {
+            await (0, network_1.GET)(`/auth/logout`);
+        }
+        catch (err) {
+            console.log(err);
+        }
+        await SecureStore.remove("session");
+        await SecureStore.remove("refresh");
+    },
+};
+
+},{"../network":17,"@suwatte/daisuke":23}],3:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDContentSource = void 0;
+const network_1 = require("../network");
+const content_1 = require("../parser/content");
+const chapter_1 = require("../parser/chapter");
+exports.MDContentSource = {
+    getContent: async function (contentId) {
+        const path = `/manga/${contentId}`;
+        const params = {
+            includes: ["artist", "author", "cover_art"],
+        };
+        const response = await (0, network_1.GET)(path, { params });
+        return (0, content_1.parseContent)(response, contentId);
+    },
+    getChapters: function (contentId) {
+        return (0, chapter_1.getChapters)(contentId);
+    },
+    getChapterData: async function (_, chapterId) {
+        const json = await (0, network_1.GET)(`/at-home/server/${chapterId}`);
+        return {
+            pages: await (0, chapter_1.parseChapterData)(json),
+        };
+    },
+    // async getIdentifierForURL(url: string): Promise<ContentIdentifier | null> {
+    //   const titleRegex =
+    //     /^https:\/\/mangadex.org\/title\/([0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12})\/?/;
+    //   const contentId = url.match(titleRegex)?.[1];
+    //   if (contentId)
+    //     return {
+    //       contentId,
+    //     };
+    //   const chapterRegex =
+    //     /^https:\/\/mangadex.org\/chapter\/([0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12})\/?/;
+    //   const chapterId = url.match(chapterRegex)?.[1];
+    //   async function getMangaFromChapterId(id: string) {
+    //     const url = `/chapter/${id}?includes[]=manga`;
+    //     const {
+    //       data: { data },
+    //     } = await GET(url);
+    //     const contentId = data.relationships.find(
+    //       (v: any) => v.type === "manga"
+    //     )?.id;
+    //     return contentId;
+    //   }
+    //   if (chapterId) {
+    //     const id = await getMangaFromChapterId(chapterId);
+    //     return {
+    //       contentId: id,
+    //       chapterId,
+    //     };
+    //   }
+    //   return null;
+    // },
+};
+
+},{"../network":17,"../parser/chapter":18,"../parser/content":19}],4:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDContentSyncHandler = void 0;
+const network_1 = require("../network");
+const md_1 = require("../misc/md");
+const pagedResponse_1 = require("../parser/pagedResponse");
+exports.MDContentSyncHandler = {
+    syncUserLibrary: function (library) {
+        return syncUserLibrary(library);
+    },
+};
+async function syncUserLibrary(library) {
+    const fetchedLib = await fetchUserLibrary();
+    // Titles in local but not cloud
+    const toUpSync = library.filter((v) => !fetchedLib.find((a) => a.id === v.id));
+    // Titles in cloud but not local
+    const toDownSync = fetchedLib.filter((v) => {
+        const target = library.find((a) => a.id === v.id);
+        // Not in library, down sync
+        if (!target)
+            return true;
+        // NonMatching Reading Flag
+        if (v.readingFlag && target.flag != v.readingFlag)
+            return true;
+        return false;
+    });
+    // Handle UpSync
+    await handleUpSync(toUpSync);
+    return toDownSync;
+}
+async function handleUpSync(entries) {
+    for (const entry of entries) {
+        const url = `/manga/${entry.id}/status`;
+        const status = (0, md_1.getStatusFlagForReadingFlag)(entry.flag);
+        await (0, network_1.POST)(url, {
+            body: {
+                status,
+            },
+        });
+    }
+}
+async function fetchUserLibrary() {
+    const library = [];
+    // Fetch Reading Status
+    const statuses = await (0, md_1.getMDUserStatuses)();
+    const limit = 100;
+    let offset = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const response = await (0, network_1.GET)(`/user/follows/manga`, {
+            params: {
+                limit,
+                offset,
+                includes: ["cover_art"],
+            },
+        });
+        const highlights = (await (0, pagedResponse_1.parsePagedResponse)(response, false)).results;
+        // prepare
+        const mapped = highlights.map((v) => {
+            const status = (0, md_1.getMDReadingStatus)(statuses[v.id]);
+            return {
+                id: v.id,
+                title: v.title,
+                cover: v.cover,
+                readingFlag: status,
+            };
+        });
+        library.push(...mapped);
+        // Loop Logic
+        offset += limit;
+        if (highlights.length < limit) {
+            break;
+        }
+    }
+    return library;
+}
+
+},{"../misc/md":15,"../network":17,"../parser/pagedResponse":20}],5:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDDirectoryHandler = void 0;
+const directory_1 = require("../misc/directory");
+const md_1 = require("../misc/md");
+const constants_1 = require("../constants");
+exports.MDDirectoryHandler = {
+    getDirectory: async function (request) {
+        if (request.context?.listId) {
+            const list = await (0, md_1.getMDList)(request.context.listId, request.page);
+            const isLastPage = list.highlights.length < constants_1.RESULT_LIMIT;
+            return {
+                results: list.highlights,
+                isLastPage,
+            };
+        }
+        return (0, md_1.getMDSearchResults)(request);
+    },
+    getDirectoryConfig: async function (_key) {
+        return {
+            filters: await (0, md_1.buildFilters)(),
+            sort: {
+                options: await (0, directory_1.getSearchSorters)(),
+                canChangeOrder: false,
+                default: {
+                    id: "followedCount",
+                    ascending: false,
+                },
+            },
+        };
+    },
+};
+
+},{"../constants":1,"../misc/directory":13,"../misc/md":15}],6:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./contentSource"), exports);
+__exportStar(require("./directoryHandler"), exports);
+__exportStar(require("./pageResolver"), exports);
+__exportStar(require("./pageProvider"), exports);
+__exportStar(require("./preferences"), exports);
+__exportStar(require("./auth"), exports);
+__exportStar(require("./contentSync"), exports);
+__exportStar(require("./libraryEvent"), exports);
+__exportStar(require("./progressSync"), exports);
+
+},{"./auth":2,"./contentSource":3,"./contentSync":4,"./directoryHandler":5,"./libraryEvent":7,"./pageProvider":8,"./pageResolver":9,"./preferences":10,"./progressSync":11}],7:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDLibraryEventHandler = void 0;
+const md_1 = require("../misc/md");
+const network_1 = require("../network");
+const store_1 = require("../store");
+exports.MDLibraryEventHandler = {
+    async onChapterRead(contentId, chapterId) {
+        await new store_1.MDStore().saveToMimasTargets(contentId);
+        const signedIn = await (0, md_1.isSignedIn)();
+        if (!signedIn)
+            return;
+        await syncToMD(contentId, [chapterId]);
+    },
+    async onChaptersMarked(contentId, chapterIds, completed) {
+        const signedIn = await (0, md_1.isSignedIn)();
+        if (!signedIn)
+            return;
+        if (completed) {
+            await syncToMD(contentId, chapterIds);
+        }
+        else {
+            await syncToMD(contentId, [], chapterIds);
+        }
+    },
+    async onContentsAddedToLibrary(ids) {
+        const signedIn = await (0, md_1.isSignedIn)();
+        if (!signedIn)
+            return;
+        for (const id of ids) {
+            await (0, network_1.POST)(`/manga/${id}/status`, {
+                body: {
+                    status: "reading",
+                },
+            });
+        }
+    },
+    async onContentsReadingFlagChanged(ids, flag) {
+        //
+    },
+    async onContentsRemovedFromLibrary(ids) {
+        //
+    },
+};
+async function syncToMD(id, chapterIdsRead, chapterIdsUnread = []) {
+    try {
+        await (0, network_1.POST)(`/manga/${id}/read`, {
+            body: {
+                chapterIdsUnread,
+                chapterIdsRead,
+            },
+        });
+    }
+    catch {
+        console.error("failed to sync to mangadex");
+    }
+}
+
+},{"../misc/md":15,"../network":17,"../store":21}],8:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDPageProvider = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const auth_1 = require("./auth");
+const network_1 = require("../network");
+exports.MDPageProvider = {
+    async getLibraryPageLinks() {
+        const user = await auth_1.MDBasicAuthProvider.getAuthenticatedUser()
+            .then((v) => v)
+            .catch((err) => {
+            console.log(err);
+            return null;
+        });
+        if (!user)
+            return [];
+        const lists = await (0, network_1.GET)("/user/list?limit=100");
+        return lists.data.map((v) => (0, daisuke_1.Generate)({
+            title: v.attributes.name,
+            subtitle: v.attributes.visibility === "private" ? "Private" : "",
+            link: {
+                request: {
+                    page: 1,
+                    context: {
+                        listId: v.id,
+                    },
+                },
+            },
+        }));
+    },
+};
+
+},{"../network":17,"./auth":2,"@suwatte/daisuke":23}],9:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDPageLinkResolver = void 0;
+const homepage_1 = require("../misc/homepage");
+exports.MDPageLinkResolver = {
+    getSectionsForPage: function ({ id }) {
+        if (id === "home")
+            return (0, homepage_1.getHomePageSections)();
+        throw new Error(`Unknown Page ${id}`);
+    },
+    resolvePageSection: function (link, sectionID) {
+        if (link.id === "home")
+            return (0, homepage_1.resolveHomepageSection)(link, sectionID);
+        throw new Error(`Unknown Page ${link.id}`);
+    },
+};
+
+},{"../misc/homepage":14}],10:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDPreferenceProvider = void 0;
+const lodash_1 = require("lodash");
+const store_1 = require("../store");
+const utils_1 = require("../utils");
+const daisuke_1 = require("@suwatte/daisuke");
+const constants_1 = require("../constants");
+exports.MDPreferenceProvider = {
+    getPreferenceMenu: async function () {
+        const languageOptions = utils_1.languages.map((v) => ({
+            id: v.languageCode,
+            title: v.label,
+        }));
+        const ratingOptions = ["safe", "suggestive", "erotica", "pornographic"].map((v) => ({
+            title: (0, lodash_1.capitalize)(v),
+            id: v,
+        }));
+        return {
+            sections: [
+                // * LANGUAGE
+                {
+                    header: "Languages",
+                    children: [
+                        (0, daisuke_1.UIMultiPicker)({
+                            id: store_1.PREF_KEYS.lang,
+                            title: "Content Languages",
+                            options: languageOptions,
+                            value: await constants_1.GlobalStore.getLanguages(),
+                            didChange: constants_1.GlobalStore.setLanguages,
+                        }),
+                    ],
+                },
+                // * IMAGE
+                {
+                    header: "Image Options",
+                    children: [
+                        (0, daisuke_1.UIToggle)({
+                            id: store_1.PREF_KEYS.dataSaver,
+                            title: "Data Saver Mode",
+                            value: await constants_1.GlobalStore.getDSMode(),
+                            didChange: constants_1.GlobalStore.setDSMode,
+                        }),
+                        (0, daisuke_1.UIPicker)({
+                            id: store_1.PREF_KEYS.coverQuality,
+                            title: "Cover/Thumbnail Quality",
+                            options: utils_1.CoverQualityOptions,
+                            value: await constants_1.GlobalStore.getCoverQuality(),
+                            didChange: constants_1.GlobalStore.setCoverQuality,
+                        }),
+                    ],
+                },
+                // * HOMEPAGE
+                {
+                    header: "Explore Page",
+                    children: [
+                        (0, daisuke_1.UIMultiPicker)({
+                            id: store_1.PREF_KEYS.exploreCR,
+                            title: "Content Rating",
+                            options: ratingOptions,
+                            value: await constants_1.GlobalStore.getContentRatings(),
+                            didChange: constants_1.GlobalStore.setContentRatings,
+                        }),
+                        (0, daisuke_1.UIToggle)({
+                            id: store_1.PREF_KEYS.showSeasonal,
+                            title: "Show Seasonal Lists",
+                            value: await constants_1.GlobalStore.getSeasonal(),
+                            didChange: constants_1.GlobalStore.setSeasonal,
+                        }),
+                    ],
+                },
+                // * MIMAS
+                {
+                    header: "Mimas Recommendations",
+                    children: [
+                        (0, daisuke_1.UIToggle)({
+                            id: store_1.PREF_KEYS.mimasEnabled,
+                            title: "Enable Recommendations",
+                            value: await constants_1.GlobalStore.getMimasEnabled(),
+                            didChange: constants_1.GlobalStore.setMimasEnabled,
+                        }),
+                        (0, daisuke_1.UIStepper)({
+                            id: store_1.PREF_KEYS.mimasLimit,
+                            title: "Limit",
+                            upperBound: 10,
+                            value: await constants_1.GlobalStore.getMimasLimit(),
+                            didChange: constants_1.GlobalStore.setMimasLimit,
+                        }),
+                        (0, daisuke_1.UIButton)({
+                            id: "mimas_clear",
+                            title: "Clear Current Recommendations",
+                            isDestructive: true,
+                            systemImage: "trash",
+                            action: constants_1.GlobalStore.clearMimasTargets,
+                        }),
+                    ],
+                },
+                // * AUTH
+                {
+                    header: "Authentication",
+                    children: [
+                        (0, daisuke_1.UIButton)({
+                            id: "force_sign_out",
+                            title: "Force Sign Out",
+                            isDestructive: true,
+                            async action() {
+                                //
+                            },
+                        }),
+                    ],
+                },
+            ],
+        };
+    },
+};
+
+},{"../constants":1,"../store":21,"../utils":22,"@suwatte/daisuke":23,"lodash":undefined}],11:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDProgressStateHandler = void 0;
+const network_1 = require("../network");
+exports.MDProgressStateHandler = {
+    getProgressState: async function (contentId) {
+        return { readChapterIds: await getReadChapterMarkers(contentId) };
+    },
+};
+async function getReadChapterMarkers(contentId) {
+    const response = await (0, network_1.GET)(`/manga/read`, {
+        params: { ids: [contentId], grouped: true },
+    });
+    const data = JSON.parse(response.data);
+    const ids = data.data[contentId];
+    return ids ?? [];
+}
+
+},{"../network":17}],12:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Target = exports.info = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const impl_1 = require("./impl");
+const directoryHandler_1 = require("./impl/directoryHandler");
+const utils_1 = require("./utils");
+exports.info = {
+    name: "MangaDex",
+    id: "org.mangadex",
+    version: 1.81,
+    website: "https://mangadex.org",
+    supportedLanguages: utils_1.languages.map((v) => v.languageCode.includes("-")
+        ? v.languageCode
+        : v.languageCode + "-" + v.regionCode),
+    thumbnail: "mangadex.png",
+    minSupportedAppVersion: "6.0.0",
+    rating: daisuke_1.CatalogRating.MIXED,
+};
+exports.Target = {
+    info: exports.info,
+    ...impl_1.MDContentSource,
+    ...directoryHandler_1.MDDirectoryHandler,
+    ...impl_1.MDPageLinkResolver,
+    ...impl_1.MDPageProvider,
+    ...impl_1.MDPreferenceProvider,
+    ...impl_1.MDBasicAuthProvider,
+    ...impl_1.MDLibraryEventHandler,
+    ...impl_1.MDContentSyncHandler,
+    ...impl_1.MDProgressStateHandler,
+};
+
+},{"./impl":6,"./impl/directoryHandler":5,"./utils":22,"@suwatte/daisuke":23}],13:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getSearchSorters = void 0;
+async function getSearchSorters() {
+    const data = {
+        followedCount: "Popular",
+        rating: "User Rating",
+        createdAt: "New",
+        relevance: "Relevant",
+        title: "Alphabetically",
+        year: "Yearly",
+        updatedAt: "Last Updated",
+        latestUploadedChapter: "Last Uploaded Chapter",
+    };
+    return Object.entries(data).map(([id, title]) => ({
+        id,
+        title,
+    }));
+}
+exports.getSearchSorters = getSearchSorters;
+
+},{}],14:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.resolveHomepageSection = exports.getHomePageSections = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const constants_1 = require("../constants");
+const md_1 = require("./md");
+const lodash_1 = require("lodash");
+const directory_1 = require("./directory");
+const mimas_1 = require("./mimas");
+const getHomePageSections = async () => {
+    const shuffle = (array) => {
+        let currentIndex = array.length, temporaryValue, randomIndex;
+        // While there remain elements to shuffle...
+        while (0 !== currentIndex) {
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+            // And swap it with the current element.
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+        }
+        return array;
+    };
+    const injectMimasRecs = await constants_1.GlobalStore.getMimasEnabled();
+    const injectSeasonal = await constants_1.GlobalStore.getSeasonal();
+    const sections = [
+        {
+            id: "followedCount",
+            title: "Popular Titles...",
+            subtitle: "The general consensus is never wrong.",
+            style: daisuke_1.SectionStyle.INFO,
+        },
+        {
+            id: "createdAt",
+            title: "Recently Added",
+            style: daisuke_1.SectionStyle.DEFAULT,
+        },
+        {
+            id: "rating",
+            title: "Highly Rated Titles",
+            subtitle: "Masterpieces",
+            style: daisuke_1.SectionStyle.INFO,
+        },
+        {
+            id: "relevance",
+            title: "Relevant Titles",
+            subtitle: "This sort option makes no fucking sense.",
+            style: daisuke_1.SectionStyle.DEFAULT,
+        },
+        {
+            id: "popular_new",
+            title: "Popular New Titles",
+            style: daisuke_1.SectionStyle.GALLERY,
+        },
+        {
+            id: "staff_picks",
+            title: "Staff Picks",
+            subtitle: "Curated Gems: The MD Team's Favorite Manga Selections",
+            style: daisuke_1.SectionStyle.GALLERY,
+        },
+    ];
+    // Seasonal Lists
+    if (injectSeasonal) {
+        sections.push(...[
+            {
+                id: "seasonal",
+                title: "Seasonal List",
+                subtitle: "Titles from this anime season.",
+                style: daisuke_1.SectionStyle.GALLERY,
+            },
+            {
+                id: "prev_seasonal",
+                title: "Previous Seasonal List",
+                subtitle: "Titles from the previous anime season.",
+                style: daisuke_1.SectionStyle.GALLERY,
+            },
+        ]);
+    }
+    // Mimas Recommendations
+    if (injectMimasRecs) {
+        const ids = await constants_1.GlobalStore.getMimasTargets();
+        const recommended = ids.map((v) => ({
+            id: `mimas|${v}`,
+            title: "Recommendation",
+            style: daisuke_1.SectionStyle.DEFAULT,
+        }));
+        sections.push(...recommended);
+    }
+    const shuffled = shuffle(sections);
+    shuffled.push({
+        id: "recentlyUpdated",
+        title: "Latest Updates",
+        style: daisuke_1.SectionStyle.PADDED_LIST,
+    });
+    return shuffled;
+};
+exports.getHomePageSections = getHomePageSections;
+const resolveHomepageSection = async (_link, section) => {
+    switch (section) {
+        case "popular_new":
+            return {
+                items: (await (0, md_1.getPopularNewTitles)()).results,
+            };
+        case "seasonal": {
+            const { highlights: items, title: updatedTitle } = await (0, md_1.getCollectionForList)(constants_1.SEASONAL_LIST_ID);
+            return { items, updatedTitle };
+        }
+        case "prev_seasonal": {
+            const { highlights: items, title: updatedTitle } = await (0, md_1.getCollectionForList)(constants_1.LAST_SEASONAL_LIST_ID);
+            return { items, updatedTitle };
+        }
+        case "staff_picks": {
+            const { highlights: items, title: updatedTitle } = await (0, md_1.getCollectionForList)(constants_1.STAFF_PICKS_LIST_ID);
+            return { items, updatedTitle };
+        }
+        // Get
+        case "recentlyUpdated":
+            return {
+                items: await (0, md_1.getMDUpdates)(1),
+            };
+        default:
+            if (section.includes("mimas")) {
+                const id = section.split("|").pop();
+                if (!id)
+                    throw new Error("Improper Config");
+                const name = (0, lodash_1.sample)(["More Like", "Because you read", "Similar to"]) ??
+                    "More Like";
+                const { target, recs } = await (0, mimas_1.getMimasRecommendations)(id);
+                return {
+                    items: [(0, mimas_1.convertMimasRec)(target), ...recs.map(mimas_1.convertMimasRec)],
+                    updatedTitle: `${name} "${target.title}"`,
+                };
+            }
+            else {
+                const sort = (await (0, directory_1.getSearchSorters)()).find((v) => v.id === section)?.id;
+                const content_ratings = await constants_1.GlobalStore.getContentRatings();
+                const query = {
+                    page: 1,
+                    filters: { content_rating: { included: content_ratings } },
+                    ...(sort && {
+                        sort: {
+                            id: sort,
+                            ascending: false,
+                        },
+                    }),
+                };
+                const overrides = {
+                    limit: 20,
+                    getStats: ["followedCount", "rating"].includes(section),
+                };
+                return {
+                    items: (await (0, md_1.getMDSearchResults)(query, overrides)).results,
+                };
+            }
+    }
+};
+exports.resolveHomepageSection = resolveHomepageSection;
+
+},{"../constants":1,"./directory":13,"./md":15,"./mimas":16,"@suwatte/daisuke":23,"lodash":undefined}],15:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getMDUserStatuses = exports.getMDReadingStatus = exports.getStatusFlagForReadingFlag = exports.isSignedIn = exports.clearTokens = exports.getPopularNewTitles = exports.getCollectionForList = exports.buildFilters = exports.getMDSearchResults = exports.getMDUpdates = exports.getMDList = exports.getMDStatistics = exports.getMDRelatedCollections = exports.getMDCovers = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const constants_1 = require("../constants");
+const network_1 = require("../network");
+const pagedResponse_1 = require("../parser/pagedResponse");
+const he_1 = require("he");
+const lodash_1 = require("lodash");
+const utils_1 = require("../utils");
+const moment_1 = __importDefault(require("moment"));
+// Fetches Covers for the provided ids
+async function getMDCovers(ids) {
+    const results = {};
+    const response = await (0, network_1.GET)("/cover", {
+        params: {
+            manga: ids,
+            limit: 100,
+            "order[volume]": "desc",
+        },
+    });
+    const suffix = await constants_1.GlobalStore.getCoverQuality();
+    for (const id of ids) {
+        const files = response.data.filter((data) => Object.values(data.relationships.flatMap((x) => x.id)).includes(id));
+        const covers = files.map((val) => `${constants_1.COVER_URL}/${id}/${val.attributes.fileName}${suffix}`);
+        results[id] = covers;
+    }
+    return results;
+}
+exports.getMDCovers = getMDCovers;
+// Gets related titles for provided ids
+async function getMDRelatedCollections(ids) {
+    const response = await (0, network_1.GET)("/manga", {
+        params: {
+            includes: ["cover_art"],
+            ids,
+        },
+    });
+    const paged = await (0, pagedResponse_1.parsePagedResponse)(response);
+    return paged.results;
+}
+exports.getMDRelatedCollections = getMDRelatedCollections;
+// Gets the stats for the provided ids
+async function getMDStatistics(ids) {
+    const response = await (0, network_1.GET)("/statistics/manga", {
+        params: {
+            manga: ids,
+        },
+    });
+    const stats = response.statistics;
+    const getValue = (key) => {
+        const obj = stats[key];
+        return {
+            follows: obj.follows,
+            rating: obj.rating.average,
+            // views: 0,
+        };
+    };
+    return ids.reduce((a, v) => ({ ...a, [v]: getValue(v) }), {});
+}
+exports.getMDStatistics = getMDStatistics;
+// Fetches an MD List
+async function getMDList(listId, pageNumber = 1) {
+    const { data } = await (0, network_1.GET)(`/list/${listId}`);
+    const contentIds = data.relationships
+        .filter((x) => x.type == "manga")
+        .map((x) => x.id);
+    const listName = data.attributes.name ?? "Seasonal";
+    const page = await (0, network_1.GET)(`/manga`, {
+        params: {
+            includes: ["cover_art"],
+            ids: contentIds,
+            limit: constants_1.RESULT_LIMIT,
+            offset: constants_1.RESULT_LIMIT * (pageNumber - 1),
+        },
+    });
+    return {
+        title: listName,
+        highlights: (await (0, pagedResponse_1.parsePagedResponse)(page)).results,
+    };
+}
+exports.getMDList = getMDList;
+// Fetches Updates from MD
+async function getMDUpdates(page) {
+    const contentRating = await constants_1.GlobalStore.getContentRatings();
+    const langs = await constants_1.GlobalStore.getLanguages();
+    let response = await (0, network_1.GET)(`/chapter`, {
+        params: {
+            limit: 50,
+            offset: 50 * (page - 1),
+            "order[readableAt]": "desc",
+            translatedLanguage: langs,
+            contentRating: contentRating,
+            includeFutureUpdates: "0",
+        },
+    });
+    const chapterListJSON = { ...response };
+    const base = chapterListJSON.data.map((x) => x.relationships.find((y) => y.type == "manga").id);
+    const ids = Array.from(new Set(base));
+    response = await (0, network_1.GET)(`/manga`, {
+        params: {
+            ids,
+            limit: ids.length,
+            contentRating,
+            includes: ["cover_art"],
+        },
+    });
+    const highlights = (await (0, pagedResponse_1.parsePagedResponse)(response)).results.sort((a, b) => {
+        return ids.indexOf(a.id) - ids.indexOf(b.id);
+    });
+    highlights.forEach((entry) => {
+        const chapterObject = chapterListJSON.data.find((json) => entry.id == json.relationships.find((y) => y.type == "manga").id);
+        const volume = chapterObject.attributes.volume;
+        const chapter = chapterObject.attributes.chapter;
+        const chapterName = `${volume ? `Volume ${volume} ` : ""}Chapter ${chapter}`;
+        const chapterDate = (0, moment_1.default)(chapterObject.attributes.publishAt).fromNow();
+        const getOccurrences = (array, value) => {
+            let count = 0;
+            array.forEach((v) => v === value && count++);
+            return count;
+        };
+        const chapterCount = getOccurrences(base, entry.id);
+        const info = `${chapterCount} Update${chapterCount != 1 ? "s" : ""} • ${chapterDate}\n${chapterName}`;
+        entry.info = [info];
+    });
+    return highlights;
+}
+exports.getMDUpdates = getMDUpdates;
+// Fetches Search results from MD
+async function getMDSearchResults(query, overrides = {}) {
+    const page = query.page ?? 1;
+    const limit = overrides.limit ?? constants_1.RESULT_LIMIT;
+    const offset = (page - 1) * limit;
+    const params = { limit, offset, includes: ["cover_art"] };
+    // Keyword
+    if (query.query) {
+        params.title = (0, he_1.encode)(query.query);
+    }
+    // Order
+    if (query.sort) {
+        params[`order[${query.sort.id}]`] = "desc";
+    }
+    else {
+        params["order[followedCount]"] = "desc";
+    }
+    // for (const filter of query.filters ?? []) {
+    //   const included = filter.included ?? [];
+    //   const excluded = filter.excluded ?? [];
+    //   switch (filter.id) {
+    //     case "demographic":
+    //       params.publicationDemographic = included;
+    //       break;
+    //     case "content_rating":
+    //       params.contentRating =
+    //         included.length == 0
+    //           ? ["safe", "suggestive", "erotica", "pornographic"]
+    //           : included;
+    //       break;
+    //     case "lang":
+    //     case "language":
+    //       params.originalLanguage = included;
+    //       break;
+    //     case "pb_status":
+    //     case "status":
+    //       params.status = included;
+    //       break;
+    //     case "author":
+    //     case "credits":
+    //       params.authors = included;
+    //       break;
+    //     default:
+    //       params.includedTags = included;
+    //       params.excludedTags = excluded;
+    //       break;
+    //   }
+    // }
+    const response = await (0, network_1.GET)("/manga", { params });
+    return (0, pagedResponse_1.parsePagedResponse)(response);
+}
+exports.getMDSearchResults = getMDSearchResults;
+async function buildFilters() {
+    const filters = [];
+    const { data } = await (0, network_1.GET)(`/manga/tag`);
+    const grouped = (0, lodash_1.groupBy)(data, (v) => v.attributes.group);
+    for (const group in grouped) {
+        const title = (0, lodash_1.capitalize)(group);
+        const options = grouped[group].map((tag) => {
+            return {
+                title: tag.attributes.name.en,
+                id: tag.id,
+            };
+        });
+        const filter = {
+            id: group,
+            title,
+            options,
+            type: daisuke_1.FilterType.EXCLUDABLE_MULTISELECT,
+        };
+        filters.push(filter);
+    }
+    filters.push({
+        id: "pb_status",
+        title: "Publication Status",
+        options: constants_1.PUBLICATION_STATUS.map((id) => {
+            return {
+                id,
+                title: (0, lodash_1.capitalize)(id),
+            };
+        }),
+        type: daisuke_1.FilterType.MULTISELECT,
+    });
+    filters.push({
+        id: "demographic",
+        title: "Publication Demographic",
+        options: constants_1.DEMOGRAPHICS.map((id) => {
+            return {
+                id,
+                title: (0, lodash_1.capitalize)(id),
+            };
+        }),
+        type: daisuke_1.FilterType.MULTISELECT,
+    });
+    filters.push({
+        id: "content_rating",
+        title: "Content Rating",
+        options: constants_1.CONTENT_RATINGS.map((id) => {
+            return {
+                id,
+                title: (0, lodash_1.capitalize)(id),
+            };
+        }),
+        type: daisuke_1.FilterType.MULTISELECT,
+    });
+    filters.push({
+        id: "lang",
+        title: "Original Language",
+        type: daisuke_1.FilterType.MULTISELECT,
+        options: constants_1.LANGUAGES.map((id) => {
+            return {
+                id,
+                title: (0, utils_1.languageLabel)(id),
+            };
+        }),
+    });
+    return filters;
+}
+exports.buildFilters = buildFilters;
+async function getCollectionForList(id) {
+    const list = await getMDList(id);
+    return { highlights: list.highlights, title: list.title };
+}
+exports.getCollectionForList = getCollectionForList;
+async function getPopularNewTitles() {
+    const date = (0, moment_1.default)().subtract({ month: 1 }).toDate();
+    const contentRating = await constants_1.GlobalStore.getContentRatings();
+    const params = {
+        includes: ["cover_art"],
+        "order[followedCount]": "desc",
+        contentRating,
+        hasAvailableChapters: true,
+        limit: 15,
+        createdAtSince: date.toISOString().split(".")[0],
+    };
+    const response = await (0, network_1.GET)("/manga", {
+        params,
+    });
+    return (0, pagedResponse_1.parsePagedResponse)(response);
+}
+exports.getPopularNewTitles = getPopularNewTitles;
+async function clearTokens() {
+    await SecureStore.remove("session");
+    await SecureStore.remove("refresh");
+}
+exports.clearTokens = clearTokens;
+async function isSignedIn() {
+    const session = await SecureStore.string("session");
+    const refresh = await SecureStore.string("refresh");
+    if (!session || !refresh)
+        return false; // Either Refresh or Access is missing, not signed in
+    if ((0, network_1.isTokenExpired)(refresh)) {
+        // Refresh is expired, not signed in
+        await clearTokens(); // clear tokens
+        return false;
+    }
+    return true;
+}
+exports.isSignedIn = isSignedIn;
+async function getStatusFlagForReadingFlag(flag) {
+    const READING_STATUS = {
+        reading: daisuke_1.ReadingFlag.READING,
+        plan_to_read: daisuke_1.ReadingFlag.PLANNED,
+        dropped: daisuke_1.ReadingFlag.DROPPED,
+        completed: daisuke_1.ReadingFlag.COMPLETED,
+        re_reading: daisuke_1.ReadingFlag.REREADING,
+        on_hold: daisuke_1.ReadingFlag.PAUSED,
+    };
+    return (Object.keys(READING_STATUS).find((key) => READING_STATUS[key] === flag) ??
+        "reading");
+}
+exports.getStatusFlagForReadingFlag = getStatusFlagForReadingFlag;
+// Authenticated User
+function getMDReadingStatus(str) {
+    switch (str) {
+        case "reading":
+            return daisuke_1.ReadingFlag.READING;
+        case "plan_to_read":
+            return daisuke_1.ReadingFlag.PLANNED;
+        case "dropped":
+            return daisuke_1.ReadingFlag.DROPPED;
+        case "completed":
+            return daisuke_1.ReadingFlag.COMPLETED;
+        case "re_reading":
+            return daisuke_1.ReadingFlag.REREADING;
+        case "on_hold":
+            return daisuke_1.ReadingFlag.PAUSED;
+        default:
+            break;
+    }
+    return daisuke_1.ReadingFlag.UNKNOWN;
+}
+exports.getMDReadingStatus = getMDReadingStatus;
+async function getMDUserStatuses() {
+    try {
+        const response = await (0, network_1.GET)(`$/manga/status`);
+        return response.statuses;
+    }
+    catch (err) {
+        console.log(err.response.data);
+    }
+    return {};
+}
+exports.getMDUserStatuses = getMDUserStatuses;
+
+},{"../constants":1,"../network":17,"../parser/pagedResponse":20,"../utils":22,"@suwatte/daisuke":23,"he":undefined,"lodash":undefined,"moment":undefined}],16:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.convertMimasRec = exports.getMimasRecommendations = void 0;
+async function getMimasRecommendations(id) {
+    const MIMAS_URL = "https://mimas.mantton.com";
+    const client = new NetworkClient();
+    const response = await client.get(`${MIMAS_URL}/similar/org.mangadex/${id}?page=1`);
+    const data = JSON.parse(response.data);
+    return {
+        recs: data.results,
+        target: data.target,
+    };
+}
+exports.getMimasRecommendations = getMimasRecommendations;
+const convertMimasRec = ({ contentId: id, title, coverImage: cover, }) => ({
+    id,
+    title,
+    cover,
+});
+exports.convertMimasRec = convertMimasRec;
+
+},{}],17:[function(require,module,exports){
+(function (Buffer){(function (){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.POST = exports.GET = exports.isTokenExpired = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const constants_1 = require("./constants");
+const client = new daisuke_1.NetworkClientBuilder()
+    .addRequestInterceptor(AuthInterceptor)
+    .build();
+async function AuthInterceptor(request) {
+    let token = null;
+    const chain = SecureStore;
+    try {
+        token = await chain.string("session");
+    }
+    catch (error) {
+        console.log("Nested Object Reference Error");
+        return request;
+    }
+    if (!token)
+        return request;
+    if (isTokenExpired(token)) {
+        await refreshTokens();
+        token = await chain.string("session");
+        if (!token) {
+            return request;
+        }
+    }
+    request.headers = {
+        ...request.headers,
+        authorization: `Bearer ${token.trim()}`,
+        referer: "https://mangadex.org",
+    };
+    return request;
+}
+const refreshTokens = async () => {
+    const token = await SecureStore.string("refresh");
+    const removeTokens = async () => {
+        await SecureStore.remove("refresh");
+        await SecureStore.remove("session");
+    };
+    if (!token) {
+        await removeTokens();
+        return;
+    }
+    if (isTokenExpired(token)) {
+        await removeTokens();
+        return;
+    }
+    // Refresh
+    try {
+        const client = new NetworkClient();
+        const refreshResponse = await client.post(`https://api.mangadex.org/auth/refresh`, {
+            body: {
+                token,
+            },
+        });
+        const data = JSON.parse(refreshResponse.data);
+        await SecureStore.set("session", data.token.session);
+        await SecureStore.set("refresh", data.token.refresh);
+    }
+    catch {
+        await removeTokens();
+    }
+    console.log("Refreshed Token");
+};
+function isTokenExpired(token) {
+    return (Date.now() >=
+        JSON.parse(Buffer.from(token.split(".")[1], "base64").toString()).exp * 1000);
+}
+exports.isTokenExpired = isTokenExpired;
+async function GET(path, config) {
+    const url = `${constants_1.API_URL}${path}`;
+    const { data: response } = await client.get(url, config);
+    const data = JSON.parse(response);
+    return data;
+}
+exports.GET = GET;
+async function POST(path, config) {
+    const { data: response } = await client.post(`${constants_1.API_URL}${path}`, config);
+    const data = JSON.parse(response);
+    return data;
+}
+exports.POST = POST;
+
+}).call(this)}).call(this,require("buffer").Buffer)
+},{"./constants":1,"@suwatte/daisuke":23,"buffer":88}],18:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseChapterData = exports.getChapters = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const he_1 = require("he");
+const constants_1 = require("../constants");
+const utils_1 = require("../utils");
+const network_1 = require("../network");
+const getChapters = async (contentId) => {
+    const translatedLanguage = await constants_1.GlobalStore.getLanguages();
+    const chapters = [];
+    let offset = 0;
+    const limit = 500;
+    let loop = true;
+    let index = 0;
+    while (loop) {
+        const path = `/manga/${contentId}/feed`;
+        const params = {
+            limit,
+            offset,
+            translatedLanguage,
+            contentRating: constants_1.CONTENT_RATINGS,
+            includes: ["scanlation_group"],
+            "order[volume]": "desc",
+            "order[chapter]": "desc",
+            "order[publishAt]": "desc",
+        };
+        const json = await (0, network_1.GET)(path, { params });
+        for (const chapter of json.data) {
+            const id = chapter.id;
+            const attributes = chapter.attributes;
+            const title = attributes.title ? (0, he_1.decode)(attributes.title) : undefined;
+            const number = Number(attributes.chapter);
+            const volume = attributes.volume ? Number(attributes.volume) : undefined;
+            const date = new Date(attributes.publishAt);
+            const language = (0, utils_1.languageCode)(attributes.translatedLanguage);
+            let webUrl = attributes.externalUrl;
+            if (!webUrl) {
+                webUrl = `https://mangadex.org/chapter/${id}`;
+            }
+            const providers = chapter.relationships
+                .filter((v) => v.type === "scanlation_group")
+                .map((data) => {
+                const links = [];
+                if (data.attributes.website) {
+                    links.push({
+                        type: daisuke_1.ProviderLinkType.WEBSITE,
+                        url: data.attributes.website,
+                    });
+                }
+                if (data.attributes.twitter) {
+                    links.push({
+                        type: daisuke_1.ProviderLinkType.TWITTER,
+                        url: data.attributes.twitter,
+                    });
+                }
+                if (data.attributes.discord) {
+                    const str = data.attributes.discord;
+                    links.push({
+                        type: daisuke_1.ProviderLinkType.DISCORD,
+                        url: `https://discord.gg/${str}`,
+                    });
+                }
+                return {
+                    id: data.id,
+                    name: data.attributes.name,
+                    links,
+                };
+            });
+            if (attributes.pages <= 0) {
+                continue;
+            }
+            chapters.push({
+                chapterId: id,
+                title,
+                number,
+                volume,
+                date,
+                language,
+                webUrl,
+                providers,
+                index,
+            });
+            index++;
+        }
+        offset += 500;
+        if (json.total <= offset) {
+            loop = false;
+        }
+    }
+    return chapters;
+};
+exports.getChapters = getChapters;
+const parseChapterData = async (json) => {
+    const isDataSaver = await constants_1.GlobalStore.getDSMode();
+    const serverUrl = json.baseUrl;
+    const chapter = json.chapter;
+    const key = isDataSaver ? "dataSaver" : "data";
+    const path = isDataSaver ? "data-saver" : "data";
+    const urls = chapter[key].map((v) => ({
+        url: `${serverUrl}/${path}/${chapter.hash}/${v}`,
+    }));
+    return urls;
+};
+exports.parseChapterData = parseChapterData;
+
+},{"../constants":1,"../network":17,"../utils":22,"@suwatte/daisuke":23,"he":undefined}],19:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseContent = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const he_1 = require("he");
+const lodash_1 = require("lodash");
+const utils_1 = require("../utils");
+const constants_1 = require("../constants");
+const md_1 = require("../misc/md");
+const parseContent = async ({ data }, contentId) => {
+    const attributes = data.attributes;
+    const relationships = data.relationships;
+    const titles = [attributes.title[Object.keys(attributes.title)[0]]].concat(attributes.altTitles.map((x) => (0, he_1.decode)(x[Object.keys(x)[0]])));
+    let nsfw = false;
+    const summary = (0, he_1.decode)(attributes.description.en ?? "").replace(/\[\/{0,1}[bus]\]/g, "");
+    // Status
+    let status;
+    switch (attributes.status) {
+        case "ongoing": {
+            status = daisuke_1.PublicationStatus.ONGOING;
+            break;
+        }
+        case "completed": {
+            status = daisuke_1.PublicationStatus.COMPLETED;
+            break;
+        }
+        case "hiatus": {
+            status = daisuke_1.PublicationStatus.HIATUS;
+            break;
+        }
+        case "cancelled": {
+            status = daisuke_1.PublicationStatus.CANCELLED;
+            break;
+        }
+    }
+    // Properties
+    const properties = [];
+    // Genres
+    const genreTags = [];
+    for (const tag of attributes.tags) {
+        const tagIsNSFW = constants_1.ADULT_TAG_IDS.includes(tag.id);
+        const t = {
+            id: tag.id,
+            nsfw: tagIsNSFW,
+            title: tag.attributes.name.en,
+        };
+        if (tagIsNSFW) {
+            nsfw = true;
+        }
+        genreTags.push(t);
+    }
+    const propertyTags = {
+        id: "genres",
+        title: "Genres",
+        tags: genreTags,
+    };
+    properties.push(propertyTags);
+    // * Reading Mode
+    let recommendedPanelMode = daisuke_1.ReadingMode.PAGED_MANGA;
+    const longStripId = "3e2b8dae-350e-4ab8-a8ce-016e844b9f0d";
+    const fullColorId = "f5ba408b-0e7a-484d-8d49-4e9125ac96de";
+    const mapped = genreTags.map((v) => v.id);
+    if (mapped.includes(longStripId)) {
+        recommendedPanelMode = daisuke_1.ReadingMode.WEBTOON;
+    }
+    else if (mapped.includes(fullColorId)) {
+        recommendedPanelMode = daisuke_1.ReadingMode.PAGED_COMIC;
+    }
+    // * Content Rating & Publication Demographic & Original Language
+    if (attributes.contentRating) {
+        const tags = [];
+        const tag = {
+            id: attributes.contentRating.toLowerCase(),
+            title: (0, lodash_1.capitalize)(attributes.contentRating),
+            nsfw: attributes.contentRating == "pornographic",
+        };
+        if (!nsfw)
+            nsfw = attributes.contentRating == "pornographic";
+        tags.push(tag);
+        const contentRatingProperty = {
+            id: "content_rating",
+            title: "Content Rating",
+            tags,
+        };
+        properties.push(contentRatingProperty);
+    }
+    // Original Language
+    const originalLang = attributes.originalLanguage;
+    if (originalLang) {
+        const tags = [];
+        const languageTag = {
+            id: originalLang,
+            title: (0, utils_1.languageLabel)(originalLang ?? "unknown"),
+            nsfw: false,
+        };
+        // Properly Rename, Common Languages
+        tags.push(languageTag);
+        const languageTags = {
+            id: "lang",
+            title: "Original Language",
+            tags,
+        };
+        properties.push(languageTags);
+    }
+    // Creators
+    const credits = relationships.filter((x) => ["author", "artist"].includes(x.type));
+    const authors = relationships
+        .filter((x) => x.type == "author")
+        .map((x) => x.attributes.name);
+    const artists = relationships
+        .filter((x) => x.type == "artist")
+        .map((x) => x.attributes.name);
+    if (credits.length != 0) {
+        try {
+            const tags = [];
+            // Clickable artist & author properties
+            const appendedIds = [];
+            credits.forEach((obj) => {
+                const tag = {
+                    id: obj.id,
+                    title: (0, he_1.decode)(obj.attributes.name),
+                    nsfw: false,
+                };
+                if (!appendedIds.includes(obj.id)) {
+                    tags.push(tag);
+                    appendedIds.push(obj.id);
+                }
+            });
+            const creditsProperty = {
+                id: "authors",
+                title: "Credits",
+                tags,
+            };
+            properties.push(creditsProperty);
+            // let ids = creators;
+        }
+        catch (err) {
+            // handle error
+            console.log("MangaDex: Failed To Parse Creators");
+        }
+    }
+    // Links
+    const trackerInfo = {
+        al: attributes?.links?.al,
+        kt: attributes?.links?.kt,
+        mal: attributes?.links?.mal,
+        mu: attributes?.links?.mu,
+    };
+    // Related Content
+    const includedCollections = [];
+    const relatedManga = relationships
+        .filter((v) => v.type === "manga")
+        .map((v) => v.id);
+    if (relatedManga.length > 0) {
+        const highlights = await (0, md_1.getMDRelatedCollections)(relatedManga);
+        includedCollections.push({
+            id: "related_manga",
+            title: "Related Titles",
+            highlights,
+        });
+    }
+    const covers = (await (0, md_1.getMDCovers)([contentId]))[contentId];
+    const stats = (await (0, md_1.getMDStatistics)([contentId]))[contentId];
+    const info = [
+        `📚 Follows: ${stats.follows.toLocaleString()}`,
+        stats.rating ? `⭐️ Rating: ${stats.rating.toFixed(1)} / 10 ` : "",
+    ].filter((v) => !!v);
+    let contentType;
+    switch (originalLang) {
+        case "jp":
+            contentType = daisuke_1.ContentType.MANGA;
+            break;
+        case "ko":
+            contentType = daisuke_1.ContentType.MANHWA;
+            break;
+    }
+    return {
+        title: titles[0],
+        additionalTitles: titles,
+        cover: covers[0],
+        additionalCovers: covers,
+        properties,
+        summary,
+        webUrl: `https://mangadex.org/title/${contentId}`,
+        trackerInfo,
+        status,
+        creators: Array.from(new Set(artists.concat(authors))),
+        isNSFW: nsfw,
+        recommendedPanelMode,
+        collections: includedCollections,
+        contentType,
+        info,
+    };
+};
+exports.parseContent = parseContent;
+
+},{"../constants":1,"../misc/md":15,"../utils":22,"@suwatte/daisuke":23,"he":undefined,"lodash":undefined}],20:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parsePagedResponse = void 0;
+const he_1 = require("he");
+const md_1 = require("../misc/md");
+const constants_1 = require("../constants");
+async function parsePagedResponse(json, fetchCovers = false) {
+    // batch
+    const highlights = json.data.map(async (manga) => {
+        const attributes = manga.attributes;
+        const tags = attributes.tags
+            .map((tag) => tag.attributes.name.en)
+            .slice(0, 4);
+        const title = (0, he_1.decode)(attributes.title[Object.keys(attributes.title)[0]]);
+        const fileName = manga.relationships
+            .filter((x) => x.type == "cover_art")
+            .map((x) => x.attributes?.fileName)[0];
+        const suffix = await constants_1.GlobalStore.getCoverQuality();
+        const defaultCover = `${constants_1.COVER_URL}/${manga.id}/${fileName}${suffix}`;
+        const highlight = {
+            title,
+            info: [tags.join(", ")],
+            cover: defaultCover,
+            id: manga.id,
+        };
+        if (fetchCovers) {
+            highlight.additionalCovers = (await (0, md_1.getMDCovers)([manga.id]))[manga.id].slice(0, 5);
+        }
+        return highlight;
+    });
+    const results = await Promise.all(highlights);
+    return {
+        results,
+        isLastPage: highlights.length === 0,
+        totalResultCount: json.total,
+    };
+}
+exports.parsePagedResponse = parsePagedResponse;
+
+},{"../constants":1,"../misc/md":15,"he":undefined}],21:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDStore = exports.PREF_KEYS = void 0;
+const utils_1 = require("./utils");
+exports.PREF_KEYS = {
+    lang: "_lang",
+    dataSaver: "_data_saver",
+    coverQuality: "_cover_quality",
+    exploreCR: "_explore_content_rating",
+    showSeasonal: "_show_seasonal",
+    mimasEnabled: "_mimas_enabled",
+    mimasLimit: "_mimas_limit",
+    mimasTargets: "_mimas_targets",
+};
+class MDStore {
+    async getSeasonal() {
+        const value = await ObjectStore.boolean(exports.PREF_KEYS.showSeasonal);
+        if (!value)
+            return true;
+        return !!value;
+    }
+    async setSeasonal(v) {
+        return ObjectStore.set(exports.PREF_KEYS.showSeasonal, v);
+    }
+    async getContentRatings() {
+        const DEFAULT = ["safe", "suggestive", "erotica"];
+        const ratings = await ObjectStore.stringArray(exports.PREF_KEYS.exploreCR);
+        if (!ratings)
+            return DEFAULT;
+        return ratings;
+    }
+    async setContentRatings(v) {
+        return ObjectStore.set(exports.PREF_KEYS.exploreCR, v);
+    }
+    async getDSMode() {
+        const value = await ObjectStore.boolean(exports.PREF_KEYS.dataSaver);
+        return !!value;
+    }
+    async setDSMode(v) {
+        return ObjectStore.set(exports.PREF_KEYS.dataSaver, v);
+    }
+    async getCQ() {
+        const value = await ObjectStore.string(exports.PREF_KEYS.coverQuality);
+        if (!value)
+            return "medium";
+        return value;
+    }
+    async getCoverQuality() {
+        const value = await ObjectStore.string(exports.PREF_KEYS.coverQuality);
+        if (!value)
+            return (0, utils_1.getURLSuffixFor)("medium");
+        return (0, utils_1.getURLSuffixFor)(value);
+    }
+    async setCoverQuality(v) {
+        return ObjectStore.set(exports.PREF_KEYS.coverQuality, v);
+    }
+    async getLanguages() {
+        const DEFAULT = ["en"];
+        const value = await ObjectStore.stringArray(exports.PREF_KEYS.lang);
+        if (!value)
+            return DEFAULT;
+        return value;
+    }
+    async setLanguages(value) {
+        return ObjectStore.set(exports.PREF_KEYS.lang, value);
+    }
+    // Recommendations
+    async getMimasEnabled() {
+        const value = await ObjectStore.boolean(exports.PREF_KEYS.mimasEnabled);
+        return !!value;
+    }
+    async setMimasEnabled(v) {
+        return ObjectStore.set(exports.PREF_KEYS.mimasEnabled, v);
+    }
+    async getMimasTargets() {
+        const value = await ObjectStore.stringArray(exports.PREF_KEYS.mimasTargets);
+        if (!value)
+            return [];
+        return value;
+    }
+    async getMimasLimit() {
+        const value = await ObjectStore.number(exports.PREF_KEYS.mimasLimit);
+        if (!value)
+            return 5;
+        return value;
+    }
+    async setMimasLimit(v) {
+        return ObjectStore.set(exports.PREF_KEYS.mimasLimit, v);
+    }
+    async saveToMimasTargets(id) {
+        const limit = await this.getMimasLimit();
+        const targets = await this.getMimasTargets();
+        targets.push(id);
+        const newTargets = Array.from(new Set(targets))
+            .filter((v) => !!v.trim())
+            .slice(-limit);
+        await ObjectStore.set(exports.PREF_KEYS.mimasTargets, newTargets);
+    }
+    async clearMimasTargets() {
+        await ObjectStore.remove(exports.PREF_KEYS.mimasTargets);
+    }
+}
+exports.MDStore = MDStore;
+
+},{"./utils":22}],22:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CoverQualityOptions = exports.languageCode = exports.languageLabel = exports.languages = exports.getURLSuffixFor = void 0;
+const getURLSuffixFor = (id) => {
+    switch (id) {
+        case "medium":
+            return ".512.jpg";
+        case "low":
+            return ".256.jpg";
+        default:
+            return "";
+    }
+};
+exports.getURLSuffixFor = getURLSuffixFor;
+exports.languages = [
+    {
+        // Arabic
+        label: "اَلْعَرَبِيَّةُ",
+        languageCode: "ar",
+        regionCode: "sa",
+    },
+    {
+        // Bulgarian
+        label: "български",
+        languageCode: "bg",
+        regionCode: "bg",
+    },
+    {
+        // Bengali
+        label: "বাংলা",
+        languageCode: "bn",
+        regionCode: "bd",
+    },
+    {
+        // Catalan
+        label: "Català",
+        languageCode: "ca",
+        regionCode: "es",
+    },
+    {
+        // Czech
+        label: "Čeština",
+        languageCode: "cs",
+        regionCode: "cz",
+    },
+    {
+        // Danish
+        label: "Dansk",
+        languageCode: "da",
+        regionCode: "dk",
+    },
+    {
+        // German
+        label: "Deutsch",
+        languageCode: "de",
+        regionCode: "de",
+    },
+    {
+        // English
+        label: "English",
+        languageCode: "en",
+        regionCode: "gb",
+    },
+    {
+        // Spanish
+        label: "Español",
+        languageCode: "es",
+        regionCode: "es",
+    },
+    {
+        // Spanish (Latin American)
+        label: "Español (Latinoamérica)",
+        languageCode: "es-la",
+        regionCode: "es",
+    },
+    {
+        // Farsi
+        label: "فارسی",
+        languageCode: "fa",
+        regionCode: "ir",
+    },
+    {
+        // Finnish
+        label: "Suomi",
+        languageCode: "fi",
+        regionCode: "fi",
+    },
+    {
+        // French
+        label: "Français",
+        languageCode: "fr",
+        regionCode: "fr",
+    },
+    {
+        // Hebrew
+        label: "עִבְרִית",
+        languageCode: "he",
+        regionCode: "il",
+    },
+    {
+        // Hindi
+        label: "हिन्दी",
+        languageCode: "hi",
+        regionCode: "in",
+    },
+    {
+        // Hungarian
+        label: "Magyar",
+        languageCode: "hu",
+        regionCode: "hu",
+    },
+    {
+        // Indonesian
+        label: "Indonesia",
+        languageCode: "id",
+        regionCode: "id",
+    },
+    {
+        // Italian
+        label: "Italiano",
+        languageCode: "it",
+        regionCode: "it",
+    },
+    {
+        // Japanese
+        label: "日本語",
+        languageCode: "ja",
+        regionCode: "jp",
+    },
+    {
+        // Korean
+        label: "한국어",
+        languageCode: "ko",
+        regionCode: "kr",
+    },
+    {
+        // Lithuanian
+        label: "Lietuvių",
+        languageCode: "lt",
+        regionCode: "lt",
+    },
+    {
+        // Mongolian
+        label: "монгол",
+        languageCode: "mn",
+        regionCode: "mn",
+    },
+    {
+        // Malay
+        label: "Melayu",
+        languageCode: "ms",
+        regionCode: "my",
+    },
+    {
+        // Burmese
+        label: "မြန်မာဘာသာ",
+        languageCode: "my",
+        regionCode: "mm",
+    },
+    {
+        // Dutch
+        label: "Nederlands",
+        languageCode: "nl",
+        regionCode: "nl",
+    },
+    {
+        // Norwegian
+        label: "Norsk",
+        languageCode: "no",
+        regionCode: "no",
+    },
+    {
+        // Polish
+        label: "Polski",
+        languageCode: "pl",
+        regionCode: "pl",
+    },
+    {
+        // Portuguese
+        label: "Português",
+        languageCode: "pt",
+        regionCode: "pt",
+    },
+    {
+        // Portuguese (Brazilian)
+        label: "Português (Brasil)",
+        languageCode: "pt-br",
+        regionCode: "pt",
+    },
+    {
+        // Romanian
+        label: "Română",
+        languageCode: "ro",
+        regionCode: "ro",
+    },
+    {
+        // Russian
+        label: "Pусский",
+        languageCode: "ru",
+        regionCode: "ru",
+    },
+    {
+        // Serbian
+        label: "Cрпски",
+        languageCode: "sr",
+        regionCode: "rs",
+    },
+    {
+        // Swedish
+        label: "Svenska",
+        languageCode: "sv",
+        regionCode: "se",
+    },
+    {
+        // Thai
+        label: "ไทย",
+        languageCode: "th",
+        regionCode: "th",
+    },
+    {
+        // Tagalog
+        label: "Filipino",
+        languageCode: "tl",
+        regionCode: "ph",
+    },
+    {
+        // Turkish
+        label: "Türkçe",
+        languageCode: "tr",
+        regionCode: "tr",
+    },
+    {
+        // Ukrainian
+        label: "Yкраї́нська",
+        languageCode: "uk",
+        regionCode: "ua",
+    },
+    {
+        // Vietnamese
+        label: "Tiếng Việt",
+        languageCode: "vi",
+        regionCode: "vn",
+    },
+    {
+        // Chinese (Simplified)
+        label: "中文 (简化字)",
+        languageCode: "zh",
+        regionCode: "cn",
+    },
+    {
+        // Chinese (Traditional)
+        label: "中文 (繁體字)",
+        languageCode: "zh-hk",
+        regionCode: "hk",
+    },
+];
+const languageLabel = (lang) => {
+    return (exports.languages.find((v) => v.languageCode === lang)?.label ?? lang.toUpperCase());
+};
+exports.languageLabel = languageLabel;
+const languageCode = (lang) => {
+    const t = exports.languages.find((v) => v.languageCode == lang);
+    if (!t)
+        return "";
+    return t.languageCode.includes("-")
+        ? t.languageCode
+        : t.languageCode + "-" + t.regionCode;
+};
+exports.languageCode = languageCode;
+exports.CoverQualityOptions = [
+    {
+        title: "Original",
+        id: "original",
+    },
+    {
+        title: "Medium",
+        id: "medium",
+    },
+    {
+        title: "Low",
+        id: "low",
+    },
+];
+
+},{}],23:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./runners"), exports);
+__exportStar(require("./types"), exports);
+
+},{"./runners":47,"./types":77}],24:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+
+},{}],25:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],26:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],27:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],28:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],29:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],30:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],31:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],32:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],33:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./ContentEvent"), exports);
+__exportStar(require("./ChapterEvent"), exports);
+__exportStar(require("./ProgressSync"), exports);
+__exportStar(require("./LibrarySync"), exports);
+__exportStar(require("./StreamContextProvider"), exports);
+__exportStar(require("./ContextMenuHandler"), exports);
+__exportStar(require("./GroupedUpdateProvider"), exports);
+__exportStar(require("./ImageRedrawHandler"), exports);
+
+},{"./ChapterEvent":25,"./ContentEvent":26,"./ContextMenuHandler":27,"./GroupedUpdateProvider":28,"./ImageRedrawHandler":29,"./LibrarySync":30,"./ProgressSync":31,"./StreamContextProvider":32}],34:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./handlers"), exports);
+__exportStar(require("./ContentSource"), exports);
+
+},{"./ContentSource":24,"./handlers":33}],35:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],36:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],37:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./ContentTracker"), exports);
+__exportStar(require("./AdvancedTracker"), exports);
+
+},{"./AdvancedTracker":35,"./ContentTracker":36}],38:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BasicAuthenticationUIIdentifier = void 0;
+var BasicAuthenticationUIIdentifier;
+(function (BasicAuthenticationUIIdentifier) {
+    BasicAuthenticationUIIdentifier[BasicAuthenticationUIIdentifier["EMAIL"] = 0] = "EMAIL";
+    BasicAuthenticationUIIdentifier[BasicAuthenticationUIIdentifier["USERNAME"] = 1] = "USERNAME";
+})(BasicAuthenticationUIIdentifier || (exports.BasicAuthenticationUIIdentifier = BasicAuthenticationUIIdentifier = {}));
+
+},{}],39:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],40:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],41:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],42:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],43:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],44:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],45:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Authentication"), exports);
+__exportStar(require("./Preferences"), exports);
+__exportStar(require("./ImageRequest"), exports);
+__exportStar(require("./DirectoryHandler"), exports);
+__exportStar(require("./PageProvider"), exports);
+__exportStar(require("./Setup"), exports);
+__exportStar(require("./PageResolver"), exports);
+
+},{"./Authentication":38,"./DirectoryHandler":39,"./ImageRequest":40,"./PageProvider":41,"./PageResolver":42,"./Preferences":43,"./Setup":44}],46:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RunnerEnvironment = void 0;
+__exportStar(require("./extensions"), exports);
+var RunnerEnvironment;
+(function (RunnerEnvironment) {
+    RunnerEnvironment[RunnerEnvironment["SOURCE"] = 0] = "SOURCE";
+    RunnerEnvironment[RunnerEnvironment["TRACKER"] = 1] = "TRACKER";
+})(RunnerEnvironment || (exports.RunnerEnvironment = RunnerEnvironment = {}));
+
+},{"./extensions":45}],47:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./ContentSource"), exports);
+__exportStar(require("./Runner"), exports);
+__exportStar(require("./ContentTracker"), exports);
+
+},{"./ContentSource":34,"./ContentTracker":37,"./Runner":46}],48:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],49:[function(require,module,exports){
+"use strict";
+// Picker
+Object.defineProperty(exports, "__esModule", { value: true });
+
+},{}],50:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UIStepper = exports.UIButton = exports.UIDatePicker = exports.UITextField = exports.UIToggle = exports.UIMultiPicker = exports.UIPicker = void 0;
+const UIElements_1 = require("./UIElements");
+const UIPicker = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.SELECT }));
+exports.UIPicker = UIPicker;
+const UIMultiPicker = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.MULTISELECT }));
+exports.UIMultiPicker = UIMultiPicker;
+const UIToggle = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.TOGGLE }));
+exports.UIToggle = UIToggle;
+const UITextField = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.TEXTFIELD }));
+exports.UITextField = UITextField;
+const UIDatePicker = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.DATEPICKER }));
+exports.UIDatePicker = UIDatePicker;
+const UIButton = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.BUTTON }));
+exports.UIButton = UIButton;
+const UIStepper = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.STEPPER }));
+exports.UIStepper = UIStepper;
+
+},{"./UIElements":51}],51:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UIComponentType = void 0;
+var UIComponentType;
+(function (UIComponentType) {
+    UIComponentType[UIComponentType["SELECT"] = 0] = "SELECT";
+    UIComponentType[UIComponentType["MULTISELECT"] = 1] = "MULTISELECT";
+    UIComponentType[UIComponentType["STEPPER"] = 2] = "STEPPER";
+    UIComponentType[UIComponentType["TOGGLE"] = 3] = "TOGGLE";
+    UIComponentType[UIComponentType["TEXTFIELD"] = 4] = "TEXTFIELD";
+    UIComponentType[UIComponentType["BUTTON"] = 5] = "BUTTON";
+    UIComponentType[UIComponentType["DATEPICKER"] = 6] = "DATEPICKER";
+})(UIComponentType || (exports.UIComponentType = UIComponentType = {}));
+
+},{}],52:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Form"), exports);
+__exportStar(require("./UIElements"), exports);
+__exportStar(require("./UIDefinitions"), exports);
+__exportStar(require("./UIElementBuilders"), exports);
+
+},{"./Form":48,"./UIDefinitions":49,"./UIElementBuilders":50,"./UIElements":51}],53:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],54:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DefinedLanguages = void 0;
+var DefinedLanguages;
+(function (DefinedLanguages) {
+    DefinedLanguages["UNIVERSAL"] = "UNIVERSAL";
+    DefinedLanguages["ENGLISH"] = "en_US";
+    DefinedLanguages["KOREAN"] = "ko_KR";
+    DefinedLanguages["JAPANESE"] = "ja_JP";
+    DefinedLanguages["FRENCH"] = "fr_FR";
+    DefinedLanguages["CHINESE"] = "zh-CN";
+    DefinedLanguages["SPANISH"] = "es_ES";
+    DefinedLanguages["PORTUGUESE"] = "pt_BR";
+})(DefinedLanguages || (exports.DefinedLanguages = DefinedLanguages = {}));
+
+},{}],55:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],56:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],57:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],58:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],59:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],60:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],61:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ContentType = exports.ReadingFlag = exports.ReadingMode = exports.PublicationStatus = void 0;
+// Enums
+var PublicationStatus;
+(function (PublicationStatus) {
+    PublicationStatus[PublicationStatus["ONGOING"] = 1] = "ONGOING";
+    PublicationStatus[PublicationStatus["COMPLETED"] = 2] = "COMPLETED";
+    PublicationStatus[PublicationStatus["CANCELLED"] = 3] = "CANCELLED";
+    PublicationStatus[PublicationStatus["HIATUS"] = 4] = "HIATUS";
+})(PublicationStatus || (exports.PublicationStatus = PublicationStatus = {}));
+/**
+ * The method in which the content can be read
+ */
+var ReadingMode;
+(function (ReadingMode) {
+    ReadingMode[ReadingMode["PAGED_MANGA"] = 0] = "PAGED_MANGA";
+    ReadingMode[ReadingMode["PAGED_COMIC"] = 1] = "PAGED_COMIC";
+    ReadingMode[ReadingMode["PAGED_VERTICAL"] = 2] = "PAGED_VERTICAL";
+    ReadingMode[ReadingMode["WEBTOON"] = 3] = "WEBTOON";
+})(ReadingMode || (exports.ReadingMode = ReadingMode = {}));
+var ReadingFlag;
+(function (ReadingFlag) {
+    ReadingFlag[ReadingFlag["READING"] = 0] = "READING";
+    ReadingFlag[ReadingFlag["PLANNED"] = 1] = "PLANNED";
+    ReadingFlag[ReadingFlag["COMPLETED"] = 2] = "COMPLETED";
+    ReadingFlag[ReadingFlag["DROPPED"] = 3] = "DROPPED";
+    ReadingFlag[ReadingFlag["REREADING"] = 4] = "REREADING";
+    ReadingFlag[ReadingFlag["PAUSED"] = 5] = "PAUSED";
+    ReadingFlag[ReadingFlag["UNKNOWN"] = 6] = "UNKNOWN";
+})(ReadingFlag || (exports.ReadingFlag = ReadingFlag = {}));
+var ContentType;
+(function (ContentType) {
+    ContentType[ContentType["MANGA"] = 0] = "MANGA";
+    ContentType[ContentType["MANHUA"] = 1] = "MANHUA";
+    ContentType[ContentType["MANHWA"] = 2] = "MANHWA";
+    ContentType[ContentType["COMIC"] = 3] = "COMIC";
+    ContentType[ContentType["NOVEL"] = 4] = "NOVEL";
+})(ContentType || (exports.ContentType = ContentType = {}));
+
+},{}],62:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],63:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],64:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],65:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProviderLinkType = void 0;
+var ProviderLinkType;
+(function (ProviderLinkType) {
+    ProviderLinkType[ProviderLinkType["WEBSITE"] = 0] = "WEBSITE";
+    ProviderLinkType[ProviderLinkType["TWITTER"] = 1] = "TWITTER";
+    ProviderLinkType[ProviderLinkType["DISCORD"] = 2] = "DISCORD";
+    ProviderLinkType[ProviderLinkType["PATREON"] = 3] = "PATREON";
+})(ProviderLinkType || (exports.ProviderLinkType = ProviderLinkType = {}));
+
+},{}],66:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],67:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Content"), exports);
+__exportStar(require("./Highlight"), exports);
+__exportStar(require("./Chapter"), exports);
+__exportStar(require("./ChapterData"), exports);
+__exportStar(require("./Property"), exports);
+__exportStar(require("./Collection"), exports);
+__exportStar(require("./Provider"), exports);
+__exportStar(require("./Enums"), exports);
+__exportStar(require("./ReaderContext"), exports);
+__exportStar(require("./ContextMenu"), exports);
+__exportStar(require("./DeepLinkContext"), exports);
+__exportStar(require("./BooleanState"), exports);
+__exportStar(require("./ContentProgressState"), exports);
+__exportStar(require("./GroupedUpdatesResponse"), exports);
+
+},{"./BooleanState":53,"./Chapter":54,"./ChapterData":55,"./Collection":56,"./Content":57,"./ContentProgressState":58,"./ContextMenu":59,"./DeepLinkContext":60,"./Enums":61,"./GroupedUpdatesResponse":62,"./Highlight":63,"./Property":64,"./Provider":65,"./ReaderContext":66}],68:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuthMethod = void 0;
+var AuthMethod;
+(function (AuthMethod) {
+    AuthMethod[AuthMethod["USERNAME_PW"] = 0] = "USERNAME_PW";
+    AuthMethod[AuthMethod["EMAIL_PW"] = 1] = "EMAIL_PW";
+    AuthMethod[AuthMethod["WEB"] = 2] = "WEB";
+    AuthMethod[AuthMethod["OAUTH"] = 3] = "OAUTH";
+})(AuthMethod || (exports.AuthMethod = AuthMethod = {}));
+
+},{}],69:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],70:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],71:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CatalogRating = void 0;
+var CatalogRating;
+(function (CatalogRating) {
+    /**
+     * Catalog does not contain ANY SUGGESTIVE OR NSFW content
+     */
+    CatalogRating[CatalogRating["SAFE"] = 0] = "SAFE";
+    /**
+     * Catalog may contain SUGGESTIVE OR NSFW content,
+     * runners must hide NSFW content by default,
+     * users will be required to verify they are of age to view NSFW content
+     */
+    CatalogRating[CatalogRating["MIXED"] = 1] = "MIXED";
+    /**
+     * Catalog contains MAINLY SUGGESTIVE OR NSFW content,
+     * users will be required to verify they are of age to view NSFW content
+     */
+    CatalogRating[CatalogRating["NSFW"] = 2] = "NSFW";
+})(CatalogRating || (exports.CatalogRating = CatalogRating = {}));
+
+},{}],72:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Authentication"), exports);
+__exportStar(require("./RunnerInfo"), exports);
+__exportStar(require("./PagedResult"), exports);
+__exportStar(require("./ContextProvider"), exports);
+
+},{"./Authentication":68,"./ContextProvider":69,"./PagedResult":70,"./RunnerInfo":71}],73:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],74:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FilterType = void 0;
+var FilterType;
+(function (FilterType) {
+    /**
+     * This Represents the filter as a toggle switch, the value returned in the directory request will be a `boolean`
+     */
+    FilterType[FilterType["TOGGLE"] = 0] = "TOGGLE";
+    /**
+     * This represents the filter as a picker, the value returned will be the `key` of the selected option as a `string`
+     */
+    FilterType[FilterType["SELECT"] = 1] = "SELECT";
+    /**
+     * This Represents the filter as a multi-picker, the value returned will the the keys of the selected options as an array of strings
+     */
+    FilterType[FilterType["MULTISELECT"] = 2] = "MULTISELECT";
+    /**
+     * This Represents the filter as a multi-picker,the value returned will be of type {@link ExcludableMultiSelectProp}
+     */
+    FilterType[FilterType["EXCLUDABLE_MULTISELECT"] = 3] = "EXCLUDABLE_MULTISELECT";
+    /**
+     * This will represent the filter as a textfield, the value returned will be a string
+     */
+    FilterType[FilterType["TEXT"] = 4] = "TEXT";
+    /**
+     * This is a basic filter that will only display the title or subtitle, it will not return any value in the populated `DirectoryRequest`
+     */
+    FilterType[FilterType["INFO"] = 5] = "INFO";
+})(FilterType || (exports.FilterType = FilterType = {}));
+
+},{}],75:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],76:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./DirectoryConfig"), exports);
+__exportStar(require("./DirectoryRequest"), exports);
+__exportStar(require("./DirectoryFilter"), exports);
+
+},{"./DirectoryConfig":73,"./DirectoryFilter":74,"./DirectoryRequest":75}],77:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Generate = void 0;
+__exportStar(require("./core"), exports);
+__exportStar(require("./content"), exports);
+__exportStar(require("./networking"), exports);
+__exportStar(require("./UI"), exports);
+__exportStar(require("./tracker"), exports);
+__exportStar(require("./directory"), exports);
+__exportStar(require("./page"), exports);
+const Generate = (v) => v;
+exports.Generate = Generate;
+
+},{"./UI":52,"./content":67,"./core":72,"./directory":76,"./networking":84,"./page":85,"./tracker":86}],78:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NetworkClientBuilder = void 0;
+/**
+ * NetworkClientBuilder is a builder class used for creating and configuring instances of NetworkClient.
+ * The builder allows you to configure various aspects of the NetworkClient, such as rate limits,
+ * request/response transformers (interceptors), headers, cookies, timeout, status validator, and more.
+ */
+class NetworkClientBuilder {
+    constructor() {
+        // Array of functions that transform requests
+        this.requestTransformers = [];
+        // Array of functions that transform responses
+        this.responseTransformers = [];
+        // Object representing HTTP headers, where each key-value pair represents a header
+        this.headers = {};
+        // Array of cookies
+        this.cookies = [];
+    }
+    /**
+     * Sets the rate limit for the NetworkClient.
+     *
+     * @param requests - The maximum number of requests to make per interval.
+     * @param interval - The length of the rate limiting interval in seconds.
+     * @returns The builder, to allow for method chaining.
+     */
+    setRateLimit(requests, interval) {
+        this.requestsPerSecond = requests / interval;
+        return this;
+    }
+    /**
+     * Adds a request interceptor to the NetworkClient.
+     *
+     * @param transformer - The interceptor to add. This should be a function that takes a request and modifies it in some way.
+     * @returns The builder, to allow for method chaining.
+     */
+    addRequestInterceptor(transformer) {
+        this.requestTransformers.push(transformer);
+        return this;
+    }
+    /**
+     * Adds a response interceptor to the NetworkClient.
+     *
+     * @param transformer - The interceptor to add. This should be a function that takes a response and modifies it in some way.
+     * @returns The builder, to allow for method chaining.
+     */
+    addResponseInterceptor(transformer) {
+        this.responseTransformers.push(transformer);
+        return this;
+    }
+    /**
+     * Sets the authorization token for the NetworkClient.
+     *
+     * @param token - The token to be included in the Authorization header of every request.
+     * @returns The builder, to allow for method chaining.
+     */
+    setAuthorizationToken(token) {
+        return this.addHeader("Authorization", token);
+    }
+    /**
+     * Sets the status validator for the NetworkClient.
+     *
+     * @param validator - A function that takes a status code and returns true if it is considered successful.
+     * @returns The builder, to allow for method chaining.
+     */
+    setStatusValidator(validator) {
+        this.statusValidator = validator;
+        return this;
+    }
+    /**
+     * Sets the timeout for requests made by the NetworkClient.
+     *
+     * @param timeout - The maximum time to wait for a request to complete, in milliseconds.
+     * @returns The builder, to allow for method chaining.
+     */
+    setTimeout(timeout) {
+        this.timeout = timeout;
+        return this;
+    }
+    /**
+     * Sets the maximum number of retries for this request by the NetworkClient.
+     *
+     * @param retries - The maximum number of retries for this request
+     * @returns The builder, to allow for method chaining.
+     */
+    setMaxRetries(retries) {
+        this.maxRetries = retries;
+        return this;
+    }
+    /**
+     * Sets a header for the NetworkClient.
+     *
+     * @param key - The name of the header
+     * @param value - The value of the header
+     * @returns The builder, to allow for method chaining.
+     */
+    addHeader(key, value) {
+        this.headers[key] = value;
+        return this;
+    }
+    /**
+     * Sets a cookie for the NetworkClient.
+     *
+     * @param cookie - The cookie to be included in every request.
+     * @returns The builder, to allow for method chaining.
+     */
+    addCookie(cookie) {
+        this.cookies.push(cookie);
+        return this;
+    }
+    /**
+     * Builds a NetworkClient using the parameters set on the builder.
+     *
+     * @returns A NetworkClient with the configured parameters.
+     */
+    build() {
+        return new NetworkClient(this);
+    }
+}
+exports.NetworkClientBuilder = NetworkClientBuilder;
+
+},{}],79:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],80:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],81:[function(require,module,exports){
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.name = void 0;
+const name = (base, known) => __awaiter(void 0, void 0, void 0, function* () {
+    return Object.assign(Object.assign({}, base), known);
+});
+exports.name = name;
+
+},{}],82:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],83:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],84:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Builder"), exports);
+__exportStar(require("./Client"), exports);
+__exportStar(require("./Request"), exports);
+__exportStar(require("./Response"), exports);
+__exportStar(require("./Transformer"), exports);
+__exportStar(require("./Error"), exports);
+
+},{"./Builder":78,"./Client":79,"./Error":80,"./Request":81,"./Response":82,"./Transformer":83}],85:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SectionStyle = void 0;
+var SectionStyle;
+(function (SectionStyle) {
+    SectionStyle[SectionStyle["DEFAULT"] = 0] = "DEFAULT";
+    SectionStyle[SectionStyle["INFO"] = 1] = "INFO";
+    SectionStyle[SectionStyle["GALLERY"] = 2] = "GALLERY";
+    SectionStyle[SectionStyle["NAVIGATION_LIST"] = 3] = "NAVIGATION_LIST";
+    SectionStyle[SectionStyle["ITEM_LIST"] = 4] = "ITEM_LIST";
+    SectionStyle[SectionStyle["PADDED_LIST"] = 5] = "PADDED_LIST";
+    SectionStyle[SectionStyle["TAG"] = 6] = "TAG";
+    SectionStyle[SectionStyle["STANDARD_GRID"] = 7] = "STANDARD_GRID";
+})(SectionStyle || (exports.SectionStyle = SectionStyle = {}));
+
+},{}],86:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TrackStatus = void 0;
+var TrackStatus;
+(function (TrackStatus) {
+    TrackStatus["READING"] = "READING";
+    TrackStatus["PLANNING"] = "PLANNING";
+    TrackStatus["COMPLETED"] = "COMPLETED";
+    TrackStatus["PAUSED"] = "PAUSED";
+    TrackStatus["DROPPED"] = "DROPPED";
+    TrackStatus["REREADING"] = "REREADING";
+})(TrackStatus || (exports.TrackStatus = TrackStatus = {}));
+
+},{}],87:[function(require,module,exports){
+'use strict'
+
+exports.byteLength = byteLength
+exports.toByteArray = toByteArray
+exports.fromByteArray = fromByteArray
+
+var lookup = []
+var revLookup = []
+var Arr = typeof Uint8Array !== 'undefined' ? Uint8Array : Array
+
+var code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+for (var i = 0, len = code.length; i < len; ++i) {
+  lookup[i] = code[i]
+  revLookup[code.charCodeAt(i)] = i
+}
+
+// Support decoding URL-safe base64 strings, as Node.js does.
+// See: https://en.wikipedia.org/wiki/Base64#URL_applications
+revLookup['-'.charCodeAt(0)] = 62
+revLookup['_'.charCodeAt(0)] = 63
+
+function getLens (b64) {
+  var len = b64.length
+
+  if (len % 4 > 0) {
+    throw new Error('Invalid string. Length must be a multiple of 4')
+  }
+
+  // Trim off extra bytes after placeholder bytes are found
+  // See: https://github.com/beatgammit/base64-js/issues/42
+  var validLen = b64.indexOf('=')
+  if (validLen === -1) validLen = len
+
+  var placeHoldersLen = validLen === len
+    ? 0
+    : 4 - (validLen % 4)
+
+  return [validLen, placeHoldersLen]
+}
+
+// base64 is 4/3 + up to two characters of the original data
+function byteLength (b64) {
+  var lens = getLens(b64)
+  var validLen = lens[0]
+  var placeHoldersLen = lens[1]
+  return ((validLen + placeHoldersLen) * 3 / 4) - placeHoldersLen
+}
+
+function _byteLength (b64, validLen, placeHoldersLen) {
+  return ((validLen + placeHoldersLen) * 3 / 4) - placeHoldersLen
+}
+
+function toByteArray (b64) {
+  var tmp
+  var lens = getLens(b64)
+  var validLen = lens[0]
+  var placeHoldersLen = lens[1]
+
+  var arr = new Arr(_byteLength(b64, validLen, placeHoldersLen))
+
+  var curByte = 0
+
+  // if there are placeholders, only get up to the last complete 4 chars
+  var len = placeHoldersLen > 0
+    ? validLen - 4
+    : validLen
+
+  var i
+  for (i = 0; i < len; i += 4) {
+    tmp =
+      (revLookup[b64.charCodeAt(i)] << 18) |
+      (revLookup[b64.charCodeAt(i + 1)] << 12) |
+      (revLookup[b64.charCodeAt(i + 2)] << 6) |
+      revLookup[b64.charCodeAt(i + 3)]
+    arr[curByte++] = (tmp >> 16) & 0xFF
+    arr[curByte++] = (tmp >> 8) & 0xFF
+    arr[curByte++] = tmp & 0xFF
+  }
+
+  if (placeHoldersLen === 2) {
+    tmp =
+      (revLookup[b64.charCodeAt(i)] << 2) |
+      (revLookup[b64.charCodeAt(i + 1)] >> 4)
+    arr[curByte++] = tmp & 0xFF
+  }
+
+  if (placeHoldersLen === 1) {
+    tmp =
+      (revLookup[b64.charCodeAt(i)] << 10) |
+      (revLookup[b64.charCodeAt(i + 1)] << 4) |
+      (revLookup[b64.charCodeAt(i + 2)] >> 2)
+    arr[curByte++] = (tmp >> 8) & 0xFF
+    arr[curByte++] = tmp & 0xFF
+  }
+
+  return arr
+}
+
+function tripletToBase64 (num) {
+  return lookup[num >> 18 & 0x3F] +
+    lookup[num >> 12 & 0x3F] +
+    lookup[num >> 6 & 0x3F] +
+    lookup[num & 0x3F]
+}
+
+function encodeChunk (uint8, start, end) {
+  var tmp
+  var output = []
+  for (var i = start; i < end; i += 3) {
+    tmp =
+      ((uint8[i] << 16) & 0xFF0000) +
+      ((uint8[i + 1] << 8) & 0xFF00) +
+      (uint8[i + 2] & 0xFF)
+    output.push(tripletToBase64(tmp))
+  }
+  return output.join('')
+}
+
+function fromByteArray (uint8) {
+  var tmp
+  var len = uint8.length
+  var extraBytes = len % 3 // if we have 1 byte left, pad 2 bytes
+  var parts = []
+  var maxChunkLength = 16383 // must be multiple of 3
+
+  // go through the array every three bytes, we'll deal with trailing stuff later
+  for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
+    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)))
+  }
+
+  // pad the end with zeros, but make sure to not forget the extra bytes
+  if (extraBytes === 1) {
+    tmp = uint8[len - 1]
+    parts.push(
+      lookup[tmp >> 2] +
+      lookup[(tmp << 4) & 0x3F] +
+      '=='
+    )
+  } else if (extraBytes === 2) {
+    tmp = (uint8[len - 2] << 8) + uint8[len - 1]
+    parts.push(
+      lookup[tmp >> 10] +
+      lookup[(tmp >> 4) & 0x3F] +
+      lookup[(tmp << 2) & 0x3F] +
+      '='
+    )
+  }
+
+  return parts.join('')
+}
+
+},{}],88:[function(require,module,exports){
+(function (Buffer){(function (){
+/*!
+ * The buffer module from node.js, for the browser.
+ *
+ * @author   Feross Aboukhadijeh <https://feross.org>
+ * @license  MIT
+ */
+/* eslint-disable no-proto */
+
+'use strict'
+
+var base64 = require('base64-js')
+var ieee754 = require('ieee754')
+
+exports.Buffer = Buffer
+exports.SlowBuffer = SlowBuffer
+exports.INSPECT_MAX_BYTES = 50
+
+var K_MAX_LENGTH = 0x7fffffff
+exports.kMaxLength = K_MAX_LENGTH
+
+/**
+ * If `Buffer.TYPED_ARRAY_SUPPORT`:
+ *   === true    Use Uint8Array implementation (fastest)
+ *   === false   Print warning and recommend using `buffer` v4.x which has an Object
+ *               implementation (most compatible, even IE6)
+ *
+ * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
+ * Opera 11.6+, iOS 4.2+.
+ *
+ * We report that the browser does not support typed arrays if the are not subclassable
+ * using __proto__. Firefox 4-29 lacks support for adding new properties to `Uint8Array`
+ * (See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438). IE 10 lacks support
+ * for __proto__ and has a buggy typed array implementation.
+ */
+Buffer.TYPED_ARRAY_SUPPORT = typedArraySupport()
+
+if (!Buffer.TYPED_ARRAY_SUPPORT && typeof console !== 'undefined' &&
+    typeof console.error === 'function') {
+  console.error(
+    'This browser lacks typed array (Uint8Array) support which is required by ' +
+    '`buffer` v5.x. Use `buffer` v4.x if you require old browser support.'
+  )
+}
+
+function typedArraySupport () {
+  // Can typed array instances can be augmented?
+  try {
+    var arr = new Uint8Array(1)
+    arr.__proto__ = { __proto__: Uint8Array.prototype, foo: function () { return 42 } }
+    return arr.foo() === 42
+  } catch (e) {
+    return false
+  }
+}
+
+Object.defineProperty(Buffer.prototype, 'parent', {
+  enumerable: true,
+  get: function () {
+    if (!Buffer.isBuffer(this)) return undefined
+    return this.buffer
+  }
+})
+
+Object.defineProperty(Buffer.prototype, 'offset', {
+  enumerable: true,
+  get: function () {
+    if (!Buffer.isBuffer(this)) return undefined
+    return this.byteOffset
+  }
+})
+
+function createBuffer (length) {
+  if (length > K_MAX_LENGTH) {
+    throw new RangeError('The value "' + length + '" is invalid for option "size"')
+  }
+  // Return an augmented `Uint8Array` instance
+  var buf = new Uint8Array(length)
+  buf.__proto__ = Buffer.prototype
+  return buf
+}
+
+/**
+ * The Buffer constructor returns instances of `Uint8Array` that have their
+ * prototype changed to `Buffer.prototype`. Furthermore, `Buffer` is a subclass of
+ * `Uint8Array`, so the returned instances will have all the node `Buffer` methods
+ * and the `Uint8Array` methods. Square bracket notation works as expected -- it
+ * returns a single octet.
+ *
+ * The `Uint8Array` prototype remains unmodified.
+ */
+
+function Buffer (arg, encodingOrOffset, length) {
+  // Common case.
+  if (typeof arg === 'number') {
+    if (typeof encodingOrOffset === 'string') {
+      throw new TypeError(
+        'The "string" argument must be of type string. Received type number'
+      )
+    }
+    return allocUnsafe(arg)
+  }
+  return from(arg, encodingOrOffset, length)
+}
+
+// Fix subarray() in ES2016. See: https://github.com/feross/buffer/pull/97
+if (typeof Symbol !== 'undefined' && Symbol.species != null &&
+    Buffer[Symbol.species] === Buffer) {
+  Object.defineProperty(Buffer, Symbol.species, {
+    value: null,
+    configurable: true,
+    enumerable: false,
+    writable: false
+  })
+}
+
+Buffer.poolSize = 8192 // not used by this implementation
+
+function from (value, encodingOrOffset, length) {
+  if (typeof value === 'string') {
+    return fromString(value, encodingOrOffset)
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    return fromArrayLike(value)
+  }
+
+  if (value == null) {
+    throw TypeError(
+      'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
+      'or Array-like Object. Received type ' + (typeof value)
+    )
+  }
+
+  if (isInstance(value, ArrayBuffer) ||
+      (value && isInstance(value.buffer, ArrayBuffer))) {
+    return fromArrayBuffer(value, encodingOrOffset, length)
+  }
+
+  if (typeof value === 'number') {
+    throw new TypeError(
+      'The "value" argument must not be of type number. Received type number'
+    )
+  }
+
+  var valueOf = value.valueOf && value.valueOf()
+  if (valueOf != null && valueOf !== value) {
+    return Buffer.from(valueOf, encodingOrOffset, length)
+  }
+
+  var b = fromObject(value)
+  if (b) return b
+
+  if (typeof Symbol !== 'undefined' && Symbol.toPrimitive != null &&
+      typeof value[Symbol.toPrimitive] === 'function') {
+    return Buffer.from(
+      value[Symbol.toPrimitive]('string'), encodingOrOffset, length
+    )
+  }
+
+  throw new TypeError(
+    'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
+    'or Array-like Object. Received type ' + (typeof value)
+  )
+}
+
+/**
+ * Functionally equivalent to Buffer(arg, encoding) but throws a TypeError
+ * if value is a number.
+ * Buffer.from(str[, encoding])
+ * Buffer.from(array)
+ * Buffer.from(buffer)
+ * Buffer.from(arrayBuffer[, byteOffset[, length]])
+ **/
+Buffer.from = function (value, encodingOrOffset, length) {
+  return from(value, encodingOrOffset, length)
+}
+
+// Note: Change prototype *after* Buffer.from is defined to workaround Chrome bug:
+// https://github.com/feross/buffer/pull/148
+Buffer.prototype.__proto__ = Uint8Array.prototype
+Buffer.__proto__ = Uint8Array
+
+function assertSize (size) {
+  if (typeof size !== 'number') {
+    throw new TypeError('"size" argument must be of type number')
+  } else if (size < 0) {
+    throw new RangeError('The value "' + size + '" is invalid for option "size"')
+  }
+}
+
+function alloc (size, fill, encoding) {
+  assertSize(size)
+  if (size <= 0) {
+    return createBuffer(size)
+  }
+  if (fill !== undefined) {
+    // Only pay attention to encoding if it's a string. This
+    // prevents accidentally sending in a number that would
+    // be interpretted as a start offset.
+    return typeof encoding === 'string'
+      ? createBuffer(size).fill(fill, encoding)
+      : createBuffer(size).fill(fill)
+  }
+  return createBuffer(size)
+}
+
+/**
+ * Creates a new filled Buffer instance.
+ * alloc(size[, fill[, encoding]])
+ **/
+Buffer.alloc = function (size, fill, encoding) {
+  return alloc(size, fill, encoding)
+}
+
+function allocUnsafe (size) {
+  assertSize(size)
+  return createBuffer(size < 0 ? 0 : checked(size) | 0)
+}
+
+/**
+ * Equivalent to Buffer(num), by default creates a non-zero-filled Buffer instance.
+ * */
+Buffer.allocUnsafe = function (size) {
+  return allocUnsafe(size)
+}
+/**
+ * Equivalent to SlowBuffer(num), by default creates a non-zero-filled Buffer instance.
+ */
+Buffer.allocUnsafeSlow = function (size) {
+  return allocUnsafe(size)
+}
+
+function fromString (string, encoding) {
+  if (typeof encoding !== 'string' || encoding === '') {
+    encoding = 'utf8'
+  }
+
+  if (!Buffer.isEncoding(encoding)) {
+    throw new TypeError('Unknown encoding: ' + encoding)
+  }
+
+  var length = byteLength(string, encoding) | 0
+  var buf = createBuffer(length)
+
+  var actual = buf.write(string, encoding)
+
+  if (actual !== length) {
+    // Writing a hex string, for example, that contains invalid characters will
+    // cause everything after the first invalid character to be ignored. (e.g.
+    // 'abxxcd' will be treated as 'ab')
+    buf = buf.slice(0, actual)
+  }
+
+  return buf
+}
+
+function fromArrayLike (array) {
+  var length = array.length < 0 ? 0 : checked(array.length) | 0
+  var buf = createBuffer(length)
+  for (var i = 0; i < length; i += 1) {
+    buf[i] = array[i] & 255
+  }
+  return buf
+}
+
+function fromArrayBuffer (array, byteOffset, length) {
+  if (byteOffset < 0 || array.byteLength < byteOffset) {
+    throw new RangeError('"offset" is outside of buffer bounds')
+  }
+
+  if (array.byteLength < byteOffset + (length || 0)) {
+    throw new RangeError('"length" is outside of buffer bounds')
+  }
+
+  var buf
+  if (byteOffset === undefined && length === undefined) {
+    buf = new Uint8Array(array)
+  } else if (length === undefined) {
+    buf = new Uint8Array(array, byteOffset)
+  } else {
+    buf = new Uint8Array(array, byteOffset, length)
+  }
+
+  // Return an augmented `Uint8Array` instance
+  buf.__proto__ = Buffer.prototype
+  return buf
+}
+
+function fromObject (obj) {
+  if (Buffer.isBuffer(obj)) {
+    var len = checked(obj.length) | 0
+    var buf = createBuffer(len)
+
+    if (buf.length === 0) {
+      return buf
+    }
+
+    obj.copy(buf, 0, 0, len)
+    return buf
+  }
+
+  if (obj.length !== undefined) {
+    if (typeof obj.length !== 'number' || numberIsNaN(obj.length)) {
+      return createBuffer(0)
+    }
+    return fromArrayLike(obj)
+  }
+
+  if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
+    return fromArrayLike(obj.data)
+  }
+}
+
+function checked (length) {
+  // Note: cannot use `length < K_MAX_LENGTH` here because that fails when
+  // length is NaN (which is otherwise coerced to zero.)
+  if (length >= K_MAX_LENGTH) {
+    throw new RangeError('Attempt to allocate Buffer larger than maximum ' +
+                         'size: 0x' + K_MAX_LENGTH.toString(16) + ' bytes')
+  }
+  return length | 0
+}
+
+function SlowBuffer (length) {
+  if (+length != length) { // eslint-disable-line eqeqeq
+    length = 0
+  }
+  return Buffer.alloc(+length)
+}
+
+Buffer.isBuffer = function isBuffer (b) {
+  return b != null && b._isBuffer === true &&
+    b !== Buffer.prototype // so Buffer.isBuffer(Buffer.prototype) will be false
+}
+
+Buffer.compare = function compare (a, b) {
+  if (isInstance(a, Uint8Array)) a = Buffer.from(a, a.offset, a.byteLength)
+  if (isInstance(b, Uint8Array)) b = Buffer.from(b, b.offset, b.byteLength)
+  if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
+    throw new TypeError(
+      'The "buf1", "buf2" arguments must be one of type Buffer or Uint8Array'
+    )
+  }
+
+  if (a === b) return 0
+
+  var x = a.length
+  var y = b.length
+
+  for (var i = 0, len = Math.min(x, y); i < len; ++i) {
+    if (a[i] !== b[i]) {
+      x = a[i]
+      y = b[i]
+      break
+    }
+  }
+
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+}
+
+Buffer.isEncoding = function isEncoding (encoding) {
+  switch (String(encoding).toLowerCase()) {
+    case 'hex':
+    case 'utf8':
+    case 'utf-8':
+    case 'ascii':
+    case 'latin1':
+    case 'binary':
+    case 'base64':
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      return true
+    default:
+      return false
+  }
+}
+
+Buffer.concat = function concat (list, length) {
+  if (!Array.isArray(list)) {
+    throw new TypeError('"list" argument must be an Array of Buffers')
+  }
+
+  if (list.length === 0) {
+    return Buffer.alloc(0)
+  }
+
+  var i
+  if (length === undefined) {
+    length = 0
+    for (i = 0; i < list.length; ++i) {
+      length += list[i].length
+    }
+  }
+
+  var buffer = Buffer.allocUnsafe(length)
+  var pos = 0
+  for (i = 0; i < list.length; ++i) {
+    var buf = list[i]
+    if (isInstance(buf, Uint8Array)) {
+      buf = Buffer.from(buf)
+    }
+    if (!Buffer.isBuffer(buf)) {
+      throw new TypeError('"list" argument must be an Array of Buffers')
+    }
+    buf.copy(buffer, pos)
+    pos += buf.length
+  }
+  return buffer
+}
+
+function byteLength (string, encoding) {
+  if (Buffer.isBuffer(string)) {
+    return string.length
+  }
+  if (ArrayBuffer.isView(string) || isInstance(string, ArrayBuffer)) {
+    return string.byteLength
+  }
+  if (typeof string !== 'string') {
+    throw new TypeError(
+      'The "string" argument must be one of type string, Buffer, or ArrayBuffer. ' +
+      'Received type ' + typeof string
+    )
+  }
+
+  var len = string.length
+  var mustMatch = (arguments.length > 2 && arguments[2] === true)
+  if (!mustMatch && len === 0) return 0
+
+  // Use a for loop to avoid recursion
+  var loweredCase = false
+  for (;;) {
+    switch (encoding) {
+      case 'ascii':
+      case 'latin1':
+      case 'binary':
+        return len
+      case 'utf8':
+      case 'utf-8':
+        return utf8ToBytes(string).length
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return len * 2
+      case 'hex':
+        return len >>> 1
+      case 'base64':
+        return base64ToBytes(string).length
+      default:
+        if (loweredCase) {
+          return mustMatch ? -1 : utf8ToBytes(string).length // assume utf8
+        }
+        encoding = ('' + encoding).toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+Buffer.byteLength = byteLength
+
+function slowToString (encoding, start, end) {
+  var loweredCase = false
+
+  // No need to verify that "this.length <= MAX_UINT32" since it's a read-only
+  // property of a typed array.
+
+  // This behaves neither like String nor Uint8Array in that we set start/end
+  // to their upper/lower bounds if the value passed is out of range.
+  // undefined is handled specially as per ECMA-262 6th Edition,
+  // Section 13.3.3.7 Runtime Semantics: KeyedBindingInitialization.
+  if (start === undefined || start < 0) {
+    start = 0
+  }
+  // Return early if start > this.length. Done here to prevent potential uint32
+  // coercion fail below.
+  if (start > this.length) {
+    return ''
+  }
+
+  if (end === undefined || end > this.length) {
+    end = this.length
+  }
+
+  if (end <= 0) {
+    return ''
+  }
+
+  // Force coersion to uint32. This will also coerce falsey/NaN values to 0.
+  end >>>= 0
+  start >>>= 0
+
+  if (end <= start) {
+    return ''
+  }
+
+  if (!encoding) encoding = 'utf8'
+
+  while (true) {
+    switch (encoding) {
+      case 'hex':
+        return hexSlice(this, start, end)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Slice(this, start, end)
+
+      case 'ascii':
+        return asciiSlice(this, start, end)
+
+      case 'latin1':
+      case 'binary':
+        return latin1Slice(this, start, end)
+
+      case 'base64':
+        return base64Slice(this, start, end)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return utf16leSlice(this, start, end)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = (encoding + '').toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+
+// This property is used by `Buffer.isBuffer` (and the `is-buffer` npm package)
+// to detect a Buffer instance. It's not possible to use `instanceof Buffer`
+// reliably in a browserify context because there could be multiple different
+// copies of the 'buffer' package in use. This method works even for Buffer
+// instances that were created from another copy of the `buffer` package.
+// See: https://github.com/feross/buffer/issues/154
+Buffer.prototype._isBuffer = true
+
+function swap (b, n, m) {
+  var i = b[n]
+  b[n] = b[m]
+  b[m] = i
+}
+
+Buffer.prototype.swap16 = function swap16 () {
+  var len = this.length
+  if (len % 2 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 16-bits')
+  }
+  for (var i = 0; i < len; i += 2) {
+    swap(this, i, i + 1)
+  }
+  return this
+}
+
+Buffer.prototype.swap32 = function swap32 () {
+  var len = this.length
+  if (len % 4 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 32-bits')
+  }
+  for (var i = 0; i < len; i += 4) {
+    swap(this, i, i + 3)
+    swap(this, i + 1, i + 2)
+  }
+  return this
+}
+
+Buffer.prototype.swap64 = function swap64 () {
+  var len = this.length
+  if (len % 8 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 64-bits')
+  }
+  for (var i = 0; i < len; i += 8) {
+    swap(this, i, i + 7)
+    swap(this, i + 1, i + 6)
+    swap(this, i + 2, i + 5)
+    swap(this, i + 3, i + 4)
+  }
+  return this
+}
+
+Buffer.prototype.toString = function toString () {
+  var length = this.length
+  if (length === 0) return ''
+  if (arguments.length === 0) return utf8Slice(this, 0, length)
+  return slowToString.apply(this, arguments)
+}
+
+Buffer.prototype.toLocaleString = Buffer.prototype.toString
+
+Buffer.prototype.equals = function equals (b) {
+  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+  if (this === b) return true
+  return Buffer.compare(this, b) === 0
+}
+
+Buffer.prototype.inspect = function inspect () {
+  var str = ''
+  var max = exports.INSPECT_MAX_BYTES
+  str = this.toString('hex', 0, max).replace(/(.{2})/g, '$1 ').trim()
+  if (this.length > max) str += ' ... '
+  return '<Buffer ' + str + '>'
+}
+
+Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
+  if (isInstance(target, Uint8Array)) {
+    target = Buffer.from(target, target.offset, target.byteLength)
+  }
+  if (!Buffer.isBuffer(target)) {
+    throw new TypeError(
+      'The "target" argument must be one of type Buffer or Uint8Array. ' +
+      'Received type ' + (typeof target)
+    )
+  }
+
+  if (start === undefined) {
+    start = 0
+  }
+  if (end === undefined) {
+    end = target ? target.length : 0
+  }
+  if (thisStart === undefined) {
+    thisStart = 0
+  }
+  if (thisEnd === undefined) {
+    thisEnd = this.length
+  }
+
+  if (start < 0 || end > target.length || thisStart < 0 || thisEnd > this.length) {
+    throw new RangeError('out of range index')
+  }
+
+  if (thisStart >= thisEnd && start >= end) {
+    return 0
+  }
+  if (thisStart >= thisEnd) {
+    return -1
+  }
+  if (start >= end) {
+    return 1
+  }
+
+  start >>>= 0
+  end >>>= 0
+  thisStart >>>= 0
+  thisEnd >>>= 0
+
+  if (this === target) return 0
+
+  var x = thisEnd - thisStart
+  var y = end - start
+  var len = Math.min(x, y)
+
+  var thisCopy = this.slice(thisStart, thisEnd)
+  var targetCopy = target.slice(start, end)
+
+  for (var i = 0; i < len; ++i) {
+    if (thisCopy[i] !== targetCopy[i]) {
+      x = thisCopy[i]
+      y = targetCopy[i]
+      break
+    }
+  }
+
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+}
+
+// Finds either the first index of `val` in `buffer` at offset >= `byteOffset`,
+// OR the last index of `val` in `buffer` at offset <= `byteOffset`.
+//
+// Arguments:
+// - buffer - a Buffer to search
+// - val - a string, Buffer, or number
+// - byteOffset - an index into `buffer`; will be clamped to an int32
+// - encoding - an optional encoding, relevant is val is a string
+// - dir - true for indexOf, false for lastIndexOf
+function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
+  // Empty buffer means no match
+  if (buffer.length === 0) return -1
+
+  // Normalize byteOffset
+  if (typeof byteOffset === 'string') {
+    encoding = byteOffset
+    byteOffset = 0
+  } else if (byteOffset > 0x7fffffff) {
+    byteOffset = 0x7fffffff
+  } else if (byteOffset < -0x80000000) {
+    byteOffset = -0x80000000
+  }
+  byteOffset = +byteOffset // Coerce to Number.
+  if (numberIsNaN(byteOffset)) {
+    // byteOffset: it it's undefined, null, NaN, "foo", etc, search whole buffer
+    byteOffset = dir ? 0 : (buffer.length - 1)
+  }
+
+  // Normalize byteOffset: negative offsets start from the end of the buffer
+  if (byteOffset < 0) byteOffset = buffer.length + byteOffset
+  if (byteOffset >= buffer.length) {
+    if (dir) return -1
+    else byteOffset = buffer.length - 1
+  } else if (byteOffset < 0) {
+    if (dir) byteOffset = 0
+    else return -1
+  }
+
+  // Normalize val
+  if (typeof val === 'string') {
+    val = Buffer.from(val, encoding)
+  }
+
+  // Finally, search either indexOf (if dir is true) or lastIndexOf
+  if (Buffer.isBuffer(val)) {
+    // Special case: looking for empty string/buffer always fails
+    if (val.length === 0) {
+      return -1
+    }
+    return arrayIndexOf(buffer, val, byteOffset, encoding, dir)
+  } else if (typeof val === 'number') {
+    val = val & 0xFF // Search for a byte value [0-255]
+    if (typeof Uint8Array.prototype.indexOf === 'function') {
+      if (dir) {
+        return Uint8Array.prototype.indexOf.call(buffer, val, byteOffset)
+      } else {
+        return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
+      }
+    }
+    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
+  }
+
+  throw new TypeError('val must be string, number or Buffer')
+}
+
+function arrayIndexOf (arr, val, byteOffset, encoding, dir) {
+  var indexSize = 1
+  var arrLength = arr.length
+  var valLength = val.length
+
+  if (encoding !== undefined) {
+    encoding = String(encoding).toLowerCase()
+    if (encoding === 'ucs2' || encoding === 'ucs-2' ||
+        encoding === 'utf16le' || encoding === 'utf-16le') {
+      if (arr.length < 2 || val.length < 2) {
+        return -1
+      }
+      indexSize = 2
+      arrLength /= 2
+      valLength /= 2
+      byteOffset /= 2
+    }
+  }
+
+  function read (buf, i) {
+    if (indexSize === 1) {
+      return buf[i]
+    } else {
+      return buf.readUInt16BE(i * indexSize)
+    }
+  }
+
+  var i
+  if (dir) {
+    var foundIndex = -1
+    for (i = byteOffset; i < arrLength; i++) {
+      if (read(arr, i) === read(val, foundIndex === -1 ? 0 : i - foundIndex)) {
+        if (foundIndex === -1) foundIndex = i
+        if (i - foundIndex + 1 === valLength) return foundIndex * indexSize
+      } else {
+        if (foundIndex !== -1) i -= i - foundIndex
+        foundIndex = -1
+      }
+    }
+  } else {
+    if (byteOffset + valLength > arrLength) byteOffset = arrLength - valLength
+    for (i = byteOffset; i >= 0; i--) {
+      var found = true
+      for (var j = 0; j < valLength; j++) {
+        if (read(arr, i + j) !== read(val, j)) {
+          found = false
+          break
+        }
+      }
+      if (found) return i
+    }
+  }
+
+  return -1
+}
+
+Buffer.prototype.includes = function includes (val, byteOffset, encoding) {
+  return this.indexOf(val, byteOffset, encoding) !== -1
+}
+
+Buffer.prototype.indexOf = function indexOf (val, byteOffset, encoding) {
+  return bidirectionalIndexOf(this, val, byteOffset, encoding, true)
+}
+
+Buffer.prototype.lastIndexOf = function lastIndexOf (val, byteOffset, encoding) {
+  return bidirectionalIndexOf(this, val, byteOffset, encoding, false)
+}
+
+function hexWrite (buf, string, offset, length) {
+  offset = Number(offset) || 0
+  var remaining = buf.length - offset
+  if (!length) {
+    length = remaining
+  } else {
+    length = Number(length)
+    if (length > remaining) {
+      length = remaining
+    }
+  }
+
+  var strLen = string.length
+
+  if (length > strLen / 2) {
+    length = strLen / 2
+  }
+  for (var i = 0; i < length; ++i) {
+    var parsed = parseInt(string.substr(i * 2, 2), 16)
+    if (numberIsNaN(parsed)) return i
+    buf[offset + i] = parsed
+  }
+  return i
+}
+
+function utf8Write (buf, string, offset, length) {
+  return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+function asciiWrite (buf, string, offset, length) {
+  return blitBuffer(asciiToBytes(string), buf, offset, length)
+}
+
+function latin1Write (buf, string, offset, length) {
+  return asciiWrite(buf, string, offset, length)
+}
+
+function base64Write (buf, string, offset, length) {
+  return blitBuffer(base64ToBytes(string), buf, offset, length)
+}
+
+function ucs2Write (buf, string, offset, length) {
+  return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+Buffer.prototype.write = function write (string, offset, length, encoding) {
+  // Buffer#write(string)
+  if (offset === undefined) {
+    encoding = 'utf8'
+    length = this.length
+    offset = 0
+  // Buffer#write(string, encoding)
+  } else if (length === undefined && typeof offset === 'string') {
+    encoding = offset
+    length = this.length
+    offset = 0
+  // Buffer#write(string, offset[, length][, encoding])
+  } else if (isFinite(offset)) {
+    offset = offset >>> 0
+    if (isFinite(length)) {
+      length = length >>> 0
+      if (encoding === undefined) encoding = 'utf8'
+    } else {
+      encoding = length
+      length = undefined
+    }
+  } else {
+    throw new Error(
+      'Buffer.write(string, encoding, offset[, length]) is no longer supported'
+    )
+  }
+
+  var remaining = this.length - offset
+  if (length === undefined || length > remaining) length = remaining
+
+  if ((string.length > 0 && (length < 0 || offset < 0)) || offset > this.length) {
+    throw new RangeError('Attempt to write outside buffer bounds')
+  }
+
+  if (!encoding) encoding = 'utf8'
+
+  var loweredCase = false
+  for (;;) {
+    switch (encoding) {
+      case 'hex':
+        return hexWrite(this, string, offset, length)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Write(this, string, offset, length)
+
+      case 'ascii':
+        return asciiWrite(this, string, offset, length)
+
+      case 'latin1':
+      case 'binary':
+        return latin1Write(this, string, offset, length)
+
+      case 'base64':
+        // Warning: maxLength not taken into account in base64Write
+        return base64Write(this, string, offset, length)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return ucs2Write(this, string, offset, length)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = ('' + encoding).toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+
+Buffer.prototype.toJSON = function toJSON () {
+  return {
+    type: 'Buffer',
+    data: Array.prototype.slice.call(this._arr || this, 0)
+  }
+}
+
+function base64Slice (buf, start, end) {
+  if (start === 0 && end === buf.length) {
+    return base64.fromByteArray(buf)
+  } else {
+    return base64.fromByteArray(buf.slice(start, end))
+  }
+}
+
+function utf8Slice (buf, start, end) {
+  end = Math.min(buf.length, end)
+  var res = []
+
+  var i = start
+  while (i < end) {
+    var firstByte = buf[i]
+    var codePoint = null
+    var bytesPerSequence = (firstByte > 0xEF) ? 4
+      : (firstByte > 0xDF) ? 3
+        : (firstByte > 0xBF) ? 2
+          : 1
+
+    if (i + bytesPerSequence <= end) {
+      var secondByte, thirdByte, fourthByte, tempCodePoint
+
+      switch (bytesPerSequence) {
+        case 1:
+          if (firstByte < 0x80) {
+            codePoint = firstByte
+          }
+          break
+        case 2:
+          secondByte = buf[i + 1]
+          if ((secondByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F)
+            if (tempCodePoint > 0x7F) {
+              codePoint = tempCodePoint
+            }
+          }
+          break
+        case 3:
+          secondByte = buf[i + 1]
+          thirdByte = buf[i + 2]
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F)
+            if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
+              codePoint = tempCodePoint
+            }
+          }
+          break
+        case 4:
+          secondByte = buf[i + 1]
+          thirdByte = buf[i + 2]
+          fourthByte = buf[i + 3]
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F)
+            if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
+              codePoint = tempCodePoint
+            }
+          }
+      }
+    }
+
+    if (codePoint === null) {
+      // we did not generate a valid codePoint so insert a
+      // replacement char (U+FFFD) and advance only 1 byte
+      codePoint = 0xFFFD
+      bytesPerSequence = 1
+    } else if (codePoint > 0xFFFF) {
+      // encode to utf16 (surrogate pair dance)
+      codePoint -= 0x10000
+      res.push(codePoint >>> 10 & 0x3FF | 0xD800)
+      codePoint = 0xDC00 | codePoint & 0x3FF
+    }
+
+    res.push(codePoint)
+    i += bytesPerSequence
+  }
+
+  return decodeCodePointsArray(res)
+}
+
+// Based on http://stackoverflow.com/a/22747272/680742, the browser with
+// the lowest limit is Chrome, with 0x10000 args.
+// We go 1 magnitude less, for safety
+var MAX_ARGUMENTS_LENGTH = 0x1000
+
+function decodeCodePointsArray (codePoints) {
+  var len = codePoints.length
+  if (len <= MAX_ARGUMENTS_LENGTH) {
+    return String.fromCharCode.apply(String, codePoints) // avoid extra slice()
+  }
+
+  // Decode in chunks to avoid "call stack size exceeded".
+  var res = ''
+  var i = 0
+  while (i < len) {
+    res += String.fromCharCode.apply(
+      String,
+      codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
+    )
+  }
+  return res
+}
+
+function asciiSlice (buf, start, end) {
+  var ret = ''
+  end = Math.min(buf.length, end)
+
+  for (var i = start; i < end; ++i) {
+    ret += String.fromCharCode(buf[i] & 0x7F)
+  }
+  return ret
+}
+
+function latin1Slice (buf, start, end) {
+  var ret = ''
+  end = Math.min(buf.length, end)
+
+  for (var i = start; i < end; ++i) {
+    ret += String.fromCharCode(buf[i])
+  }
+  return ret
+}
+
+function hexSlice (buf, start, end) {
+  var len = buf.length
+
+  if (!start || start < 0) start = 0
+  if (!end || end < 0 || end > len) end = len
+
+  var out = ''
+  for (var i = start; i < end; ++i) {
+    out += toHex(buf[i])
+  }
+  return out
+}
+
+function utf16leSlice (buf, start, end) {
+  var bytes = buf.slice(start, end)
+  var res = ''
+  for (var i = 0; i < bytes.length; i += 2) {
+    res += String.fromCharCode(bytes[i] + (bytes[i + 1] * 256))
+  }
+  return res
+}
+
+Buffer.prototype.slice = function slice (start, end) {
+  var len = this.length
+  start = ~~start
+  end = end === undefined ? len : ~~end
+
+  if (start < 0) {
+    start += len
+    if (start < 0) start = 0
+  } else if (start > len) {
+    start = len
+  }
+
+  if (end < 0) {
+    end += len
+    if (end < 0) end = 0
+  } else if (end > len) {
+    end = len
+  }
+
+  if (end < start) end = start
+
+  var newBuf = this.subarray(start, end)
+  // Return an augmented `Uint8Array` instance
+  newBuf.__proto__ = Buffer.prototype
+  return newBuf
+}
+
+/*
+ * Need to make sure that buffer isn't trying to write out of bounds.
+ */
+function checkOffset (offset, ext, length) {
+  if ((offset % 1) !== 0 || offset < 0) throw new RangeError('offset is not uint')
+  if (offset + ext > length) throw new RangeError('Trying to access beyond buffer length')
+}
+
+Buffer.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAssert) {
+  offset = offset >>> 0
+  byteLength = byteLength >>> 0
+  if (!noAssert) checkOffset(offset, byteLength, this.length)
+
+  var val = this[offset]
+  var mul = 1
+  var i = 0
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul
+  }
+
+  return val
+}
+
+Buffer.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAssert) {
+  offset = offset >>> 0
+  byteLength = byteLength >>> 0
+  if (!noAssert) {
+    checkOffset(offset, byteLength, this.length)
+  }
+
+  var val = this[offset + --byteLength]
+  var mul = 1
+  while (byteLength > 0 && (mul *= 0x100)) {
+    val += this[offset + --byteLength] * mul
+  }
+
+  return val
+}
+
+Buffer.prototype.readUInt8 = function readUInt8 (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 1, this.length)
+  return this[offset]
+}
+
+Buffer.prototype.readUInt16LE = function readUInt16LE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  return this[offset] | (this[offset + 1] << 8)
+}
+
+Buffer.prototype.readUInt16BE = function readUInt16BE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  return (this[offset] << 8) | this[offset + 1]
+}
+
+Buffer.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return ((this[offset]) |
+      (this[offset + 1] << 8) |
+      (this[offset + 2] << 16)) +
+      (this[offset + 3] * 0x1000000)
+}
+
+Buffer.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return (this[offset] * 0x1000000) +
+    ((this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    this[offset + 3])
+}
+
+Buffer.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert) {
+  offset = offset >>> 0
+  byteLength = byteLength >>> 0
+  if (!noAssert) checkOffset(offset, byteLength, this.length)
+
+  var val = this[offset]
+  var mul = 1
+  var i = 0
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul
+  }
+  mul *= 0x80
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+
+  return val
+}
+
+Buffer.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert) {
+  offset = offset >>> 0
+  byteLength = byteLength >>> 0
+  if (!noAssert) checkOffset(offset, byteLength, this.length)
+
+  var i = byteLength
+  var mul = 1
+  var val = this[offset + --i]
+  while (i > 0 && (mul *= 0x100)) {
+    val += this[offset + --i] * mul
+  }
+  mul *= 0x80
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+
+  return val
+}
+
+Buffer.prototype.readInt8 = function readInt8 (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 1, this.length)
+  if (!(this[offset] & 0x80)) return (this[offset])
+  return ((0xff - this[offset] + 1) * -1)
+}
+
+Buffer.prototype.readInt16LE = function readInt16LE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  var val = this[offset] | (this[offset + 1] << 8)
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+}
+
+Buffer.prototype.readInt16BE = function readInt16BE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  var val = this[offset + 1] | (this[offset] << 8)
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+}
+
+Buffer.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return (this[offset]) |
+    (this[offset + 1] << 8) |
+    (this[offset + 2] << 16) |
+    (this[offset + 3] << 24)
+}
+
+Buffer.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return (this[offset] << 24) |
+    (this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    (this[offset + 3])
+}
+
+Buffer.prototype.readFloatLE = function readFloatLE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 4, this.length)
+  return ieee754.read(this, offset, true, 23, 4)
+}
+
+Buffer.prototype.readFloatBE = function readFloatBE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 4, this.length)
+  return ieee754.read(this, offset, false, 23, 4)
+}
+
+Buffer.prototype.readDoubleLE = function readDoubleLE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 8, this.length)
+  return ieee754.read(this, offset, true, 52, 8)
+}
+
+Buffer.prototype.readDoubleBE = function readDoubleBE (offset, noAssert) {
+  offset = offset >>> 0
+  if (!noAssert) checkOffset(offset, 8, this.length)
+  return ieee754.read(this, offset, false, 52, 8)
+}
+
+function checkInt (buf, value, offset, ext, max, min) {
+  if (!Buffer.isBuffer(buf)) throw new TypeError('"buffer" argument must be a Buffer instance')
+  if (value > max || value < min) throw new RangeError('"value" argument is out of bounds')
+  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+}
+
+Buffer.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  byteLength = byteLength >>> 0
+  if (!noAssert) {
+    var maxBytes = Math.pow(2, 8 * byteLength) - 1
+    checkInt(this, value, offset, byteLength, maxBytes, 0)
+  }
+
+  var mul = 1
+  var i = 0
+  this[offset] = value & 0xFF
+  while (++i < byteLength && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  byteLength = byteLength >>> 0
+  if (!noAssert) {
+    var maxBytes = Math.pow(2, 8 * byteLength) - 1
+    checkInt(this, value, offset, byteLength, maxBytes, 0)
+  }
+
+  var i = byteLength - 1
+  var mul = 1
+  this[offset + i] = value & 0xFF
+  while (--i >= 0 && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeUInt8 = function writeUInt8 (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 1, 0xff, 0)
+  this[offset] = (value & 0xff)
+  return offset + 1
+}
+
+Buffer.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
+  this[offset] = (value & 0xff)
+  this[offset + 1] = (value >>> 8)
+  return offset + 2
+}
+
+Buffer.prototype.writeUInt16BE = function writeUInt16BE (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
+  this[offset] = (value >>> 8)
+  this[offset + 1] = (value & 0xff)
+  return offset + 2
+}
+
+Buffer.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
+  this[offset + 3] = (value >>> 24)
+  this[offset + 2] = (value >>> 16)
+  this[offset + 1] = (value >>> 8)
+  this[offset] = (value & 0xff)
+  return offset + 4
+}
+
+Buffer.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
+  this[offset] = (value >>> 24)
+  this[offset + 1] = (value >>> 16)
+  this[offset + 2] = (value >>> 8)
+  this[offset + 3] = (value & 0xff)
+  return offset + 4
+}
+
+Buffer.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) {
+    var limit = Math.pow(2, (8 * byteLength) - 1)
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit)
+  }
+
+  var i = 0
+  var mul = 1
+  var sub = 0
+  this[offset] = value & 0xFF
+  while (++i < byteLength && (mul *= 0x100)) {
+    if (value < 0 && sub === 0 && this[offset + i - 1] !== 0) {
+      sub = 1
+    }
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) {
+    var limit = Math.pow(2, (8 * byteLength) - 1)
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit)
+  }
+
+  var i = byteLength - 1
+  var mul = 1
+  var sub = 0
+  this[offset + i] = value & 0xFF
+  while (--i >= 0 && (mul *= 0x100)) {
+    if (value < 0 && sub === 0 && this[offset + i + 1] !== 0) {
+      sub = 1
+    }
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeInt8 = function writeInt8 (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 1, 0x7f, -0x80)
+  if (value < 0) value = 0xff + value + 1
+  this[offset] = (value & 0xff)
+  return offset + 1
+}
+
+Buffer.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+  this[offset] = (value & 0xff)
+  this[offset + 1] = (value >>> 8)
+  return offset + 2
+}
+
+Buffer.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+  this[offset] = (value >>> 8)
+  this[offset + 1] = (value & 0xff)
+  return offset + 2
+}
+
+Buffer.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+  this[offset] = (value & 0xff)
+  this[offset + 1] = (value >>> 8)
+  this[offset + 2] = (value >>> 16)
+  this[offset + 3] = (value >>> 24)
+  return offset + 4
+}
+
+Buffer.prototype.writeInt32BE = function writeInt32BE (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+  if (value < 0) value = 0xffffffff + value + 1
+  this[offset] = (value >>> 24)
+  this[offset + 1] = (value >>> 16)
+  this[offset + 2] = (value >>> 8)
+  this[offset + 3] = (value & 0xff)
+  return offset + 4
+}
+
+function checkIEEE754 (buf, value, offset, ext, max, min) {
+  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+  if (offset < 0) throw new RangeError('Index out of range')
+}
+
+function writeFloat (buf, value, offset, littleEndian, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38)
+  }
+  ieee754.write(buf, value, offset, littleEndian, 23, 4)
+  return offset + 4
+}
+
+Buffer.prototype.writeFloatLE = function writeFloatLE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeFloatBE = function writeFloatBE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, false, noAssert)
+}
+
+function writeDouble (buf, value, offset, littleEndian, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308)
+  }
+  ieee754.write(buf, value, offset, littleEndian, 52, 8)
+  return offset + 8
+}
+
+Buffer.prototype.writeDoubleLE = function writeDoubleLE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, false, noAssert)
+}
+
+// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
+Buffer.prototype.copy = function copy (target, targetStart, start, end) {
+  if (!Buffer.isBuffer(target)) throw new TypeError('argument should be a Buffer')
+  if (!start) start = 0
+  if (!end && end !== 0) end = this.length
+  if (targetStart >= target.length) targetStart = target.length
+  if (!targetStart) targetStart = 0
+  if (end > 0 && end < start) end = start
+
+  // Copy 0 bytes; we're done
+  if (end === start) return 0
+  if (target.length === 0 || this.length === 0) return 0
+
+  // Fatal error conditions
+  if (targetStart < 0) {
+    throw new RangeError('targetStart out of bounds')
+  }
+  if (start < 0 || start >= this.length) throw new RangeError('Index out of range')
+  if (end < 0) throw new RangeError('sourceEnd out of bounds')
+
+  // Are we oob?
+  if (end > this.length) end = this.length
+  if (target.length - targetStart < end - start) {
+    end = target.length - targetStart + start
+  }
+
+  var len = end - start
+
+  if (this === target && typeof Uint8Array.prototype.copyWithin === 'function') {
+    // Use built-in when available, missing from IE11
+    this.copyWithin(targetStart, start, end)
+  } else if (this === target && start < targetStart && targetStart < end) {
+    // descending copy from end
+    for (var i = len - 1; i >= 0; --i) {
+      target[i + targetStart] = this[i + start]
+    }
+  } else {
+    Uint8Array.prototype.set.call(
+      target,
+      this.subarray(start, end),
+      targetStart
+    )
+  }
+
+  return len
+}
+
+// Usage:
+//    buffer.fill(number[, offset[, end]])
+//    buffer.fill(buffer[, offset[, end]])
+//    buffer.fill(string[, offset[, end]][, encoding])
+Buffer.prototype.fill = function fill (val, start, end, encoding) {
+  // Handle string cases:
+  if (typeof val === 'string') {
+    if (typeof start === 'string') {
+      encoding = start
+      start = 0
+      end = this.length
+    } else if (typeof end === 'string') {
+      encoding = end
+      end = this.length
+    }
+    if (encoding !== undefined && typeof encoding !== 'string') {
+      throw new TypeError('encoding must be a string')
+    }
+    if (typeof encoding === 'string' && !Buffer.isEncoding(encoding)) {
+      throw new TypeError('Unknown encoding: ' + encoding)
+    }
+    if (val.length === 1) {
+      var code = val.charCodeAt(0)
+      if ((encoding === 'utf8' && code < 128) ||
+          encoding === 'latin1') {
+        // Fast path: If `val` fits into a single byte, use that numeric value.
+        val = code
+      }
+    }
+  } else if (typeof val === 'number') {
+    val = val & 255
+  }
+
+  // Invalid ranges are not set to a default, so can range check early.
+  if (start < 0 || this.length < start || this.length < end) {
+    throw new RangeError('Out of range index')
+  }
+
+  if (end <= start) {
+    return this
+  }
+
+  start = start >>> 0
+  end = end === undefined ? this.length : end >>> 0
+
+  if (!val) val = 0
+
+  var i
+  if (typeof val === 'number') {
+    for (i = start; i < end; ++i) {
+      this[i] = val
+    }
+  } else {
+    var bytes = Buffer.isBuffer(val)
+      ? val
+      : Buffer.from(val, encoding)
+    var len = bytes.length
+    if (len === 0) {
+      throw new TypeError('The value "' + val +
+        '" is invalid for argument "value"')
+    }
+    for (i = 0; i < end - start; ++i) {
+      this[i + start] = bytes[i % len]
+    }
+  }
+
+  return this
+}
+
+// HELPER FUNCTIONS
+// ================
+
+var INVALID_BASE64_RE = /[^+/0-9A-Za-z-_]/g
+
+function base64clean (str) {
+  // Node takes equal signs as end of the Base64 encoding
+  str = str.split('=')[0]
+  // Node strips out invalid characters like \n and \t from the string, base64-js does not
+  str = str.trim().replace(INVALID_BASE64_RE, '')
+  // Node converts strings with length < 2 to ''
+  if (str.length < 2) return ''
+  // Node allows for non-padded base64 strings (missing trailing ===), base64-js does not
+  while (str.length % 4 !== 0) {
+    str = str + '='
+  }
+  return str
+}
+
+function toHex (n) {
+  if (n < 16) return '0' + n.toString(16)
+  return n.toString(16)
+}
+
+function utf8ToBytes (string, units) {
+  units = units || Infinity
+  var codePoint
+  var length = string.length
+  var leadSurrogate = null
+  var bytes = []
+
+  for (var i = 0; i < length; ++i) {
+    codePoint = string.charCodeAt(i)
+
+    // is surrogate component
+    if (codePoint > 0xD7FF && codePoint < 0xE000) {
+      // last char was a lead
+      if (!leadSurrogate) {
+        // no lead yet
+        if (codePoint > 0xDBFF) {
+          // unexpected trail
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+          continue
+        } else if (i + 1 === length) {
+          // unpaired lead
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+          continue
+        }
+
+        // valid lead
+        leadSurrogate = codePoint
+
+        continue
+      }
+
+      // 2 leads in a row
+      if (codePoint < 0xDC00) {
+        if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+        leadSurrogate = codePoint
+        continue
+      }
+
+      // valid surrogate pair
+      codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000
+    } else if (leadSurrogate) {
+      // valid bmp char, but last char was a lead
+      if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+    }
+
+    leadSurrogate = null
+
+    // encode utf8
+    if (codePoint < 0x80) {
+      if ((units -= 1) < 0) break
+      bytes.push(codePoint)
+    } else if (codePoint < 0x800) {
+      if ((units -= 2) < 0) break
+      bytes.push(
+        codePoint >> 0x6 | 0xC0,
+        codePoint & 0x3F | 0x80
+      )
+    } else if (codePoint < 0x10000) {
+      if ((units -= 3) < 0) break
+      bytes.push(
+        codePoint >> 0xC | 0xE0,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      )
+    } else if (codePoint < 0x110000) {
+      if ((units -= 4) < 0) break
+      bytes.push(
+        codePoint >> 0x12 | 0xF0,
+        codePoint >> 0xC & 0x3F | 0x80,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      )
+    } else {
+      throw new Error('Invalid code point')
+    }
+  }
+
+  return bytes
+}
+
+function asciiToBytes (str) {
+  var byteArray = []
+  for (var i = 0; i < str.length; ++i) {
+    // Node's code seems to be doing this and not & 0x7F..
+    byteArray.push(str.charCodeAt(i) & 0xFF)
+  }
+  return byteArray
+}
+
+function utf16leToBytes (str, units) {
+  var c, hi, lo
+  var byteArray = []
+  for (var i = 0; i < str.length; ++i) {
+    if ((units -= 2) < 0) break
+
+    c = str.charCodeAt(i)
+    hi = c >> 8
+    lo = c % 256
+    byteArray.push(lo)
+    byteArray.push(hi)
+  }
+
+  return byteArray
+}
+
+function base64ToBytes (str) {
+  return base64.toByteArray(base64clean(str))
+}
+
+function blitBuffer (src, dst, offset, length) {
+  for (var i = 0; i < length; ++i) {
+    if ((i + offset >= dst.length) || (i >= src.length)) break
+    dst[i + offset] = src[i]
+  }
+  return i
+}
+
+// ArrayBuffer or Uint8Array objects from other contexts (i.e. iframes) do not pass
+// the `instanceof` check but they should be treated as of that type.
+// See: https://github.com/feross/buffer/issues/166
+function isInstance (obj, type) {
+  return obj instanceof type ||
+    (obj != null && obj.constructor != null && obj.constructor.name != null &&
+      obj.constructor.name === type.name)
+}
+function numberIsNaN (obj) {
+  // For IE11 support
+  return obj !== obj // eslint-disable-line no-self-compare
+}
+
+}).call(this)}).call(this,require("buffer").Buffer)
+},{"base64-js":87,"buffer":88,"ieee754":89}],89:[function(require,module,exports){
+/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
+exports.read = function (buffer, offset, isLE, mLen, nBytes) {
+  var e, m
+  var eLen = (nBytes * 8) - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var nBits = -7
+  var i = isLE ? (nBytes - 1) : 0
+  var d = isLE ? -1 : 1
+  var s = buffer[offset + i]
+
+  i += d
+
+  e = s & ((1 << (-nBits)) - 1)
+  s >>= (-nBits)
+  nBits += eLen
+  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+  m = e & ((1 << (-nBits)) - 1)
+  e >>= (-nBits)
+  nBits += mLen
+  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+  if (e === 0) {
+    e = 1 - eBias
+  } else if (e === eMax) {
+    return m ? NaN : ((s ? -1 : 1) * Infinity)
+  } else {
+    m = m + Math.pow(2, mLen)
+    e = e - eBias
+  }
+  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+}
+
+exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
+  var e, m, c
+  var eLen = (nBytes * 8) - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
+  var i = isLE ? 0 : (nBytes - 1)
+  var d = isLE ? 1 : -1
+  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
+
+  value = Math.abs(value)
+
+  if (isNaN(value) || value === Infinity) {
+    m = isNaN(value) ? 1 : 0
+    e = eMax
+  } else {
+    e = Math.floor(Math.log(value) / Math.LN2)
+    if (value * (c = Math.pow(2, -e)) < 1) {
+      e--
+      c *= 2
+    }
+    if (e + eBias >= 1) {
+      value += rt / c
+    } else {
+      value += rt * Math.pow(2, 1 - eBias)
+    }
+    if (value * c >= 2) {
+      e++
+      c /= 2
+    }
+
+    if (e + eBias >= eMax) {
+      m = 0
+      e = eMax
+    } else if (e + eBias >= 1) {
+      m = ((value * c) - 1) * Math.pow(2, mLen)
+      e = e + eBias
+    } else {
+      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
+      e = 0
+    }
+  }
+
+  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+
+  e = (e << mLen) | m
+  eLen += mLen
+  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+
+  buffer[offset + i - d] |= s * 128
+}
+
+},{}]},{},[12])(12)
+});
