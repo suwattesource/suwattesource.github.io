@@ -6,6 +6,7 @@ import {
   NETTRUYEN_DOMAIN,
 } from "./constants";
 import { Parser } from "./parser";
+import { isNumber } from "./utils";
 
 export class Controller {
   private client = new NetworkClient();
@@ -54,10 +55,25 @@ export class Controller {
     if (tag) {
       switch (tag.propertyId) {
         case "genres": {
+          if (isNumber(tag.tagId)) {
+            return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?genres=${tag.tagId}&page=${page}`;
+          }
           return `${NETTRUYEN_DOMAIN}/tim-truyen/${tag.tagId}?sort=${sort_id}&page=${page}`
         }
         case "authors": {
           return `${NETTRUYEN_DOMAIN}/tim-truyen?${tag.tagId}&page=${page}`
+        }
+        case "numchap": {
+          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?minchapter=${tag.tagId}&page=${page}`
+        }
+        case "status": {
+          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?status=${tag.tagId}&page=${page}`
+        }
+        case "gender": {
+          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?gender=${tag.tagId}&page=${page}`
+        }
+        case "sort": {
+          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?sort=${tag.tagId}&page=${page}`
         }
       }
     }
@@ -85,7 +101,7 @@ export class Controller {
       const paramExgenres = search.exgenres ? `&notgenres=${search.exgenres}` : '';
 
       const url = `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao`;
-      const param = encodeURI(`?genres=${search.genres}${paramExgenres}&gender=${search.gender}&status=${search.status}&minchapter=${search.minchapter}&sort=${search.sort}&page=${page}`);
+      const param = `?genres=${search.genres}${paramExgenres}&gender=${search.gender}&status=${search.status}&minchapter=${search.minchapter}&sort=${search.sort}&page=${page}`;
       return url + param
     }
     return `${NETTRUYEN_DOMAIN}/tim-truyen?sort=${sort_id}&page=${page}`
