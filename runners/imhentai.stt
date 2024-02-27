@@ -82,7 +82,7 @@ class Controller {
             search[sort.id] = 1;
         }
         if (tag) {
-            return `${constants_1.IMHENTAI_DOMAIN}${tag.tagId}`;
+            return `${constants_1.IMHENTAI_DOMAIN}${tag.tagId}/?page=${page}`;
         }
         const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;
         return `${constants_1.IMHENTAI_DOMAIN}/search/?key=&${param}&page=${page}`;
@@ -118,7 +118,7 @@ class Target {
     info = {
         id: "imhentai",
         website: "https://imhentai.xxx",
-        version: 0.3,
+        version: 0.4,
         name: "IMHentai",
         supportedLanguages: ["EN"],
         thumbnail: "imhentai.png",
