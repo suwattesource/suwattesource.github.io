@@ -239,7 +239,17 @@ export class Parser {
     const chapters = this.chapters(html)
     const webUrl = `${NETTRUYEN_DOMAIN}/truyen-tranh/${id}`
 
-    return { title, cover, status, summary, recommendedPanelMode, isNSFW, webUrl, chapters, properties };
+    const followers = $('div.follow span').text().trim().split(' ')[1].split("\n")[1];
+    const views = $('ul.list-info li.row:nth-child(5) p.col-xs-8').text().trim().replace(/\./g, '');
+    const ratingCount = $('div.mrt5.mrb10 span[itemprop="aggregateRating"] span[itemprop="ratingCount"]').text().trim();
+    const info = [
+      views ? `👁️ Views: ${views}` : "",
+      `📚 Follows: ${followers}`,
+      `⭐️ Rating count: ${ratingCount}`,
+
+    ].filter((v) => !!v);
+
+    return { title, cover, status, summary, recommendedPanelMode, isNSFW, webUrl, chapters, properties, info };
   }
 
   chapters(html: string): Chapter[] {
