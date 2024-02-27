@@ -105,7 +105,7 @@ class Target {
     info = {
         id: "imhentai",
         website: "https://imhentai.xxx",
-        version: 0.1,
+        version: 0.2,
         name: "IMHentai",
         supportedLanguages: ["EN"],
         thumbnail: "imhentai.png",
