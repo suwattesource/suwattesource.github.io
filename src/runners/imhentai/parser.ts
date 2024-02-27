@@ -138,7 +138,7 @@ export class Parser {
       const title: string = $('h2, div.caption', obj).first().text().trim() ?? ''
       let subtitle: string = $('a.thumb_cat', obj).text().trim() ?? ''
       const dataLanguages: string[] = ($(obj).attr('data-languages') ?? '').split(' ');
-      subtitle += `,${getLanguage(dataLanguages)}`
+      subtitle += `, ${getLanguage(dataLanguages)}`
       const id = $('h2 > a, div.caption > a', obj).attr('href')?.replace(/\/$/, '')?.split('/').pop() ?? ''
 
       items.push({ id, title, subtitle, cover });
@@ -234,13 +234,13 @@ export class Parser {
     const languageTag = $('a', $('span:contains(Language)').parent()).first().text().trim()
     let language = 'en'
     if (languageTag.includes('japanese')) {
-      language = 'jp'
+      language = 'ja'
     } else if (languageTag.includes('spanish')) {
       language = 'es'
     } else if (languageTag.includes('french')) {
       language = 'fr'
     } else if (languageTag.includes('korean')) {
-      language = 'kr'
+      language = 'ko'
     } else if (languageTag.includes('german')) {
       language = 'de'
     } else if (languageTag.includes('russian')) {

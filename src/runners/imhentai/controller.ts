@@ -56,8 +56,13 @@ export class Controller {
       return `${IMHENTAI_DOMAIN}${tag.tagId}/?page=${page}`;
     }
 
+    let queryTitle = ""
+    if (query) {
+      queryTitle = (query || "").replace(/\s+/g, (match) => '+'.repeat(match.length));
+    }
+
     const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;
-    return `${IMHENTAI_DOMAIN}/search/?key=&${param}&page=${page}`;
+    return `${IMHENTAI_DOMAIN}/search/?key=${queryTitle}&${param}&page=${page}`;
   }
 
   // Content
