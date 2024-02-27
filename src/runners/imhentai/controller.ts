@@ -53,7 +53,7 @@ export class Controller {
     }
 
     if (tag) {
-      return `${IMHENTAI_DOMAIN}${tag.tagId}`;
+      return `${IMHENTAI_DOMAIN}${tag.tagId}/?page=${page}`;
     }
 
     const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;

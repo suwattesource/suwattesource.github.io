@@ -19,7 +19,7 @@ export class Target
   info: RunnerInfo = {
     id: "imhentai",
     website: "https://imhentai.xxx",
-    version: 0.3,
+    version: 0.4,
     name: "IMHentai",
     supportedLanguages: ["EN"],
     thumbnail: "imhentai.png",
