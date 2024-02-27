@@ -28,7 +28,7 @@ export class Controller {
   createSearchURL(request: DirectoryRequest): string {
     const { query, tag, filters, page, sort } = request;
     const search = {
-      lt: 0,      // latest
+      lt: 1,      // latest
       pp: 0,      // popular
       dl: 0,      // downladed
       tr: 0,      // top rated
@@ -50,6 +50,10 @@ export class Controller {
     if (sort) {
       search.lt = 0
       search[sort.id as keyof typeof search] = 1
+    }
+
+    if (tag) {
+      return `${IMHENTAI_DOMAIN}${tag.tagId}`;
     }
 
     const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;

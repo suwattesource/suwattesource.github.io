@@ -18,6 +18,7 @@ import {
 
 import {
   decodeHTMLEntity,
+  getLanguage,
 } from "./utils"
 
 export class Parser {
@@ -135,7 +136,9 @@ export class Parser {
     for (const obj of $('div.thumb', 'div.row.galleries').toArray()) {
       const cover: string = this.getImageSrc($('img', $('div.inner_thumb', obj)).first() ?? '')
       const title: string = $('h2, div.caption', obj).first().text().trim() ?? ''
-      const subtitle: string = $('a.thumb_cat', obj).text().trim() ?? ''
+      let subtitle: string = $('a.thumb_cat', obj).text().trim() ?? ''
+      const dataLanguages: string[] = ($(obj).attr('data-languages') ?? '').split(' ');
+      subtitle += `,${getLanguage(dataLanguages)}`
       const id = $('h2 > a, div.caption > a', obj).attr('href')?.replace(/\/$/, '')?.split('/').pop() ?? ''
 
       items.push({ id, title, subtitle, cover });
@@ -156,7 +159,7 @@ export class Parser {
     const category = $('a', $('span:contains(Category)').parent()).toArray();
 
 
-    const summary = $('li.pages').text().replace('Pages: ', '');
+    const summary = $('li.pages').text().replace('Pages: ', '') + " images";
     const status = PublicationStatus.ONGOING
 
 
@@ -229,19 +232,19 @@ export class Parser {
 
     const $ = load(html)
     const languageTag = $('a', $('span:contains(Language)').parent()).first().text().trim()
-    let language = '🇬🇧'
+    let language = 'en'
     if (languageTag.includes('japanese')) {
-      language = '🇯🇵'
+      language = 'jp'
     } else if (languageTag.includes('spanish')) {
-      language = '🇪🇸'
+      language = 'es'
     } else if (languageTag.includes('french')) {
-      language = '🇫🇷'
+      language = 'fr'
     } else if (languageTag.includes('korean')) {
-      language = '🇰🇷'
+      language = 'kr'
     } else if (languageTag.includes('german')) {
-      language = '🇩🇪'
+      language = 'de'
     } else if (languageTag.includes('russian')) {
-      language = '🇷🇺'
+      language = 'ru'
     }
 
     const timeElement = $('li.posted').text();
@@ -323,7 +326,7 @@ export class Parser {
 
   createTags($: CheerioAPI, elements: Element[]): Tag[] {
     const tags: Tag[] = []
-    for (const element in elements) {
+    for (const element of elements) {
       tags.push(
         {
           title: $(element).text().trim().replace(/(\d+\s*)+$/, ''),

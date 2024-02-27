@@ -24,3 +24,19 @@ export const SEARCH_SORTERS: Option[] = [
   },
 ];
 
+interface LanguageMapping {
+  [key: string]: string;
+}
+
+export const LANGUAGE_MAPPING: LanguageMapping = {
+  "2": "English",
+  "1": "Japanese",
+  "6": "Spanish",
+  "8": "French",
+  "7": "Korean",
+  "5": "German",
+  "10": "Russian",
+  "3": "UNKNOWN"
+};
+
+
