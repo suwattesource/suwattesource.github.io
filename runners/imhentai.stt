@@ -1,7 +1,7 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SEARCH_SORTERS = exports.IMHENTAI_DOMAIN = void 0;
+exports.LANGUAGE_MAPPING = exports.SEARCH_SORTERS = exports.IMHENTAI_DOMAIN = void 0;
 exports.IMHENTAI_DOMAIN = "https://imhentai.xxx";
 exports.SEARCH_SORTERS = [
     {
@@ -21,6 +21,16 @@ exports.SEARCH_SORTERS = [
         title: "Top Rated",
     },
 ];
+exports.LANGUAGE_MAPPING = {
+    "2": "English",
+    "1": "Japanese",
+    "6": "Spanish",
+    "8": "French",
+    "7": "Korean",
+    "5": "German",
+    "10": "Russian",
+    "3": "UNKNOWN"
+};
 
 },{}],2:[function(require,module,exports){
 "use strict";
@@ -49,7 +59,7 @@ class Controller {
     createSearchURL(request) {
         const { query, tag, filters, page, sort } = request;
         const search = {
-            lt: 0,
+            lt: 1,
             pp: 0,
             dl: 0,
             tr: 0,
@@ -70,6 +80,9 @@ class Controller {
         if (sort) {
             search.lt = 0;
             search[sort.id] = 1;
+        }
+        if (tag) {
+            return `${constants_1.IMHENTAI_DOMAIN}${tag.tagId}`;
         }
         const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;
         return `${constants_1.IMHENTAI_DOMAIN}/search/?key=&${param}&page=${page}`;
@@ -105,7 +118,7 @@ class Target {
     info = {
         id: "imhentai",
         website: "https://imhentai.xxx",
-        version: 0.2,
+        version: 0.3,
         name: "IMHentai",
         supportedLanguages: ["EN"],
         thumbnail: "imhentai.png",
@@ -282,7 +295,9 @@ class Parser {
         for (const obj of $('div.thumb', 'div.row.galleries').toArray()) {
             const cover = this.getImageSrc($('img', $('div.inner_thumb', obj)).first() ?? '');
             const title = $('h2, div.caption', obj).first().text().trim() ?? '';
-            const subtitle = $('a.thumb_cat', obj).text().trim() ?? '';
+            let subtitle = $('a.thumb_cat', obj).text().trim() ?? '';
+            const dataLanguages = ($(obj).attr('data-languages') ?? '').split(' ');
+            subtitle += `,${(0, utils_1.getLanguage)(dataLanguages)}`;
             const id = $('h2 > a, div.caption > a', obj).attr('href')?.replace(/\/$/, '')?.split('/').pop() ?? '';
             items.push({ id, title, subtitle, cover });
         }
@@ -298,7 +313,7 @@ class Parser {
         const groups = $('a', $('span:contains(Groups)').parent()).toArray();
         const languages = $('a', $('span:contains(Languages)').parent()).toArray();
         const category = $('a', $('span:contains(Category)').parent()).toArray();
-        const summary = $('li.pages').text().replace('Pages: ', '');
+        const summary = $('li.pages').text().replace('Pages: ', '') + " images";
         const status = daisuke_1.PublicationStatus.ONGOING;
         let recommendedPanelMode = daisuke_1.ReadingMode.PAGED_COMIC;
         const properties = [];
@@ -361,24 +376,24 @@ class Parser {
         const chapters = [];
         const $ = (0, cheerio_1.load)(html);
         const languageTag = $('a', $('span:contains(Language)').parent()).first().text().trim();
-        let language = '🇬🇧';
+        let language = 'en';
         if (languageTag.includes('japanese')) {
-            language = '🇯🇵';
+            language = 'jp';
         }
         else if (languageTag.includes('spanish')) {
-            language = '🇪🇸';
+            language = 'es';
         }
         else if (languageTag.includes('french')) {
-            language = '🇫🇷';
+            language = 'fr';
         }
         else if (languageTag.includes('korean')) {
-            language = '🇰🇷';
+            language = 'kr';
         }
         else if (languageTag.includes('german')) {
-            language = '🇩🇪';
+            language = 'de';
         }
         else if (languageTag.includes('russian')) {
-            language = '🇷🇺';
+            language = 'ru';
         }
         const timeElement = $('li.posted').text();
         chapters.push({
@@ -451,7 +466,7 @@ class Parser {
     };
     createTags($, elements) {
         const tags = [];
-        for (const element in elements) {
+        for (const element of elements) {
             tags.push({
                 title: $(element).text().trim().replace(/(\d+\s*)+$/, ''),
                 id: $(element).attr('href') || "",
@@ -505,14 +520,26 @@ exports.isLastPage = isLastPage;
 },{"./constants":1,"./utils":5,"@suwatte/daisuke":6,"cheerio":undefined}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.decodeHTMLEntity = void 0;
+exports.getLanguage = exports.decodeHTMLEntity = void 0;
 const entities = require("entities");
+const constants_1 = require("./constants");
 const decodeHTMLEntity = (str) => {
     return entities.decodeHTML(str);
 };
 exports.decodeHTMLEntity = decodeHTMLEntity;
+const getLanguage = (dataLanguages) => {
+    const sortedDataLanguages = dataLanguages.sort(); // Sort the languages numerically if necessary
+    for (const language of sortedDataLanguages) {
+        const code = constants_1.LANGUAGE_MAPPING[language];
+        if (code && code !== "UNKNOWN") {
+            return code;
+        }
+    }
+    return "UNKNOWN";
+};
+exports.getLanguage = getLanguage;
 
-},{"entities":77}],6:[function(require,module,exports){
+},{"./constants":1,"entities":77}],6:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
