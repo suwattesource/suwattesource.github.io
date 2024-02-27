@@ -84,8 +84,12 @@ class Controller {
         if (tag) {
             return `${constants_1.IMHENTAI_DOMAIN}${tag.tagId}/?page=${page}`;
         }
+        let queryTitle = "";
+        if (query) {
+            queryTitle = (query || "").replace(/\s+/g, (match) => '+'.repeat(match.length));
+        }
         const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;
-        return `${constants_1.IMHENTAI_DOMAIN}/search/?key=&${param}&page=${page}`;
+        return `${constants_1.IMHENTAI_DOMAIN}/search/?key=${queryTitle}&${param}&page=${page}`;
     }
     // Content
     async getContent(id) {
@@ -118,7 +122,7 @@ class Target {
     info = {
         id: "imhentai",
         website: "https://imhentai.xxx",
-        version: 0.4,
+        version: 0.5,
         name: "IMHentai",
         supportedLanguages: ["EN"],
         thumbnail: "imhentai.png",
@@ -297,7 +301,7 @@ class Parser {
             const title = $('h2, div.caption', obj).first().text().trim() ?? '';
             let subtitle = $('a.thumb_cat', obj).text().trim() ?? '';
             const dataLanguages = ($(obj).attr('data-languages') ?? '').split(' ');
-            subtitle += `,${(0, utils_1.getLanguage)(dataLanguages)}`;
+            subtitle += `, ${(0, utils_1.getLanguage)(dataLanguages)}`;
             const id = $('h2 > a, div.caption > a', obj).attr('href')?.replace(/\/$/, '')?.split('/').pop() ?? '';
             items.push({ id, title, subtitle, cover });
         }
@@ -378,7 +382,7 @@ class Parser {
         const languageTag = $('a', $('span:contains(Language)').parent()).first().text().trim();
         let language = 'en';
         if (languageTag.includes('japanese')) {
-            language = 'jp';
+            language = 'ja';
         }
         else if (languageTag.includes('spanish')) {
             language = 'es';
@@ -387,7 +391,7 @@ class Parser {
             language = 'fr';
         }
         else if (languageTag.includes('korean')) {
-            language = 'kr';
+            language = 'ko';
         }
         else if (languageTag.includes('german')) {
             language = 'de';
