@@ -92,8 +92,14 @@ exports.FILTERS = [
     {
         id: "term",
         title: "Term",
-        subtitle: "Use a comma (,) after each tag...",
+        subtitle: "Use a comma (,) after each tag, for example (anal,big breasts).",
         type: daisuke_1.FilterType.TEXT,
+    },
+    {
+        id: "advsearch",
+        title: "Use Advanced Search",
+        subtitle: `Use "+" to include a tag and "-" to exclude, for example: (+tag:"Big Breasts" -tag:"Anal")`,
+        type: daisuke_1.FilterType.TOGGLE,
     },
     {
         id: "category",
@@ -161,6 +167,7 @@ class Controller {
             g: 1, // game cg
         };
         let keyword = "";
+        let baseUrl = `${constants_1.IMHENTAI_DOMAIN}/search`;
         if (filters) {
             keyword = filters.term;
             const categories = filters.category ?? [];
@@ -174,6 +181,14 @@ class Controller {
             if (filters.sort) {
                 search[filters.sort] = 1;
             }
+            if (filters.advsearch) {
+                baseUrl = `${constants_1.IMHENTAI_DOMAIN}/advsearch`;
+                keyword = keyword.replace(/("[^"]+")/g, match => {
+                    let words = match.slice(1, -1).toLowerCase().split(' ');
+                    words = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
+                    return '"' + words.join(' ') + '"';
+                });
+            }
         }
         if (sort) {
             if (!(search.lt || search.pp || search.tr || search.dl)) {
@@ -186,9 +201,9 @@ class Controller {
         if (query) {
             keyword = query;
         }
-        keyword = (keyword || "").trim().replace(/\s+/g, (match) => '+'.repeat(match.length));
+        keyword = encodeURIComponent(keyword);
         const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;
-        return `${constants_1.IMHENTAI_DOMAIN}/search/?key=${keyword}&${param}&page=${page}`;
+        return `${baseUrl}/?key=${keyword}&${param}&page=${page}`;
     }
     // Content
     async getContent(id) {
@@ -221,7 +236,7 @@ class Target {
     info = {
         id: "imhentai",
         website: "https://imhentai.xxx",
-        version: 0.6,
+        version: 0.7,
         name: "IMHentai",
         supportedLanguages: ["EN"],
         thumbnail: "imhentai.png",
