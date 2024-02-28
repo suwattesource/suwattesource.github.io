@@ -142,7 +142,7 @@ class Controller {
     createSearchURL(request) {
         const { query, tag, filters, page, sort } = request;
         const search = {
-            lt: 1,
+            lt: 0,
             pp: 0,
             dl: 0,
             tr: 0,
@@ -163,18 +163,19 @@ class Controller {
         let keyword = "";
         if (filters) {
             keyword = filters.term;
-            const categories = filters.category?.included ?? [];
-            const languages = filters.language?.included ?? [];
+            const categories = filters.category ?? [];
+            const languages = filters.language ?? [];
             for (const category of categories) {
                 search[category] = 0;
             }
             for (const language of languages) {
                 search[language] = 0;
             }
-            search[filters.sort] = 1;
+            if (filters.sort) {
+                search[filters.sort] = 1;
+            }
         }
         if (sort) {
-            search.lt = 0;
             search[sort.id] = 1;
         }
         if (tag) {
@@ -384,9 +385,9 @@ class Parser {
         const webUrl = `${constants_1.IMHENTAI_DOMAIN}/gallery/${id}`;
         const likes = $('#like_btn').text();
         const dislikes = $('#dlike_btn').text();
-        const favourites = $('#add_fav_btn').text().trim().match(/\d+/) ? [0] : "";
-        const download = $('#download_btn').text().trim().match(/\d+/) ? [0] : "";
-        const fapped = $('#fap_btn').text().trim().match(/\d+/) ? [0] : "";
+        const favourites = $('#add_fav_btn').text().trim().match(/\d+/)?.[0];
+        const download = $('#download_btn').text().trim().match(/\d+/)?.[0];
+        const fapped = $('#fap_btn').text().trim().match(/\d+/)?.[0];
         const info = [
             `👍🏻 ${likes}  👎🏻 ${dislikes}`,
             `🤍 Favourite (${favourites})`,
