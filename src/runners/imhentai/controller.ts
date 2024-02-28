@@ -27,7 +27,7 @@ export class Controller {
   createSearchURL(request: DirectoryRequest): string {
     const { query, tag, filters, page, sort } = request;
     const search = {
-      lt: 1,      // latest
+      lt: 0,      // latest
       pp: 0,      // popular
       dl: 0,      // downladed
       tr: 0,      // top rated
@@ -49,19 +49,20 @@ export class Controller {
     let keyword = ""
     if (filters) {
       keyword = filters.term
-      const categories = filters.category?.included ?? []
-      const languages = filters.language?.included ?? []
+      const categories = filters.category ?? []
+      const languages = filters.language ?? []
       for (const category of categories) {
         search[category as keyof typeof search] = 0
       }
       for (const language of languages) {
         search[language as keyof typeof search] = 0
       }
-      search[filters.sort as keyof typeof search] = 1
+      if (filters.sort) {
+        search[filters.sort as keyof typeof search] = 1
+      }
     }
 
     if (sort) {
-      search.lt = 0
       search[sort.id as keyof typeof search] = 1
     }
 

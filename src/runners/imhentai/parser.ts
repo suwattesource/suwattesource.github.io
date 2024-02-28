@@ -128,9 +128,9 @@ export class Parser {
 
     const likes = $('#like_btn').text();
     const dislikes = $('#dlike_btn').text();
-    const favourites = $('#add_fav_btn').text().trim().match(/\d+/) ? [0] : "";
-    const download = $('#download_btn').text().trim().match(/\d+/) ? [0] : "";
-    const fapped = $('#fap_btn').text().trim().match(/\d+/) ? [0] : "";
+    const favourites = $('#add_fav_btn').text().trim().match(/\d+/)?.[0] ;
+    const download = $('#download_btn').text().trim().match(/\d+/)?.[0];
+    const fapped = $('#fap_btn').text().trim().match(/\d+/)?.[0];
     const info = [
       `👍🏻 ${likes}  👎🏻 ${dislikes}`,
       `🤍 Favourite (${favourites})`,
