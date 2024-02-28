@@ -77,6 +77,7 @@ export class Target
           ascending: false,
         },
       },
+      filters: await this.controller.getFilters(),
     };
   }
 
