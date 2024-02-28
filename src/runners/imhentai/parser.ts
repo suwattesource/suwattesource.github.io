@@ -22,112 +22,6 @@ import {
 } from "./utils"
 
 export class Parser {
-  THUMBNAIL_TEMPLATE = "";
-
-
-  filters(html: string): DirectoryFilter[] {
-    const $ = load(html)
-    const filters: DirectoryFilter[] = [];
-
-
-    const genreTags: Tag[] = [];
-    const numChapTags: Tag[] = [];
-    const statusTags: Tag[] = [];
-    const genderTags: Tag[] = [];
-    const sortTags: Tag[] = [];
-
-    for (const tag of $('div.col-md-3.col-sm-4.col-xs-6.mrb10', 'div.col-sm-10 > div.row').toArray()) {
-      const title = $('div.genre-item', tag).text().trim();
-      const id = $('div.genre-item > span', tag).attr('data-id') ?? "";
-      if (!id || !title) continue;
-      genreTags.push({ id: id, title: title });
-    }
-
-    for (const tag of $('option', 'select.select-minchapter').toArray()) {
-      const title = $(tag).text().trim();
-      const id = $(tag).attr('value') ?? "";
-      if (!id || !title) continue;
-      numChapTags.push({ id: id, title: title });
-    }
-
-    for (const tag of $('option', '.select-status').toArray()) {
-      const title = $(tag).text().trim();
-      const id = $(tag).attr('value') ?? "";
-      if (!id || !title) continue;
-      statusTags.push({ id: id, title: title });
-    }
-
-    for (const tag of $('option', '.select-gender').toArray()) {
-      const title = $(tag).text().trim();
-      const id = $(tag).attr('value') ?? "";
-      if (!id || !title) continue;
-      genderTags.push({ id: id, title: title });
-    }
-
-    for (const tag of $('option', '.select-sort').toArray()) {
-      const title = $(tag).text().trim();
-      const id = $(tag).attr('value') ?? "";
-      if (!id || !title) continue;
-      sortTags.push({ id: id, title: title });
-    }
-
-    // genres
-    filters.push({
-      id: "genres",
-      title: "Thể loại",
-      type: FilterType.EXCLUDABLE_MULTISELECT,
-      options: genreTags.map((v) => ({
-        id: v.id,
-        title: v.title,
-      })),
-    });
-
-    // numChap
-    filters.push({
-      id: "numchap",
-      title: "Số lượng chapter",
-      type: FilterType.SELECT,
-      options: numChapTags.map((v) => ({
-        id: v.id,
-        title: v.title,
-      })),
-    });
-
-    // status
-    filters.push({
-      id: "status",
-      title: "Tình trạng",
-      type: FilterType.SELECT,
-      options: statusTags.map((v) => ({
-        id: v.id,
-        title: v.title,
-      })),
-    });
-
-    // gender
-    filters.push({
-      id: "gender",
-      title: "Dành cho",
-      type: FilterType.SELECT,
-      options: genderTags.map((v) => ({
-        id: v.id,
-        title: v.title,
-      })),
-    });
-
-    // sort
-    filters.push({
-      id: "sort",
-      title: "Sắp xếp theo",
-      type: FilterType.SELECT,
-      options: sortTags.map((v) => ({
-        id: v.id,
-        title: v.title,
-      })),
-    });
-
-    return filters;
-  }
 
   parseSearch(html: string): Highlight[] {
     const $ = load(html)
@@ -150,6 +44,8 @@ export class Parser {
     const $ = load(html);
 
     const title = $("h1").text()
+    const altTitle = `Alternative title: ${$('p.subtitle').text()}`;
+    const totalImages = $('li.pages').text().replace('Pages: ', '') + " images";
     const tags = $('a', $('span:contains(Tags)').parent()).toArray();
     const parodies = $('a', $('span:contains(Parodies)').parent()).toArray();
     const artists = $('a', $('span:contains(Artists)').parent()).toArray();
@@ -158,8 +54,7 @@ export class Parser {
     const languages = $('a', $('span:contains(Languages)').parent()).toArray();
     const category = $('a', $('span:contains(Category)').parent()).toArray();
 
-
-    const summary = $('li.pages').text().replace('Pages: ', '') + " images";
+    const summary = `${altTitle}\n${totalImages}`
     const status = PublicationStatus.ONGOING
 
 
@@ -167,10 +62,17 @@ export class Parser {
 
 
     const properties: Property[] = [];
+    properties.push(
+      {
+        "id": "temp",
+        title: "Temp",
+        tags: []
+      }
+    )
     if (tags.length > 0) {
       properties.push({
-        id: "genres",
-        title: "Genres",
+        id: "tags",
+        title: "Tags",
         tags: this.createTags($, tags),
       });
     }
@@ -224,7 +126,19 @@ export class Parser {
     const chapters = this.chapters(html)
     const webUrl = `${IMHENTAI_DOMAIN}/gallery/${id}`
 
-    return { title, cover, status, summary, recommendedPanelMode, isNSFW, webUrl, chapters, properties };
+    const likes = $('#like_btn').text();
+    const dislikes = $('#dlike_btn').text();
+    const favourites = $('#add_fav_btn').text().trim().match(/\d+/) ? [0] : "";
+    const download = $('#dl_new span').text();
+    const fapped = $('#fap_btn').text().trim().split(" ")[1];
+    const info = [
+      `👍🏻 ${likes}  👎🏻 ${dislikes}`,
+      `🤍 Favourite (${favourites})`,
+      `⬇️ Download (${download})`,
+      `😄 Fapped ${fapped}`,
+    ]
+
+    return { title, cover, status, summary, recommendedPanelMode, isNSFW, webUrl, chapters, properties, info };
   }
 
   chapters(html: string): Chapter[] {

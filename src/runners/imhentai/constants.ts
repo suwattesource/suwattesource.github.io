@@ -1,9 +1,69 @@
 import {
   Option,
+  DirectoryFilter,
+  FilterType,
 
 } from "@suwatte/daisuke";
 
 export const IMHENTAI_DOMAIN = "https://imhentai.xxx";
+
+const CATEGORIES: Option[] = [
+  {
+    "id": "m",
+    "title": "Manga",
+  },
+  {
+    "id": "d",
+    "title": "Doujinshi",
+  },
+  {
+    "id": "w",
+    "title": "Western",
+  },
+  {
+    "id": "i",
+    "title": "Image Set",
+  },
+  {
+    "id": "a",
+    "title": "Artist CG",
+  },
+  {
+    "id": "g",
+    "title": "Game CG",
+  }
+]
+
+const LANGUAGES: Option[] = [
+  {
+    "id": "en",
+    "title": "English",
+  },
+  {
+    "id": "jp",
+    "title": "Japanese",
+  },
+  {
+    "id": "es",
+    "title": "Spanish",
+  },
+  {
+    "id": "fr",
+    "title": "French",
+  },
+  {
+    "id": "kr",
+    "title": "Korean",
+  },
+  {
+    "id": "de",
+    "title": "German",
+  },
+  {
+    "id": "ru",
+    "title": "Russian",
+  }
+]
 
 export const SEARCH_SORTERS: Option[] = [
   {
@@ -38,5 +98,37 @@ export const LANGUAGE_MAPPING: LanguageMapping = {
   "10": "Russian",
   "3": "UNKNOWN"
 };
+
+
+export const FILTERS: DirectoryFilter[] = [
+  {
+    id: "term",
+    title: "Term",
+    subtitle: "Use a comma (,) after each tag...",
+    type: FilterType.TEXT,
+  },
+  {
+    id: "category",
+    title: "Category",
+    subtitle: "To exclude",
+    options: CATEGORIES,
+    type: FilterType.MULTISELECT,
+  },
+  {
+    id: "language",
+    title: "Language",
+    subtitle: "To exclude",
+    options: LANGUAGES,
+    type: FilterType.MULTISELECT,
+  },
+  {
+    id: "sort",
+    title: "Sort",
+    options: SEARCH_SORTERS,
+    type: FilterType.SELECT,
+  },
+];
+
+
 
 

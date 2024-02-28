@@ -1,4 +1,5 @@
 import { DirectoryRequest, PageSection, PagedResult, FilterType } from "@suwatte/daisuke";
+import { DEFAULT_FILTERS } from "../nepnep/constants";
 import {
   IMHENTAI_DOMAIN,
 } from "./constants";
@@ -20,9 +21,7 @@ export class Controller {
   }
 
   async getFilters() {
-    const response = await this.client.get(`${IMHENTAI_DOMAIN}/tim-truyen-nang-cao`);
-    const html = response.data;
-    return this.parser.filters(html);
+    return DEFAULT_FILTERS
   }
 
   createSearchURL(request: DirectoryRequest): string {
@@ -47,6 +46,20 @@ export class Controller {
       g: 1,       // game cg
     };
 
+    let keyword = ""
+    if (filters) {
+      keyword = filters.term
+      const categories = filters.category?.included ?? []
+      const languages = filters.language?.included ?? []
+      for (const category of categories) {
+        search[category as keyof typeof search] = 0
+      }
+      for (const language of languages) {
+        search[language as keyof typeof search] = 0
+      }
+      search[filters.sort as keyof typeof search] = 1
+    }
+
     if (sort) {
       search.lt = 0
       search[sort.id as keyof typeof search] = 1
@@ -56,13 +69,13 @@ export class Controller {
       return `${IMHENTAI_DOMAIN}${tag.tagId}/?page=${page}`;
     }
 
-    let queryTitle = ""
     if (query) {
-      queryTitle = (query || "").replace(/\s+/g, (match) => '+'.repeat(match.length));
+      keyword = query
     }
 
+    keyword = (keyword || "").trim().replace(/\s+/g, (match) => '+'.repeat(match.length))
     const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;
-    return `${IMHENTAI_DOMAIN}/search/?key=${queryTitle}&${param}&page=${page}`;
+    return `${IMHENTAI_DOMAIN}/search/?key=${keyword}&${param}&page=${page}`;
   }
 
   // Content
