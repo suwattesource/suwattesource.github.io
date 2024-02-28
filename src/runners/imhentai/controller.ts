@@ -1,6 +1,6 @@
-import { DirectoryRequest, PageSection, PagedResult, FilterType } from "@suwatte/daisuke";
-import { DEFAULT_FILTERS } from "../nepnep/constants";
+import { DirectoryRequest, PagedResult } from "@suwatte/daisuke";
 import {
+  FILTERS,
   IMHENTAI_DOMAIN,
 } from "./constants";
 import { Parser, isLastPage } from "./parser";
@@ -21,7 +21,7 @@ export class Controller {
   }
 
   async getFilters() {
-    return DEFAULT_FILTERS
+    return FILTERS
   }
 
   createSearchURL(request: DirectoryRequest): string {
