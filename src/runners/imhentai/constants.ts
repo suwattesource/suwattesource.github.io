@@ -104,8 +104,14 @@ export const FILTERS: DirectoryFilter[] = [
   {
     id: "term",
     title: "Term",
-    subtitle: "Use a comma (,) after each tag...",
+    subtitle: "Use a comma (,) after each tag, for example (anal,big breasts).",
     type: FilterType.TEXT,
+  },
+  {
+    id: "advsearch",
+    title: "Use Advanced Search",
+    subtitle: `Use "+" to include a tag and "-" to exclude, for example: (+tag:"Big Breasts" -tag:"Anal")`,
+    type: FilterType.TOGGLE,
   },
   {
     id: "category",

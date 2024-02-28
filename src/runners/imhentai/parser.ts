@@ -6,8 +6,6 @@ import {
   Tag,
   Chapter,
   ChapterData,
-  FilterType,
-  DirectoryFilter,
   PublicationStatus,
 } from "@suwatte/daisuke";
 import { CheerioAPI, load, Element, Cheerio } from "cheerio";

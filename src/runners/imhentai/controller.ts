@@ -47,6 +47,7 @@ export class Controller {
     };
 
     let keyword = ""
+    let baseUrl = `${IMHENTAI_DOMAIN}/search`
     if (filters) {
       keyword = filters.term
       const categories = filters.category ?? []
@@ -59,6 +60,15 @@ export class Controller {
       }
       if (filters.sort) {
         search[filters.sort as keyof typeof search] = 1
+      }
+
+      if (filters.advsearch) {
+        baseUrl = `${IMHENTAI_DOMAIN}/advsearch`
+        keyword = keyword.replace(/("[^"]+")/g, match => {
+          let words = match.slice(1, -1).toLowerCase().split(' ');
+          words = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
+          return '"' + words.join(' ') + '"';
+        });
       }
     }
 
@@ -76,9 +86,9 @@ export class Controller {
       keyword = query
     }
 
-    keyword = (keyword || "").trim().replace(/\s+/g, (match) => '+'.repeat(match.length))
+    keyword = encodeURIComponent(keyword)
     const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;
-    return `${IMHENTAI_DOMAIN}/search/?key=${keyword}&${param}&page=${page}`;
+    return `${baseUrl}/?key=${keyword}&${param}&page=${page}`;
   }
 
   // Content
