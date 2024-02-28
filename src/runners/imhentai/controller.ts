@@ -63,7 +63,9 @@ export class Controller {
     }
 
     if (sort) {
-      search[sort.id as keyof typeof search] = 1
+      if (!(search.lt || search.pp || search.tr || search.dl)) {
+        search[sort.id as keyof typeof search] = 1
+      }
     }
 
     if (tag) {
