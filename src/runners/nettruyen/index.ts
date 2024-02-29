@@ -25,7 +25,7 @@ export class Target
   info: RunnerInfo = {
     id: "nettruyen",
     website: "https://nettruyenbb.com",
-    version: 0.2,
+    version: 0.3,
     name: "NetTruyen",
     supportedLanguages: ["VI"],
     thumbnail: "nettruyen.png",

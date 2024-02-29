@@ -1,6 +1,4 @@
 import {
-  DirectoryFilter,
-  FilterType,
   Option,
   PageSection,
   PublicationStatus,
@@ -35,22 +33,6 @@ export const HOME_PAGE_SECTIONS: PageSection[] = [
 
 export const SEARCH_SORTERS: Option[] = [
   {
-    id: "10",
-    title: "Top all",
-  },
-  {
-    id: "11",
-    title: "Top tháng",
-  },
-  {
-    id: "12",
-    title: "Top tuần",
-  },
-  {
-    id: "13",
-    title: "Top ngày",
-  },
-  {
     id: "",
     title: "Ngày cập nhật",
   },
@@ -59,16 +41,32 @@ export const SEARCH_SORTERS: Option[] = [
     title: "Truyện mới",
   },
   {
-    id: "25",
-    title: "Bình luận",
+    id: "10",
+    title: "Xem nhiều nhất",
+  },
+  {
+    id: "11",
+    title: "Xem nhiều nhất tháng",
+  },
+  {
+    id: "12",
+    title: "Xem nhiều nhất tuần",
+  },
+  {
+    id: "13",
+    title: "Xem nhiều nhất hôm nay",
   },
   {
     id: "20",
-    title: "Theo dõi",
+    title: "Theo dõi nhiều nhất",
+  },
+  {
+    id: "25",
+    title: "Bình luận nhiều nhất",
   },
   {
     id: "30",
-    title: "Số chapter",
+    title: "Số chapter nhiều nhất",
   },
 ];
 
