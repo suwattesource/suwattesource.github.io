@@ -15,13 +15,19 @@ import {
 } from "./constants";
 
 import {
+  Store
+} from "./store"
+
+import {
   decodeHTMLEntity,
   getLanguage,
 } from "./utils"
 
 export class Parser {
 
-  parseSearch(html: string): Highlight[] {
+  private store = new Store();
+
+  async parseSearch(html: string): Promise<Highlight[]> {
     const $ = load(html)
     const items: Highlight[] = [];
 
@@ -32,6 +38,12 @@ export class Parser {
       const dataLanguages: string[] = ($(obj).attr('data-languages') ?? '').split(' ');
       subtitle += `, ${getLanguage(dataLanguages)}`
       const id = $('h2 > a, div.caption > a', obj).attr('href')?.replace(/\/$/, '')?.split('/').pop() ?? ''
+
+      const excludeTags = await this.store.excludeTags()
+      const dataTags: number[] = ($(obj).attr('data-tags') ?? '').split(' ').map(tag => parseInt(tag, 10)).filter(tag => !isNaN(tag));
+      const containsExcludedTag = dataTags.some(tag => (excludeTags).includes(tag));
+
+      if (!id || !title || containsExcludedTag) continue
 
       items.push({ id, title, subtitle, cover });
     }
@@ -126,7 +138,7 @@ export class Parser {
 
     const likes = $('#like_btn').text();
     const dislikes = $('#dlike_btn').text();
-    const favourites = $('#add_fav_btn').text().trim().match(/\d+/)?.[0] ;
+    const favourites = $('#add_fav_btn').text().trim().match(/\d+/)?.[0];
     const download = $('#dl_new').text().trim().match(/\d+/)?.[0];
     const fapped = $('#fap_btn').text().trim().match(/\d+/)?.[0];
     const info = [

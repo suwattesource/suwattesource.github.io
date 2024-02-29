@@ -6,20 +6,23 @@ import {
   ContentSource,
   DirectoryConfig,
   DirectoryRequest,
+  Form,
   PagedResult,
   RunnerInfo,
   NetworkRequest,
   Property,
+  RunnerPreferenceProvider,
+  UITextField,
 } from "@suwatte/daisuke";
 import { IMHENTAI_DOMAIN, SEARCH_SORTERS } from "./constants";
 import { Controller } from "./controller";
 
 export class Target
-  implements ContentSource {
+  implements ContentSource, RunnerPreferenceProvider {
   info: RunnerInfo = {
     id: "imhentai",
     website: "https://imhentai.xxx",
-    version: 0.9,
+    version: 1.0,
     name: "IMHentai",
     supportedLanguages: ["EN"],
     thumbnail: "imhentai.png",
@@ -94,5 +97,27 @@ export class Target
       },
     };
   }
-}
 
+  // Preferences
+  async getPreferenceMenu(): Promise<Form> {
+    return {
+      sections: [
+        {
+          header: "Excluded Content",
+          children: [
+            UITextField({
+              id: "exclude_tags",
+              title: `Excluded Tags (include tag name and id, split by comma (,), for e.g. "abc":1,"abc def":2`,
+              optional: true,
+              value:
+                (await ObjectStore.string("exclude_tags")) ?? "",
+              async didChange(value) {
+                return ObjectStore.set("exclude_tags", value);
+              },
+            }),
+          ],
+        },
+      ],
+    };
+  }
+}

@@ -16,7 +16,7 @@ export class Controller {
     const searchUrl = this.createSearchURL(request)
     const response = await this.client.get(searchUrl);
     const html = response.data;
-    const results = this.parser.parseSearch(html);
+    const results = await this.parser.parseSearch(html);
     return {
       results,
       isLastPage: isLastPage(html)
