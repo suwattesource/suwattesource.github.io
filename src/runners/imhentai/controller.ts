@@ -52,10 +52,8 @@ export class Controller {
     let baseUrl = `${IMHENTAI_DOMAIN}/search`
 
     const { sort, page } = request
-    if (sort) {
-      if (sort.id != "lt") {
-        request = this.cache.get(REQUEST_CACHE_KEY) ?? request
-      }
+    if (sort && sort.id != "") {
+      request = this.cache.get(REQUEST_CACHE_KEY) ?? request
       searchOptions[sort.id as keyof typeof searchOptions] = 1
     }
 

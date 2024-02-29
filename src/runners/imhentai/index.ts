@@ -19,7 +19,7 @@ export class Target
   info: RunnerInfo = {
     id: "imhentai",
     website: "https://imhentai.xxx",
-    version: 0.8,
+    version: 0.9,
     name: "IMHentai",
     supportedLanguages: ["EN"],
     thumbnail: "imhentai.png",
@@ -73,7 +73,7 @@ export class Target
         options: SEARCH_SORTERS,
         canChangeOrder: true,
         default: {
-          id: "lt",
+          id: "",
           ascending: false,
         },
       },
