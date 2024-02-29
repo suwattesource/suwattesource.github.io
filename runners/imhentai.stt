@@ -1,9 +1,10 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FILTERS = exports.LANGUAGE_MAPPING = exports.SEARCH_SORTERS = exports.IMHENTAI_DOMAIN = void 0;
+exports.FILTERS = exports.LANGUAGE_MAPPING = exports.SEARCH_SORTERS = exports.REQUEST_CACHE_KEY = exports.IMHENTAI_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.IMHENTAI_DOMAIN = "https://imhentai.xxx";
+exports.REQUEST_CACHE_KEY = "request";
 const CATEGORIES = [
     {
         "id": "m",
@@ -115,12 +116,6 @@ exports.FILTERS = [
         options: LANGUAGES,
         type: daisuke_1.FilterType.MULTISELECT,
     },
-    {
-        id: "sort",
-        title: "Sort",
-        options: exports.SEARCH_SORTERS,
-        type: daisuke_1.FilterType.SELECT,
-    },
 ];
 
 },{"@suwatte/daisuke":6}],2:[function(require,module,exports){
@@ -129,9 +124,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Controller = void 0;
 const constants_1 = require("./constants");
 const parser_1 = require("./parser");
+const utils_1 = require("./utils");
 class Controller {
     client = new NetworkClient();
     parser = new parser_1.Parser();
+    cache = new utils_1.Cache();
     async getSearchResults(request) {
         const searchUrl = this.createSearchURL(request);
         const response = await this.client.get(searchUrl);
@@ -146,8 +143,7 @@ class Controller {
         return constants_1.FILTERS;
     }
     createSearchURL(request) {
-        const { query, tag, filters, page, sort } = request;
-        const search = {
+        const searchOptions = {
             lt: 0,
             pp: 0,
             dl: 0,
@@ -168,18 +164,29 @@ class Controller {
         };
         let keyword = "";
         let baseUrl = `${constants_1.IMHENTAI_DOMAIN}/search`;
+        const { sort, page } = request;
+        if (sort) {
+            if (sort.id != "lt") {
+                request = this.cache.get(constants_1.REQUEST_CACHE_KEY) ?? request;
+            }
+            searchOptions[sort.id] = 1;
+        }
+        const { filters, tag, query } = request;
+        if (!filters && !tag && !query) {
+            this.cache.remove(constants_1.REQUEST_CACHE_KEY);
+        }
+        if (filters || tag || query) {
+            this.cache.set(constants_1.REQUEST_CACHE_KEY, request);
+        }
         if (filters) {
-            keyword = filters.term;
+            keyword = filters.term ?? keyword;
             const categories = filters.category ?? [];
             const languages = filters.language ?? [];
             for (const category of categories) {
-                search[category] = 0;
+                searchOptions[category] = 0;
             }
             for (const language of languages) {
-                search[language] = 0;
-            }
-            if (filters.sort) {
-                search[filters.sort] = 1;
+                searchOptions[language] = 0;
             }
             if (filters.advsearch) {
                 baseUrl = `${constants_1.IMHENTAI_DOMAIN}/advsearch`;
@@ -190,19 +197,18 @@ class Controller {
                 });
             }
         }
-        if (sort) {
-            if (!(search.lt || search.pp || search.tr || search.dl)) {
-                search[sort.id] = 1;
-            }
-        }
         if (tag) {
-            return `${constants_1.IMHENTAI_DOMAIN}${tag.tagId}/?page=${page}`;
+            baseUrl = `${constants_1.IMHENTAI_DOMAIN}${tag.tagId}/`;
+            if (sort && sort.id == "pp") {
+                baseUrl += "popular/";
+            }
+            return `${baseUrl}?page=${page}`;
         }
         if (query) {
             keyword = query;
         }
         keyword = encodeURIComponent(keyword);
-        const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;
+        const param = `apply=Search&${Object.entries(searchOptions).map(([key, value]) => `${key}=${value}`).join('&')}`;
         return `${baseUrl}/?key=${keyword}&${param}&page=${page}`;
     }
     // Content
@@ -225,7 +231,7 @@ class Controller {
 }
 exports.Controller = Controller;
 
-},{"./constants":1,"./parser":4}],3:[function(require,module,exports){
+},{"./constants":1,"./parser":4,"./utils":5}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Target = void 0;
@@ -236,7 +242,7 @@ class Target {
     info = {
         id: "imhentai",
         website: "https://imhentai.xxx",
-        version: 0.7,
+        version: 0.8,
         name: "IMHentai",
         supportedLanguages: ["EN"],
         thumbnail: "imhentai.png",
@@ -561,7 +567,7 @@ exports.isLastPage = isLastPage;
 },{"./constants":1,"./utils":5,"@suwatte/daisuke":6,"cheerio":undefined}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getLanguage = exports.decodeHTMLEntity = void 0;
+exports.Cache = exports.getLanguage = exports.decodeHTMLEntity = void 0;
 const entities = require("entities");
 const constants_1 = require("./constants");
 const decodeHTMLEntity = (str) => {
@@ -579,6 +585,37 @@ const getLanguage = (dataLanguages) => {
     return "UNKNOWN";
 };
 exports.getLanguage = getLanguage;
+class Cache {
+    cache;
+    constructor() {
+        this.cache = new Map();
+    }
+    // Method to set a value in the cache
+    set(key, value) {
+        this.cache.set(key, value);
+    }
+    // Method to get a value from the cache
+    get(key) {
+        return this.cache.get(key);
+    }
+    // Method to check if a key exists in the cache
+    has(key) {
+        return this.cache.has(key);
+    }
+    // Method to remove a value from the cache
+    remove(key) {
+        this.cache.delete(key);
+    }
+    // Method to clear the entire cache
+    clear() {
+        this.cache.clear();
+    }
+    // Method to get the size of the cache
+    size() {
+        return this.cache.size;
+    }
+}
+exports.Cache = Cache;
 
 },{"./constants":1,"entities":77}],6:[function(require,module,exports){
 "use strict";
