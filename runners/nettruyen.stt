@@ -1,11 +1,10 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.TAG_PREFIX = exports.SORT_KEYS = exports.HOME_PAGE_SECTIONS = exports.VERTICAL_TYPES = exports.ADULT_TAGS = exports.STATUS_KEYS = exports.NETTRUYEN_DOMAIN = void 0;
+exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.VERTICAL_TYPES = exports.ADULT_TAGS = exports.STATUS_KEYS = exports.REQUEST_CACHE_KEY = exports.NETTRUYEN_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
-const lodash_1 = require("lodash");
 exports.NETTRUYEN_DOMAIN = "https://nettruyenbb.com";
-const STATUSES = ["ongoing", "complete"];
+exports.REQUEST_CACHE_KEY = "request";
 exports.STATUS_KEYS = {
     "Đang tiến hành": daisuke_1.PublicationStatus.ONGOING,
     "Hoàn thành": daisuke_1.PublicationStatus.COMPLETED,
@@ -25,21 +24,6 @@ exports.HOME_PAGE_SECTIONS = [
         viewMoreLink: { request: { page: 1, sort: { id: "" } } },
     },
 ];
-exports.SORT_KEYS = {
-    views_all: "v",
-    views_monthly: "vm",
-    recent: "lt",
-    alphabetically: "s",
-};
-exports.TAG_PREFIX = {
-    publication: "p_status",
-    scanlation: "s_status",
-    type: "type",
-    year: "released",
-    author: "author",
-    translation: "translation",
-    genres: "genres",
-};
 exports.SEARCH_SORTERS = [
     {
         id: "10",
@@ -78,27 +62,8 @@ exports.SEARCH_SORTERS = [
         title: "Số chapter",
     },
 ];
-exports.DEFAULT_FILTERS = [
-    {
-        id: exports.TAG_PREFIX.publication,
-        title: "Publication Status",
-        type: daisuke_1.FilterType.MULTISELECT,
-        options: STATUSES.map((id) => ({ id, title: (0, lodash_1.capitalize)(id) })),
-    },
-    {
-        id: exports.TAG_PREFIX.scanlation,
-        title: "Scan Status",
-        options: STATUSES.map((id) => ({ id, title: (0, lodash_1.capitalize)(id) })),
-        type: daisuke_1.FilterType.MULTISELECT,
-    },
-    {
-        id: exports.TAG_PREFIX.translation,
-        title: "Official Translation Only",
-        type: daisuke_1.FilterType.TOGGLE,
-    },
-];
 
-},{"@suwatte/daisuke":6,"lodash":undefined}],2:[function(require,module,exports){
+},{"@suwatte/daisuke":6}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Controller = void 0;
@@ -109,6 +74,7 @@ const utils_1 = require("./utils");
 class Controller {
     client = new NetworkClient();
     parser = new parser_1.Parser();
+    cache = new utils_1.Cache();
     async buildHomePageSections() {
         const { data: response } = await this.client.get(constants_1.NETTRUYEN_DOMAIN);
         const out = [];
@@ -134,10 +100,17 @@ class Controller {
         return this.parser.filters(html);
     }
     createSearchURL(request) {
-        const { query, tag, sort, filters, page } = request;
-        let sort_id = "";
-        if (sort) {
-            sort_id = sort.id;
+        const { sort, page } = request;
+        let sort_id = sort?.id;
+        if (sort_id) {
+            request = this.cache.get(constants_1.REQUEST_CACHE_KEY) ?? request;
+        }
+        const { query, filters, tag } = request;
+        if (!query && !filters && !tag) {
+            this.cache.remove(constants_1.REQUEST_CACHE_KEY);
+        }
+        if (query || filters || tag) {
+            this.cache.set(constants_1.REQUEST_CACHE_KEY, request);
         }
         if (query) {
             const postfix = encodeURI(`?keyword=${query}&page=${page}`);
@@ -147,7 +120,7 @@ class Controller {
             switch (tag.propertyId) {
                 case "genres": {
                     if ((0, utils_1.isNumber)(tag.tagId)) {
-                        return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?genres=${tag.tagId}&page=${page}`;
+                        return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?genres=${tag.tagId}&sort=${sort_id}&page=${page}`;
                     }
                     return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen/${tag.tagId}?sort=${sort_id}&page=${page}`;
                 }
@@ -155,16 +128,13 @@ class Controller {
                     return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen?${tag.tagId}&page=${page}`;
                 }
                 case "numchap": {
-                    return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?minchapter=${tag.tagId}&page=${page}`;
+                    return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?minchapter=${tag.tagId}&sort=${sort_id}&page=${page}`;
                 }
                 case "status": {
-                    return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?status=${tag.tagId}&page=${page}`;
+                    return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?status=${tag.tagId}&sort=${sort_id}&page=${page}`;
                 }
                 case "gender": {
-                    return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?gender=${tag.tagId}&page=${page}`;
-                }
-                case "sort": {
-                    return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?sort=${tag.tagId}&page=${page}`;
+                    return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?gender=${tag.tagId}&sort=${sort_id}&page=${page}`;
                 }
             }
         }
@@ -175,7 +145,6 @@ class Controller {
                 gender: "-1",
                 status: "-1",
                 minchapter: "1",
-                sort: "0",
             };
             const includeGenres = filters.genres?.included ?? [];
             const excludeGenres = filters.genres?.excluded ?? [];
@@ -184,10 +153,9 @@ class Controller {
             search.minchapter = filters.numchap ?? "1";
             search.gender = filters.gender ?? "-1";
             search.status = filters.status ?? "-1";
-            search.sort = filters.sort ?? "0";
             const paramExgenres = search.exgenres ? `&notgenres=${search.exgenres}` : '';
             const url = `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen-nang-cao`;
-            const param = `?genres=${search.genres}${paramExgenres}&gender=${search.gender}&status=${search.status}&minchapter=${search.minchapter}&sort=${search.sort}&page=${page}`;
+            const param = `?genres=${search.genres}${paramExgenres}&gender=${search.gender}&status=${search.status}&minchapter=${search.minchapter}&sort=${sort_id}&page=${page}`;
             return url + param;
         }
         return `${constants_1.NETTRUYEN_DOMAIN}/tim-truyen?sort=${sort_id}&page=${page}`;
@@ -233,7 +201,7 @@ class Target {
     info = {
         id: "nettruyen",
         website: "https://nettruyenbb.com",
-        version: 0.1,
+        version: 0.2,
         name: "NetTruyen",
         supportedLanguages: ["VI"],
         thumbnail: "nettruyen.png",
@@ -442,16 +410,6 @@ class Parser {
                 title: v.title,
             })),
         });
-        // sort
-        filters.push({
-            id: "sort",
-            title: "Sắp xếp theo",
-            type: daisuke_1.FilterType.SELECT,
-            options: sortTags.map((v) => ({
-                id: v.id,
-                title: v.title,
-            })),
-        });
         return filters;
     }
     parseSearch(html) {
@@ -596,11 +554,42 @@ exports.Parser = Parser;
 },{"./constants":1,"@suwatte/daisuke":6,"cheerio":undefined}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isNumber = void 0;
+exports.Cache = exports.isNumber = void 0;
 function isNumber(str) {
     return /^[0-9]+$/.test(str);
 }
 exports.isNumber = isNumber;
+class Cache {
+    cache;
+    constructor() {
+        this.cache = new Map();
+    }
+    // Method to set a value in the cache
+    set(key, value) {
+        this.cache.set(key, value);
+    }
+    // Method to get a value from the cache
+    get(key) {
+        return this.cache.get(key);
+    }
+    // Method to check if a key exists in the cache
+    has(key) {
+        return this.cache.has(key);
+    }
+    // Method to remove a value from the cache
+    remove(key) {
+        this.cache.delete(key);
+    }
+    // Method to clear the entire cache
+    clear() {
+        this.cache.clear();
+    }
+    // Method to get the size of the cache
+    size() {
+        return this.cache.size;
+    }
+}
+exports.Cache = Cache;
 
 },{}],6:[function(require,module,exports){
 "use strict";

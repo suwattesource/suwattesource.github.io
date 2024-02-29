@@ -319,13 +319,6 @@ class Target {
                                 return ObjectStore.set("exclude_tags", value);
                             },
                         }),
-                        (0, daisuke_1.UIButton)({
-                            id: "remove_tags",
-                            title: "Clear all excluded tags",
-                            isDestructive: true,
-                            systemImage: "trash",
-                            action: async () => await ObjectStore.set("exclude_tags", ""),
-                        }),
                     ],
                 },
             ],
