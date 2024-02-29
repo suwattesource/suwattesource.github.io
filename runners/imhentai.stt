@@ -165,10 +165,8 @@ class Controller {
         let keyword = "";
         let baseUrl = `${constants_1.IMHENTAI_DOMAIN}/search`;
         const { sort, page } = request;
-        if (sort) {
-            if (sort.id != "lt") {
-                request = this.cache.get(constants_1.REQUEST_CACHE_KEY) ?? request;
-            }
+        if (sort && sort.id != "") {
+            request = this.cache.get(constants_1.REQUEST_CACHE_KEY) ?? request;
             searchOptions[sort.id] = 1;
         }
         const { filters, tag, query } = request;
@@ -242,7 +240,7 @@ class Target {
     info = {
         id: "imhentai",
         website: "https://imhentai.xxx",
-        version: 0.8,
+        version: 0.9,
         name: "IMHentai",
         supportedLanguages: ["EN"],
         thumbnail: "imhentai.png",
@@ -288,7 +286,7 @@ class Target {
                 options: constants_1.SEARCH_SORTERS,
                 canChangeOrder: true,
                 default: {
-                    id: "lt",
+                    id: "",
                     ascending: false,
                 },
             },
