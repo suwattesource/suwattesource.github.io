@@ -2,12 +2,15 @@ import { DirectoryRequest, PagedResult } from "@suwatte/daisuke";
 import {
   FILTERS,
   IMHENTAI_DOMAIN,
+  REQUEST_CACHE_KEY,
 } from "./constants";
 import { Parser, isLastPage } from "./parser";
+import { Cache } from "./utils";
 
 export class Controller {
   private client = new NetworkClient();
   private parser = new Parser();
+  private cache = new Cache<DirectoryRequest>();
 
   async getSearchResults(request: DirectoryRequest): Promise<PagedResult> {
     const searchUrl = this.createSearchURL(request)
@@ -25,8 +28,7 @@ export class Controller {
   }
 
   createSearchURL(request: DirectoryRequest): string {
-    const { query, tag, filters, page, sort } = request;
-    const search = {
+    const searchOptions = {
       lt: 0,      // latest
       pp: 0,      // popular
       dl: 0,      // downladed
@@ -48,18 +50,33 @@ export class Controller {
 
     let keyword = ""
     let baseUrl = `${IMHENTAI_DOMAIN}/search`
+
+    const { sort, page } = request
+    if (sort) {
+      if (sort.id != "lt") {
+        request = this.cache.get(REQUEST_CACHE_KEY) ?? request
+      }
+      searchOptions[sort.id as keyof typeof searchOptions] = 1
+    }
+
+    const { filters, tag, query } = request;
+
+    if (!filters && !tag && !query) {
+      this.cache.remove(REQUEST_CACHE_KEY)
+    }
+    if (filters || tag || query) {
+      this.cache.set(REQUEST_CACHE_KEY, request)
+    }
+
     if (filters) {
-      keyword = filters.term
+      keyword = filters.term ?? keyword
       const categories = filters.category ?? []
       const languages = filters.language ?? []
       for (const category of categories) {
-        search[category as keyof typeof search] = 0
+        searchOptions[category as keyof typeof searchOptions] = 0
       }
       for (const language of languages) {
-        search[language as keyof typeof search] = 0
-      }
-      if (filters.sort) {
-        search[filters.sort as keyof typeof search] = 1
+        searchOptions[language as keyof typeof searchOptions] = 0
       }
 
       if (filters.advsearch) {
@@ -72,14 +89,12 @@ export class Controller {
       }
     }
 
-    if (sort) {
-      if (!(search.lt || search.pp || search.tr || search.dl)) {
-        search[sort.id as keyof typeof search] = 1
-      }
-    }
-
     if (tag) {
-      return `${IMHENTAI_DOMAIN}${tag.tagId}/?page=${page}`;
+      baseUrl = `${IMHENTAI_DOMAIN}${tag.tagId}/`
+      if (sort && sort.id == "pp") {
+        baseUrl += "popular/"
+      }
+      return `${baseUrl}?page=${page}`;
     }
 
     if (query) {
@@ -87,7 +102,7 @@ export class Controller {
     }
 
     keyword = encodeURIComponent(keyword)
-    const param = `apply=Search&${Object.entries(search).map(([key, value]) => `${key}=${value}`).join('&')}`;
+    const param = `apply=Search&${Object.entries(searchOptions).map(([key, value]) => `${key}=${value}`).join('&')}`;
     return `${baseUrl}/?key=${keyword}&${param}&page=${page}`;
   }
 

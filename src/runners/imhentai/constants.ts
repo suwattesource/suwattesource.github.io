@@ -7,6 +7,8 @@ import {
 
 export const IMHENTAI_DOMAIN = "https://imhentai.xxx";
 
+export const REQUEST_CACHE_KEY = "request";
+
 const CATEGORIES: Option[] = [
   {
     "id": "m",
@@ -126,12 +128,6 @@ export const FILTERS: DirectoryFilter[] = [
     subtitle: "To exclude",
     options: LANGUAGES,
     type: FilterType.MULTISELECT,
-  },
-  {
-    id: "sort",
-    title: "Sort",
-    options: SEARCH_SORTERS,
-    type: FilterType.SELECT,
   },
 ];
 
