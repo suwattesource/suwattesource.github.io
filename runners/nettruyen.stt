@@ -26,22 +26,6 @@ exports.HOME_PAGE_SECTIONS = [
 ];
 exports.SEARCH_SORTERS = [
     {
-        id: "10",
-        title: "Top all",
-    },
-    {
-        id: "11",
-        title: "Top tháng",
-    },
-    {
-        id: "12",
-        title: "Top tuần",
-    },
-    {
-        id: "13",
-        title: "Top ngày",
-    },
-    {
         id: "",
         title: "Ngày cập nhật",
     },
@@ -50,16 +34,32 @@ exports.SEARCH_SORTERS = [
         title: "Truyện mới",
     },
     {
-        id: "25",
-        title: "Bình luận",
+        id: "10",
+        title: "Xem nhiều nhất",
+    },
+    {
+        id: "11",
+        title: "Xem nhiều nhất tháng",
+    },
+    {
+        id: "12",
+        title: "Xem nhiều nhất tuần",
+    },
+    {
+        id: "13",
+        title: "Xem nhiều nhất hôm nay",
     },
     {
         id: "20",
-        title: "Theo dõi",
+        title: "Theo dõi nhiều nhất",
+    },
+    {
+        id: "25",
+        title: "Bình luận nhiều nhất",
     },
     {
         id: "30",
-        title: "Số chapter",
+        title: "Số chapter nhiều nhất",
     },
 ];
 
@@ -201,7 +201,7 @@ class Target {
     info = {
         id: "nettruyen",
         website: "https://nettruyenbb.com",
-        version: 0.2,
+        version: 0.3,
         name: "NetTruyen",
         supportedLanguages: ["VI"],
         thumbnail: "nettruyen.png",
@@ -474,7 +474,7 @@ class Parser {
         const chapters = this.chapters(html);
         const webUrl = `${constants_1.NETTRUYEN_DOMAIN}/truyen-tranh/${id}`;
         const followers = $('div.follow span').text().trim().split(' ')[1].split("\n")[1];
-        const views = $('ul.list-info li.row:nth-child(5) p.col-xs-8').text().trim().replace(/\./g, '');
+        const views = $('ul.list-info li.row:nth-child(5) p.col-xs-8').text().trim();
         const ratingCount = $('div.mrt5.mrb10 span[itemprop="aggregateRating"] span[itemprop="ratingCount"]').text().trim();
         const info = [
             views ? `👁️ Views: ${views}` : "",
