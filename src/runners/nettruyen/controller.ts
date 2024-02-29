@@ -1,16 +1,17 @@
 import { DirectoryRequest, PageSection, PagedResult, FilterType } from "@suwatte/daisuke";
 import { load } from "cheerio";
-import { each } from "cheerio/lib/api/traversing";
 import {
   HOME_PAGE_SECTIONS,
   NETTRUYEN_DOMAIN,
+  REQUEST_CACHE_KEY,
 } from "./constants";
 import { Parser } from "./parser";
-import { isNumber } from "./utils";
+import { Cache, isNumber } from "./utils";
 
 export class Controller {
   private client = new NetworkClient();
   private parser = new Parser();
+  private cache = new Cache<DirectoryRequest>();
 
   async buildHomePageSections() {
     const { data: response } = await this.client.get(NETTRUYEN_DOMAIN);
@@ -41,12 +42,20 @@ export class Controller {
   }
 
   createSearchURL(request: DirectoryRequest): string {
-    const { query, tag, sort, filters, page } = request;
+    const { sort, page } = request;
 
-    let sort_id = ""
-    if (sort) {
-      sort_id = sort.id
+    let sort_id = sort?.id
+    if (sort_id) {
+      request = this.cache.get(REQUEST_CACHE_KEY) ?? request
     }
+    const { query, filters, tag } = request
+    if (!query && !filters && !tag) {
+      this.cache.remove(REQUEST_CACHE_KEY)
+    }
+    if (query || filters || tag) {
+      this.cache.set(REQUEST_CACHE_KEY, request)
+    }
+
     if (query) {
       const postfix = encodeURI(`?keyword=${query}&page=${page}`)
       return `${NETTRUYEN_DOMAIN}/tim-truyen${postfix}`
@@ -56,7 +65,7 @@ export class Controller {
       switch (tag.propertyId) {
         case "genres": {
           if (isNumber(tag.tagId)) {
-            return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?genres=${tag.tagId}&page=${page}`;
+            return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?genres=${tag.tagId}&sort=${sort_id}&page=${page}`;
           }
           return `${NETTRUYEN_DOMAIN}/tim-truyen/${tag.tagId}?sort=${sort_id}&page=${page}`
         }
@@ -64,16 +73,13 @@ export class Controller {
           return `${NETTRUYEN_DOMAIN}/tim-truyen?${tag.tagId}&page=${page}`
         }
         case "numchap": {
-          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?minchapter=${tag.tagId}&page=${page}`
+          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?minchapter=${tag.tagId}&sort=${sort_id}&page=${page}`
         }
         case "status": {
-          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?status=${tag.tagId}&page=${page}`
+          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?status=${tag.tagId}&sort=${sort_id}&page=${page}`
         }
         case "gender": {
-          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?gender=${tag.tagId}&page=${page}`
-        }
-        case "sort": {
-          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?sort=${tag.tagId}&page=${page}`
+          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?gender=${tag.tagId}&sort=${sort_id}&page=${page}`
         }
       }
     }
@@ -85,7 +91,6 @@ export class Controller {
         gender: "-1",
         status: "-1",
         minchapter: "1",
-        sort: "0",
       };
 
       const includeGenres = filters.genres?.included ?? [];
@@ -96,12 +101,11 @@ export class Controller {
       search.minchapter = filters.numchap ?? "1"
       search.gender = filters.gender ?? "-1"
       search.status = filters.status ?? "-1"
-      search.sort = filters.sort ?? "0"
 
       const paramExgenres = search.exgenres ? `&notgenres=${search.exgenres}` : '';
 
       const url = `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao`;
-      const param = `?genres=${search.genres}${paramExgenres}&gender=${search.gender}&status=${search.status}&minchapter=${search.minchapter}&sort=${search.sort}&page=${page}`;
+      const param = `?genres=${search.genres}${paramExgenres}&gender=${search.gender}&status=${search.status}&minchapter=${search.minchapter}&sort=${sort_id}&page=${page}`;
       return url + param
     }
     return `${NETTRUYEN_DOMAIN}/tim-truyen?sort=${sort_id}&page=${page}`

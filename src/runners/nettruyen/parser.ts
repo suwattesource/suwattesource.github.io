@@ -154,17 +154,6 @@ export class Parser {
       })),
     });
 
-    // sort
-    filters.push({
-      id: "sort",
-      title: "Sắp xếp theo",
-      type: FilterType.SELECT,
-      options: sortTags.map((v) => ({
-        id: v.id,
-        title: v.title,
-      })),
-    });
-
     return filters;
   }
 

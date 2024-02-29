@@ -13,7 +13,6 @@ import {
   Property,
   RunnerPreferenceProvider,
   UITextField,
-  UIButton,
 } from "@suwatte/daisuke";
 import { IMHENTAI_DOMAIN, SEARCH_SORTERS } from "./constants";
 import { Controller } from "./controller";
@@ -114,13 +113,6 @@ export class Target
               async didChange(value) {
                 return ObjectStore.set("exclude_tags", value);
               },
-            }),
-            UIButton({
-              id: "remove_tags",
-              title: "Clear all excluded tags",
-              isDestructive: true,
-              systemImage: "trash",
-              action: async () => await ObjectStore.set("exclude_tags", ""),
             }),
           ],
         },

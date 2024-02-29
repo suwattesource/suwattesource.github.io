@@ -130,7 +130,3 @@ export const FILTERS: DirectoryFilter[] = [
     type: FilterType.MULTISELECT,
   },
 ];
-
-
-
-
