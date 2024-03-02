@@ -7,7 +7,6 @@ import {
   ContentSource,
   DirectoryConfig,
   DirectoryRequest,
-  Form,
   NetworkRequest,
   PageLink,
   PageLinkResolver,
@@ -15,7 +14,6 @@ import {
   PagedResult,
   ResolvedPageSection,
   RunnerInfo,
-  RunnerPreferenceProvider,
   Property,
   UITextField,
 } from "@suwatte/daisuke";
@@ -58,7 +56,8 @@ export class Target
     contentId: string,
     chapterId: string
   ): Promise<ChapterData> {
-    return this.controller.getChapterData(contentId, chapterId);
+    const domain = await this.store.domain()
+    return this.controller.getChapterData(domain, chapterId);
   }
 
   async getTags?(): Promise<Property[]> {

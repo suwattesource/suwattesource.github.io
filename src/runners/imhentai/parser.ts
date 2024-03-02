@@ -27,8 +27,7 @@ export class Parser {
 
   private store = new Store();
 
-  async parseSearch(html: string): Promise<Highlight[]> {
-    const $ = load(html)
+  async getSearchResults($: CheerioAPI): Promise<Highlight[]> {
     const items: Highlight[] = [];
 
     for (const obj of $('div.thumb', 'div.row.galleries').toArray()) {
@@ -50,12 +49,17 @@ export class Parser {
     return items;
   }
 
-  content(html: string, id: string): Content {
-    const $ = load(html);
+  getContent($: CheerioAPI, id: string): Content {
 
     const title = $("h1").text()
-    const altTitle = `Alternative title: ${$('p.subtitle').text()}`;
+    let summary = ""
+    const altTitle = $('p.subtitle').text()
+    if (altTitle) {
+      summary = `Alternative title: ${$('p.subtitle').text()}`;
+    }
     const totalImages = $('li.pages').text().replace('Pages: ', '') + " images";
+    summary += `\n${totalImages}`
+    
     const tags = $('a', $('span:contains(Tags)').parent()).toArray();
     const parodies = $('a', $('span:contains(Parodies)').parent()).toArray();
     const artists = $('a', $('span:contains(Artists)').parent()).toArray();
@@ -64,7 +68,6 @@ export class Parser {
     const languages = $('a', $('span:contains(Languages)').parent()).toArray();
     const category = $('a', $('span:contains(Category)').parent()).toArray();
 
-    const summary = `${altTitle}\n${totalImages}`
     const status = PublicationStatus.ONGOING
 
 
@@ -133,13 +136,13 @@ export class Parser {
     const cover = this.getImageSrc($('img.lazy, div.cover > img').first())
 
     const isNSFW = true;
-    const chapters = this.chapters(html)
+    const chapters = this.getChapters($)
     const webUrl = `${IMHENTAI_DOMAIN}/gallery/${id}`
 
     const likes = $('#like_btn').text();
     const dislikes = $('#dlike_btn').text();
     const favourites = $('#add_fav_btn').text().trim().match(/\d+/)?.[0];
-    const download = $('#dl_new').text().trim().match(/\d+/)?.[0];
+    const download = $('.dl_btn').text().trim().match(/\d+/)?.[0];
     const fapped = $('#fap_btn').text().trim().match(/\d+/)?.[0];
     const info = [
       `👍🏻 ${likes}  👎🏻 ${dislikes}`,
@@ -151,10 +154,9 @@ export class Parser {
     return { title, cover, status, summary, recommendedPanelMode, isNSFW, webUrl, chapters, properties, info };
   }
 
-  chapters(html: string): Chapter[] {
+  getChapters($: CheerioAPI): Chapter[] {
     const chapters: Chapter[] = [];
 
-    const $ = load(html)
     const languageTag = $('a', $('span:contains(Language)').parent()).first().text().trim()
     let language = 'en'
     if (languageTag.includes('japanese')) {
@@ -185,8 +187,7 @@ export class Parser {
   }
 
 
-  chapterData(html: string): ChapterData {
-    const $ = load(html)
+  getChapterData($: CheerioAPI): ChapterData {
     const pages: string[] = []
 
     const pageCount = Number($('#load_pages').attr('value'))
@@ -292,12 +293,10 @@ export class Parser {
     return encodeURI(decodeURI(decodeHTMLEntity(image?.trim() ?? '')))
   }
 
-}
-
-export const isLastPage = (html: string): boolean => {
-  const $ = load(html)
-  let isLast = false
-  const hasEnded = $('li.page-item', 'ul.pagination').last().attr('class')
-  if (hasEnded === 'page-item disabled') isLast = true
-  return isLast;
+  isLastPage = ($: CheerioAPI): boolean => {
+    let isLast = false
+    const hasEnded = $('li.page-item', 'ul.pagination').last().attr('class')
+    if (hasEnded === 'page-item disabled') isLast = true
+    return isLast;
+  }
 }

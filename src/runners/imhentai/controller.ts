@@ -4,8 +4,9 @@ import {
   IMHENTAI_DOMAIN,
   REQUEST_CACHE_KEY,
 } from "./constants";
-import { Parser, isLastPage } from "./parser";
-import { Cache } from "./utils";
+import { Parser } from "./parser";
+import { Cache } from "./cache";
+import { load } from "cheerio";
 
 export class Controller {
   private client = new NetworkClient();
@@ -15,11 +16,11 @@ export class Controller {
   async getSearchResults(request: DirectoryRequest): Promise<PagedResult> {
     const searchUrl = this.createSearchURL(request)
     const response = await this.client.get(searchUrl);
-    const html = response.data;
-    const results = await this.parser.parseSearch(html);
+    const $ = load(response.data);
+    const results = await this.parser.getSearchResults($);
     return {
       results,
-      isLastPage: isLastPage(html)
+      isLastPage: this.parser.isLastPage($)
     };
   }
 
@@ -107,20 +108,21 @@ export class Controller {
   // Content
   async getContent(id: string) {
     const response = await this.client.get(`${IMHENTAI_DOMAIN}/gallery/${id}`);
-    const html = response.data;
-    return this.parser.content(html, id);
+    const $ = load(response.data);
+    return this.parser.getContent($, id);
   }
 
   // Chapters
   async getChapters(id: string) {
     const response = await this.client.get(`${IMHENTAI_DOMAIN}/gallery/${id}`);
-    const html = response.data;
-    return this.parser.chapters(html);
+    const $ = load(response.data);
+    return this.parser.getChapters($);
   }
 
   async getChapterData(contentId: string, chapterId: string) {
     const url = `${IMHENTAI_DOMAIN}/gallery/${contentId}`;
     const response = await this.client.get(url);
-    return this.parser.chapterData(response.data);
+    const $ = load(response.data);
+    return this.parser.getChapterData($);
   }
 }

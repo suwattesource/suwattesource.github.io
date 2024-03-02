@@ -5,7 +5,8 @@ import {
   REQUEST_CACHE_KEY,
 } from "./constants";
 import { Parser } from "./parser";
-import { Cache, isNumber } from "./utils";
+import { Cache } from "./cache";
+import { isNumber } from "./utils";
 
 export class Controller {
   private client = new NetworkClient();
@@ -110,19 +111,6 @@ export class Controller {
     }
     return `${domain}/tim-truyen?sort=${sort_id}&page=${page}`
   }
-
-  isLastPage = (html: string): boolean => {
-    const $ = load(html)
-    const current = $('ul.pagination > li.active > a').text();
-    let total = $('ul.pagination > li.PagerSSCCells:last-child').text();
-
-    if (current) {
-      total = total ?? '';
-      return (+total) === (+current);
-    }
-    return true;
-  }
-
   // Content
   async getContent(domain: string, id: string) {
     const response = await this.client.get(`${domain}/truyen-tranh/${id}`);
