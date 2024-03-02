@@ -9,18 +9,17 @@ import {
   FilterType,
   DirectoryFilter,
 } from "@suwatte/daisuke";
-import { CheerioAPI, load } from "cheerio";
+import { CheerioAPI } from "cheerio";
 
 import {
   ADULT_TAGS,
   VERTICAL_TYPES,
   STATUS_KEYS,
-  NETTRUYEN_DOMAIN,
 } from "./constants";
+import { numberWithDot } from "./utils";
 
 
 export class Parser {
-  THUMBNAIL_TEMPLATE = "";
 
   getTrendingMangas = ($: CheerioAPI): Highlight[] => {
     const items: Highlight[] = [];
@@ -52,7 +51,7 @@ export class Parser {
   }
 
 
-  homepageSection(id: string, $: CheerioAPI): Highlight[] {
+  getHomepageSection($: CheerioAPI, id: string,): Highlight[] {
     const highlights: Highlight[] = []
     switch (id) {
       case "trending":
@@ -64,10 +63,8 @@ export class Parser {
     return highlights;
   }
 
-  filters(html: string): DirectoryFilter[] {
-    const $ = load(html)
+  getFilters($: CheerioAPI): DirectoryFilter[] {
     const filters: DirectoryFilter[] = [];
-
 
     const genreTags: Tag[] = [];
     const numChapTags: Tag[] = [];
@@ -157,8 +154,7 @@ export class Parser {
     return filters;
   }
 
-  parseSearch(html: string): Highlight[] {
-    const $ = load(html)
+  getSearchResults($: CheerioAPI): Highlight[] {
     const items: Highlight[] = [];
     $('div.item', 'div.row').each((_: any, manga: any) => {
       const title = $('figure.clearfix > figcaption > h3 > a', manga).first().text();
@@ -173,9 +169,7 @@ export class Parser {
     return items;
   }
 
-  content(html: string, id: string): Content {
-    const $ = load(html);
-
+  getContent($: CheerioAPI, webUrl: string): Content {
     const title = $('h1.title-detail').text().trim();
     const cover = 'https:' + $('div.col-image > img').attr('src');
     const summary = $('div.detail-content > p').text();
@@ -225,26 +219,26 @@ export class Parser {
 
     const isNSFW = genres.some((v) => v.nsfw);
 
-    const chapters = this.chapters(html)
-    const webUrl = `${NETTRUYEN_DOMAIN}/truyen-tranh/${id}`
+    const chapters = this.getChapters($)
 
     const followers = $('div.follow span').text().trim().split(' ')[1].split("\n")[1];
-    const views = $('ul.list-info li.row:nth-child(5) p.col-xs-8').text().trim();
+    const views = $('div.detail-info ul.list-info li.row').filter(function () {
+      return $(this).find('p.name').text().trim() === 'Lượt xem';
+    }).find('p.col-xs-8').text().trim();
     const ratingCount = $('div.mrt5.mrb10 span[itemprop="aggregateRating"] span[itemprop="ratingCount"]').text().trim();
     const info = [
       views ? `👁️ Views: ${views}` : "",
       `📚 Follows: ${followers}`,
-      `⭐️ Rating count: ${ratingCount}`,
+      `⭐️ Rating count: ${numberWithDot(ratingCount)}`,
 
     ].filter((v) => !!v);
 
     return { title, cover, status, summary, recommendedPanelMode, isNSFW, webUrl, chapters, properties, info };
   }
 
-  chapters(html: string): Chapter[] {
+  getChapters($: CheerioAPI): Chapter[] {
     const chapters: Chapter[] = [];
 
-    const $ = load(html)
     let index = 0
     $('div.list-chapter > nav > ul > li.row:not(.heading)').each((_: any, obj: any) => {
       const chapterId = String($('div.chapter a', obj).attr('href')).split('/').slice(-3).join('/');;
@@ -267,8 +261,7 @@ export class Parser {
   }
 
 
-  chapterData(html: string): ChapterData {
-    const $ = load(html)
+  getChapterData($: CheerioAPI): ChapterData {
     const urls: string[] = [];
 
     $('div.reading-detail > div.page-chapter > img').each((_: any, obj: any) => {
@@ -305,5 +298,16 @@ export class Parser {
       const split = timeAgo.split('/');
       return new Date(`${split[1]}/${split[0]}/20${split[2]}`);
     }
+  }
+
+  isLastPage = ($: CheerioAPI): boolean => {
+    const current = $('ul.pagination > li.active > a').text();
+    let total = $('ul.pagination > li.PagerSSCCells:last-child').text();
+
+    if (current) {
+      total = total ?? '';
+      return (+total) === (+current);
+    }
+    return true;
   }
 }

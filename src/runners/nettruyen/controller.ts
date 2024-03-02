@@ -1,8 +1,7 @@
-import { DirectoryRequest, PageSection, PagedResult, FilterType } from "@suwatte/daisuke";
+import { DirectoryRequest, PageSection, PagedResult } from "@suwatte/daisuke";
 import { load } from "cheerio";
 import {
   HOME_PAGE_SECTIONS,
-  NETTRUYEN_DOMAIN,
   REQUEST_CACHE_KEY,
 } from "./constants";
 import { Parser } from "./parser";
@@ -13,35 +12,36 @@ export class Controller {
   private parser = new Parser();
   private cache = new Cache<DirectoryRequest>();
 
-  async buildHomePageSections() {
-    const { data: response } = await this.client.get(NETTRUYEN_DOMAIN);
+  async buildHomePageSections(domain: string) {
+    const { data: response } = await this.client.get(domain);
 
     const out: PageSection[] = [];
+    const $ = load(response)
     for (const section of HOME_PAGE_SECTIONS) {
-      const items = this.parser.homepageSection(section.id, load(response));
+      const items = this.parser.getHomepageSection($, section.id);
       out.push({ ...section, items });
     }
     return out;
   }
 
-  async getSearchResults(request: DirectoryRequest): Promise<PagedResult> {
-    const searchUrl = this.createSearchURL(request)
+  async getSearchResults(request: DirectoryRequest, domain: string): Promise<PagedResult> {
+    const searchUrl = this.createSearchURL(request, domain)
     const response = await this.client.get(searchUrl);
-    const html = response.data;
-    const results = this.parser.parseSearch(html);
+    const $ = load(response.data);
+    const results = this.parser.getSearchResults($);
     return {
       results,
-      isLastPage: this.isLastPage(html),
+      isLastPage: this.parser.isLastPage($),
     };
   }
 
-  async getFilters() {
-    const response = await this.client.get(`${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao`);
-    const html = response.data;
-    return this.parser.filters(html);
+  async getFilters(domain: string) {
+    const response = await this.client.get(`${domain}/tim-truyen-nang-cao`);
+    const $ = load(response.data);
+    return this.parser.getFilters($);
   }
 
-  createSearchURL(request: DirectoryRequest): string {
+  createSearchURL(request: DirectoryRequest, domain: string): string {
     const { sort, page } = request;
 
     let sort_id = sort?.id
@@ -58,28 +58,28 @@ export class Controller {
 
     if (query) {
       const postfix = encodeURI(`?keyword=${query}&page=${page}`)
-      return `${NETTRUYEN_DOMAIN}/tim-truyen${postfix}`
+      return `${domain}/tim-truyen${postfix}`
     }
 
     if (tag) {
       switch (tag.propertyId) {
         case "genres": {
           if (isNumber(tag.tagId)) {
-            return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?genres=${tag.tagId}&sort=${sort_id}&page=${page}`;
+            return `${domain}/tim-truyen-nang-cao?genres=${tag.tagId}&sort=${sort_id}&page=${page}`;
           }
-          return `${NETTRUYEN_DOMAIN}/tim-truyen/${tag.tagId}?sort=${sort_id}&page=${page}`
+          return `${domain}/tim-truyen/${tag.tagId}?sort=${sort_id}&page=${page}`
         }
         case "authors": {
-          return `${NETTRUYEN_DOMAIN}/tim-truyen?${tag.tagId}&page=${page}`
+          return `${domain}/tim-truyen?${tag.tagId}&page=${page}`
         }
         case "numchap": {
-          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?minchapter=${tag.tagId}&sort=${sort_id}&page=${page}`
+          return `${domain}/tim-truyen-nang-cao?minchapter=${tag.tagId}&sort=${sort_id}&page=${page}`
         }
         case "status": {
-          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?status=${tag.tagId}&sort=${sort_id}&page=${page}`
+          return `${domain}/tim-truyen-nang-cao?status=${tag.tagId}&sort=${sort_id}&page=${page}`
         }
         case "gender": {
-          return `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao?gender=${tag.tagId}&sort=${sort_id}&page=${page}`
+          return `${domain}/tim-truyen-nang-cao?gender=${tag.tagId}&sort=${sort_id}&page=${page}`
         }
       }
     }
@@ -104,11 +104,11 @@ export class Controller {
 
       const paramExgenres = search.exgenres ? `&notgenres=${search.exgenres}` : '';
 
-      const url = `${NETTRUYEN_DOMAIN}/tim-truyen-nang-cao`;
+      const url = `${domain}/tim-truyen-nang-cao`;
       const param = `?genres=${search.genres}${paramExgenres}&gender=${search.gender}&status=${search.status}&minchapter=${search.minchapter}&sort=${sort_id}&page=${page}`;
       return url + param
     }
-    return `${NETTRUYEN_DOMAIN}/tim-truyen?sort=${sort_id}&page=${page}`
+    return `${domain}/tim-truyen?sort=${sort_id}&page=${page}`
   }
 
   isLastPage = (html: string): boolean => {
@@ -124,20 +124,22 @@ export class Controller {
   }
 
   // Content
-  async getContent(id: string) {
-    const response = await this.client.get(`${NETTRUYEN_DOMAIN}/truyen-tranh/${id}`);
-    const html = response.data;
-    return this.parser.content(html, id);
+  async getContent(domain: string, id: string) {
+    const response = await this.client.get(`${domain}/truyen-tranh/${id}`);
+    const $ = load(response.data);
+    const webUrl = `${domain}/truyen-tranh/${id}`
+    return this.parser.getContent($, webUrl);
   }
   // Chapters
-  async getChapters(id: string) {
-    const response = await this.client.get(`${NETTRUYEN_DOMAIN}/truyen-tranh/${id}`);
-    const html = response.data;
-    return this.parser.chapters(html);
+  async getChapters(domain: string, id: string) {
+    const response = await this.client.get(`${domain}/truyen-tranh/${id}`);
+    const $ = load(response.data);
+    return this.parser.getChapters($);
   }
-  async getChapterData(_contentId: string, chapterId: string) {
-    const url = `${NETTRUYEN_DOMAIN}/truyen-tranh/${chapterId}`;
+  async getChapterData(domain: string, chapterId: string) {
+    const url = `${domain}/truyen-tranh/${chapterId}`;
     const response = await this.client.get(url);
-    return this.parser.chapterData(response.data);
+    const $ = load(response.data);
+    return this.parser.getChapterData($);
   }
 }
