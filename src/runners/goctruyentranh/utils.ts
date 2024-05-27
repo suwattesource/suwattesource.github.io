@@ -1,4 +1,6 @@
 import {
+    Category,
+    CategoryResponse,
     ChapterImagesResponse,
     ChapterInfo,
     Gallery,
@@ -17,6 +19,10 @@ export function parseChapters(resp: GetChaptersApiResponse): ChapterInfo[] {
 
 export function parseChapterImages(resp: ChapterImagesResponse): string[] {
     return resp.result.data
+}
+
+export function parseCategories(resp: CategoryResponse): Category[] {
+    return resp.result
 }
 
 export function buildQueryString(request: SearchGalleryRequest): string {

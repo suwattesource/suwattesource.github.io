@@ -9,9 +9,8 @@ import {
     ReadingMode,
     Tag,
 } from "@suwatte/daisuke";
-import {CheerioAPI} from "cheerio";
-import {STATUS_KEYS, VERTICAL_TYPES} from "./constants";
-import {ChapterInfo, Gallery} from "./type";
+import {DEFAULT_FILTERS, STATUS_KEYS, VERTICAL_TYPES} from "./constants";
+import {Category, ChapterInfo, Gallery} from "./type";
 
 export class Parser {
     getSearchResults(galleries: Gallery[], includeSubtitle?: boolean): Highlight[] {
@@ -43,6 +42,7 @@ export class Parser {
             }
         }
         const title = gallery.name
+        const additionalTitles = gallery.otherName.split(',').map(v=>v.trim())
         const cover = gallery.photo
         const summary = gallery.description
         const categories: Tag[] = [];
@@ -80,6 +80,7 @@ export class Parser {
 
         return {
             title,
+            additionalTitles,
             cover,
             summary,
             recommendedPanelMode,
@@ -118,52 +119,19 @@ export class Parser {
         };
     }
 
-    getFilters($: CheerioAPI): DirectoryFilter[] {
-        const filters: DirectoryFilter[] = [];
-        const categoryTags: Tag[] = [];
-        const statusTags: Tag[] = [];
-
-        $('.block-category>.item-status').each((_: any, element: any) => {
-            const id = $(element).find('div').attr('data-code') || "";
-            const title = $(element, 'span').text().trim();
-            categoryTags.push({id: id, title: title});
-        });
-
-        $('.block-status>.item-status').each((_: any, element: any) => {
-            const id = $(element).find('div').attr('data-code') || "";
-            const title = $(element, 'span').text().trim();
-            statusTags.push({id: id, title: title});
-        });
-
-        filters.push(
-            {
-                id: "keyword",
-                title: "Từ Khoá",
-                type: FilterType.TEXT,
-            }
-        )
-
+    getFilters(categories: Category[]): DirectoryFilter[] {
+        const filters = DEFAULT_FILTERS;
         // categories
         filters.push({
             id: "categories",
-            title: "Thể Loại",
+            title: "Thể loại",
             type: FilterType.MULTISELECT,
-            options: categoryTags.map((v) => ({
+            options: categories.map((v) => ({
                 id: v.id,
-                title: v.title,
+                title: v.name,
             })),
         });
 
-        // status
-        filters.push({
-            id: "status",
-            title: "Trạng Thái",
-            type: FilterType.MULTISELECT,
-            options: statusTags.map((v) => ({
-                id: v.id,
-                title: v.title,
-            })),
-        });
         return filters;
     }
 

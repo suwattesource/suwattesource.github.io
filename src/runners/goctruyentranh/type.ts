@@ -28,6 +28,7 @@ export interface Gallery {
     id: string;
     name: string;
     nameEn: string;
+    otherName: string;
     statusCode: string;
     photo: string;
     description: string;
@@ -71,3 +72,15 @@ export interface ChapterImagesResponse {
 export interface ChapterImages {
     data: string[];
 }
+
+export interface CategoryResponse {
+    status: boolean;
+    code: number;
+    result: Category[];
+}
+
+export interface Category {
+    id: string;
+    name: string;
+}
+

@@ -1,8 +1,15 @@
 import {NetworkRequest} from "@suwatte/daisuke";
-import {API_CHAPTER_IMAGES, API_GET_CHAPTER_LIST, API_HOME_FILTER, API_SEARCH, AUTH_TOKEN} from "./constants";
+import {
+    API_CATEGORY,
+    API_CHAPTER_IMAGES,
+    API_GET_CHAPTER_LIST,
+    API_HOME_FILTER,
+    API_SEARCH,
+    AUTH_TOKEN
+} from "./constants";
 import {GlobalStore} from "./store";
-import {ChapterInfo, Gallery, GetGalleryListRequest, SearchGalleryRequest} from "./type";
-import {buildQueryString, parseChapterImages, parseChapters, parseGalleries} from "./utils";
+import {Category, ChapterInfo, Gallery, GetGalleryListRequest, SearchGalleryRequest} from "./type";
+import {buildQueryString, parseCategories, parseChapterImages, parseChapters, parseGalleries} from "./utils";
 import memoryCache, {CacheClass} from "memory-cache";
 
 export class API {
@@ -90,6 +97,14 @@ export class API {
             }
         )
         return parseChapterImages(json)
+    }
+
+    async getCategories(): Promise<Category[]> {
+        const domain = await GlobalStore.getDomain()
+        const url = domain + API_CATEGORY
+        const json = await this.requestJSON({url, method: "GET",}
+        )
+        return parseCategories(json)
     }
 
 

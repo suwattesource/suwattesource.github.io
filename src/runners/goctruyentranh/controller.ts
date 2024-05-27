@@ -1,5 +1,4 @@
-import {DirectoryRequest, NetworkRequestConfig, PagedResult, PageSection} from "@suwatte/daisuke";
-import {load} from "cheerio";
+import {DirectoryRequest, PagedResult, PageSection} from "@suwatte/daisuke";
 import {HOME_PAGE_SECTIONS, PREF_KEYS,} from "./constants";
 import {Parser} from "./parser";
 import memoryCache, {CacheClass} from "memory-cache";
@@ -9,7 +8,6 @@ import {SearchGalleryRequest} from "./type";
 
 export class Controller {
     private api = new API()
-    private client = new NetworkClient()
     private parser = new Parser();
     private cache: CacheClass<string, DirectoryRequest> = new memoryCache.Cache();
 
@@ -74,7 +72,7 @@ export class Controller {
 
         if (filters) {
             searchRequest.searchValue = filters.keyword
-            searchRequest.categories = filters.category ?? []
+            searchRequest.categories = filters.categories ?? []
             searchRequest.status = filters.status ?? []
         }
 
@@ -110,23 +108,7 @@ export class Controller {
     }
 
     async getFilters() {
-        const domain = await GlobalStore.getDomain()
-        const $ = await this.fetchHTML(`${domain}/danh-sach`)
-        return this.parser.getFilters($);
-    }
-
-    private async fetchHTML(url: string, config?: NetworkRequestConfig) {
-        try {
-            console.log(`Requesting to the url: ${url}${config ? ", config: " + JSON.stringify(config) : ""}`)
-            const response = await this.client.get(url, config);
-            return load(response.data);
-        } catch (ex) {
-            const err = <NetworkError>ex
-            if (err?.res?.status == 404) {
-                return load('')
-            }
-            console.error('Error occurred during JSON request:', err);
-            throw ex;
-        }
+        const categories = await this.api.getCategories()
+        return this.parser.getFilters(categories);
     }
 }
