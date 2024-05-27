@@ -1,0 +1,220 @@
+{
+  "categories": [
+    {
+      "name": "Action",
+      "id": 1
+    },
+    {
+      "name": "Adventure",
+      "id": 3
+    },
+    {
+      "name": "Comedy",
+      "id": 5
+    },
+    {
+      "name": "Comic",
+      "id": 6
+    },
+    {
+      "name": "Doujinshi",
+      "id": 7
+    },
+    {
+      "name": "Drama",
+      "id": 49
+    },
+    {
+      "name": "Ecchi",
+      "id": 48
+    },
+    {
+      "name": "Event BT",
+      "id": 60
+    },
+    {
+      "name": "Fantasy",
+      "id": 50
+    },
+    {
+      "name": "Full màu",
+      "id": 64
+    },
+    {
+      "name": "Game",
+      "id": 61
+    },
+    {
+      "name": "Gender Bender",
+      "id": 51
+    },
+    {
+      "name": "Harem",
+      "id": 12
+    },
+    {
+      "name": "Historical",
+      "id": 13
+    },
+    {
+      "name": "Horror",
+      "id": 14
+    },
+    {
+      "name": "Isekai/Dị giới/Trọng sinh",
+      "id": 63
+    },
+    {
+      "name": "Josei",
+      "id": 15
+    },
+    {
+      "name": "Live action",
+      "id": 16
+    },
+    {
+      "name": "Magic",
+      "id": 46
+    },
+    {
+      "name": "Manga",
+      "id": 55
+    },
+    {
+      "name": "Manhua",
+      "id": 17
+    },
+    {
+      "name": "Manhwa",
+      "id": 18
+    },
+    {
+      "name": "Martial Arts",
+      "id": 19
+    },
+    {
+      "name": "Mecha",
+      "id": 21
+    },
+    {
+      "name": "Mystery",
+      "id": 22
+    },
+    {
+      "name": "Nấu Ăn",
+      "id": 56
+    },
+    {
+      "name": "Ngôn Tình",
+      "id": 65
+    },
+    {
+      "name": "NTR",
+      "id": 62
+    },
+    {
+      "name": "One shot",
+      "id": 23
+    },
+    {
+      "name": "Psychological",
+      "id": 24
+    },
+    {
+      "name": "Romance",
+      "id": 25
+    },
+    {
+      "name": "School Life",
+      "id": 26
+    },
+    {
+      "name": "Sci-fi",
+      "id": 27
+    },
+    {
+      "name": "Seinen",
+      "id": 28
+    },
+    {
+      "name": "Shoujo",
+      "id": 29
+    },
+    {
+      "name": "Shoujo Ai",
+      "id": 30
+    },
+    {
+      "name": "Shounen",
+      "id": 31
+    },
+    {
+      "name": "Shounen Ai",
+      "id": 32
+    },
+    {
+      "name": "Slice of life",
+      "id": 33
+    },
+    {
+      "name": "Smut",
+      "id": 34
+    },
+    {
+      "name": "Soft Yaoi",
+      "id": 35
+    },
+    {
+      "name": "Soft Yuri",
+      "id": 36
+    },
+    {
+      "name": "Sports",
+      "id": 37
+    },
+    {
+      "name": "Supernatural",
+      "id": 38
+    },
+    {
+      "name": "Tạp chí truyện tranh",
+      "id": 39
+    },
+    {
+      "name": "Tragedy",
+      "id": 40
+    },
+    {
+      "name": "Trap (Crossdressing)",
+      "id": 58
+    },
+    {
+      "name": "Trinh Thám",
+      "id": 57
+    },
+    {
+      "name": "Truyện scan",
+      "id": 41
+    },
+    {
+      "name": "Tu chân - tu tiên",
+      "id": 66
+    },
+    {
+      "name": "Video Clip",
+      "id": 53
+    },
+    {
+      "name": "VnComic",
+      "id": 42
+    },
+    {
+      "name": "Webtoon",
+      "id": 52
+    },
+    {
+      "name": "Yuri",
+      "id": 59
+    }
+  ]
+}
