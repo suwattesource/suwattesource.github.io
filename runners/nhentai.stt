@@ -1,0 +1,1697 @@
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.API = void 0;
+const constants_1 = require("./constants");
+const cheerio_1 = require("cheerio");
+class API {
+    constructor() {
+        this.client = new NetworkClient();
+    }
+    async getGallery(galleryId) {
+        const req = {
+            url: `https://nhentai.net/api/gallery/${galleryId}`,
+            method: "GET",
+        };
+        return await this.requestJSON(req);
+    }
+    async searchGalleries(request) {
+        if (request.tagId) {
+            return this.getTaggedGalleries(request);
+        }
+        let url = `${constants_1.NHENTAI_DOMAIN}/api/galleries/search?query=%22%22`;
+        if (request.query && request.query != "") {
+            url = `${constants_1.NHENTAI_DOMAIN}/api/galleries/search?query=${encodeURI(request.query)}`;
+        }
+        if (request.sort) {
+            url += `&sort=${request.sort}`;
+        }
+        url += `&page=${request.page ? request.page : 1}`;
+        const req = {
+            url,
+            method: "GET"
+        };
+        const json = await this.requestJSON(req);
+        return json.result;
+    }
+    async getSimilarGalleries(galleryId) {
+        const req = {
+            url: `${constants_1.NHENTAI_DOMAIN}/api/gallery/${galleryId}/related`,
+            method: "GET",
+        };
+        const json = await this.requestJSON(req);
+        return json.result;
+    }
+    async fetchHTML(url, config) {
+        console.log(`Requesting to the url: ${url}${config ? ", config: " + JSON.stringify(config) : ""}`);
+        const response = await this.client.get(url, config);
+        return (0, cheerio_1.load)(response.data);
+    }
+    async getTaggedGalleries(request) {
+        let url = `${constants_1.NHENTAI_DOMAIN}/api/galleries/tagged?tag_id=${request.tagId}&page=${request.page}`;
+        if (request.sort) {
+            url += `&sort=${request.sort}`;
+        }
+        const req = {
+            url,
+            method: "GET",
+        };
+        const json = await this.requestJSON(req);
+        return json.result;
+    }
+    async requestJSON(request) {
+        try {
+            console.log(`Performing JSON request: ${JSON.stringify(request)}`);
+            const { data: resp } = await this.client.request(request);
+            return JSON.parse(resp) ?? resp;
+        }
+        catch (ex) {
+            const err = ex;
+            if (err?.res?.status == 404) {
+                return {
+                    result: []
+                };
+            }
+            console.error('Error occurred during JSON request:', err);
+            throw ex;
+        }
+    }
+}
+exports.API = API;
+
+},{"./constants":2,"cheerio":undefined}],2:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.typeOfImage = exports.TAG_COVER_URL = exports.SECTIONS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.TAG_TYPES = exports.LANGUAGES = exports.PREF_KEYS = exports.NHENTAI_DOMAIN = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+exports.NHENTAI_DOMAIN = "https://nhentai.net";
+exports.PREF_KEYS = {
+    cache_tags: "tags",
+    cache_request: "request",
+    exclude_tags: "exclude_tags",
+    number_of_tag_pages: "number_of_tag_pages",
+    number_of_tag_pages_to_exclude: "number_of_tag_pages_to_exclude"
+};
+exports.LANGUAGES = [
+    {
+        label: "English",
+        languageCode: "en",
+        regionCode: "gb",
+        tagId: 12227,
+    },
+    {
+        label: "Japanese",
+        languageCode: "ja",
+        regionCode: "jp",
+        tagId: 6346,
+    },
+    {
+        label: "Chinese",
+        languageCode: "zh",
+        regionCode: "cn",
+        tagId: 29963,
+    },
+];
+exports.TAG_TYPES = [
+    {
+        id: "parody",
+        title: "Parodies"
+    },
+    {
+        id: "character",
+        title: "Characters"
+    },
+    {
+        id: "tag",
+        title: "Tags"
+    },
+    {
+        id: "artist",
+        title: "Artists"
+    },
+    {
+        id: "group",
+        title: "Groups"
+    },
+    {
+        id: "language",
+        title: "Languages"
+    },
+    {
+        id: "category",
+        title: "Categories"
+    },
+];
+exports.HOME_PAGE_SECTIONS = [
+    {
+        id: "popular-today",
+        title: "Popular Today",
+        style: daisuke_1.SectionStyle.GALLERY,
+    },
+    {
+        id: "popular-week",
+        title: "Popular Week",
+        style: daisuke_1.SectionStyle.GALLERY,
+    },
+    {
+        id: "popular-month",
+        title: "Popular Month",
+        style: daisuke_1.SectionStyle.GALLERY,
+    },
+    {
+        id: "date",
+        title: "New Uploads",
+        style: daisuke_1.SectionStyle.PADDED_LIST,
+        viewMoreLink: { request: { page: 1, sort: { id: "" } } },
+    },
+];
+exports.SEARCH_SORTERS = [
+    {
+        id: "date",
+        title: "Recent",
+    },
+    {
+        id: "popular-today",
+        title: "Popular Today",
+    },
+    {
+        id: "popular-week",
+        title: "Popular Week",
+    },
+    {
+        id: "popular-month",
+        title: "Popular Month",
+    },
+    {
+        id: "popular",
+        title: "Popular All Time",
+    },
+];
+exports.SECTIONS = {
+    id: "section",
+    title: "Sections",
+    style: daisuke_1.SectionStyle.TAG,
+    items: [
+        {
+            id: "tags",
+            title: "Tags",
+            cover: "",
+            link: {
+                request: {
+                    page: 1,
+                    tag: {
+                        propertyId: "section",
+                        tagId: "tags"
+                    }
+                }
+            }
+        },
+        {
+            id: "artists",
+            title: "Artists",
+            cover: "",
+            link: {
+                request: {
+                    page: 1,
+                    tag: {
+                        propertyId: "section",
+                        tagId: "artists"
+                    }
+                }
+            }
+        },
+        {
+            id: "characters",
+            title: "Characters",
+            cover: "",
+            link: {
+                request: {
+                    page: 1,
+                    tag: {
+                        propertyId: "section",
+                        tagId: "characters"
+                    }
+                }
+            }
+        },
+        {
+            id: "parodies",
+            title: "Parodies",
+            cover: "",
+            link: {
+                request: {
+                    page: 1,
+                    tag: {
+                        propertyId: "section",
+                        tagId: "parodies"
+                    }
+                }
+            }
+        },
+        {
+            id: "groups",
+            title: "Groups",
+            cover: "",
+            link: {
+                request: {
+                    page: 1,
+                    tag: {
+                        propertyId: "section",
+                        tagId: "groups"
+                    }
+                }
+            }
+        }
+    ]
+};
+exports.TAG_COVER_URL = "https://cdn.icon-icons.com/icons2/2406/PNG/512/tags_categories_icon_145927.png";
+const typeMap = { 'j': 'jpg', 'p': 'png', 'g': 'gif' };
+const typeOfImage = (image) => {
+    return typeMap[image.t] ?? '';
+};
+exports.typeOfImage = typeOfImage;
+
+},{"@suwatte/daisuke":8}],3:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Controller = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const constants_1 = require("./constants");
+const parser_1 = require("./parser");
+const api_1 = require("./api");
+const memory_cache_1 = __importDefault(require("memory-cache"));
+const cheerio_1 = require("cheerio");
+const store_1 = require("./store");
+class Controller {
+    constructor() {
+        this.api = new api_1.API();
+        this.client = new NetworkClient();
+        this.cache = new memory_cache_1.default.Cache();
+        this.parser = new parser_1.Parser();
+    }
+    async buildHomePageSections() {
+        const promises = [];
+        const sections = [];
+        for (const section of constants_1.HOME_PAGE_SECTIONS) {
+            const url = `${constants_1.NHENTAI_DOMAIN}/search/?q=%22%22&sort=${section.id}`;
+            promises.push(this.fetchHTML(url).then(async ($) => {
+                const items = await this.parser.getGalleriesFromCheerio($);
+                sections.push({ ...section, items: items.slice(0, 20) });
+            }));
+        }
+        await Promise.all(promises);
+        const sectionIdInOrder = constants_1.HOME_PAGE_SECTIONS.map((section) => {
+            return section.id;
+        });
+        sections.sort((a, b) => sectionIdInOrder.indexOf(a.id) - sectionIdInOrder.indexOf(b.id));
+        sections.splice(0, 0, constants_1.SECTIONS);
+        return sections;
+    }
+    async getSearchResults(request) {
+        const results = await this.getGalleries(request);
+        return {
+            results: results,
+            isLastPage: results.length == 0
+        };
+    }
+    async getGalleries(request) {
+        let { filters, query, tag, sort, page } = request;
+        const searchGalleryRequest = { page: page };
+        if (!filters && !query && !tag && sort && sort.id) {
+            request = this.cache.get(constants_1.PREF_KEYS.cache_request) ?? request;
+            tag = request.tag;
+            filters = request.filters;
+            query = request.query;
+        }
+        if (sort && sort.id) {
+            searchGalleryRequest.sort = sort.id;
+        }
+        if (filters) {
+            const tags = await this.getPopularTags();
+            const tagsMap = new Map(tags.map(tag => [tag.id, tag.title]));
+            let query = "";
+            const includeTags = filters.tags?.included ?? [];
+            const excludeTags = filters.tags?.excluded ?? [];
+            for (const tag of includeTags) {
+                query += ` tag:"${tagsMap.get(tag)}"`;
+            }
+            for (const tag of excludeTags) {
+                query += ` -tag:"${tagsMap.get(tag)}"`;
+            }
+            searchGalleryRequest.query = query.trim();
+        }
+        if (query) {
+            searchGalleryRequest.query = query.trim();
+        }
+        if (tag) {
+            if (tag.propertyId == "section") {
+                const url = `${constants_1.NHENTAI_DOMAIN}/${tag.tagId}/popular?page=${page}`;
+                const $ = await this.api.fetchHTML(url);
+                return this.parser.getTagAsHighLights($);
+            }
+            searchGalleryRequest.tagId = tag.tagId;
+        }
+        const galleries = await this.api.searchGalleries(searchGalleryRequest);
+        this.cache.put(constants_1.PREF_KEYS.cache_request, request);
+        return this.parser.getSearchResults(galleries);
+    }
+    async getFilters() {
+        const filters = [];
+        filters.push({
+            id: "tags",
+            title: "Tags",
+            type: daisuke_1.FilterType.EXCLUDABLE_MULTISELECT,
+            options: await this.getPopularTags()
+        });
+        return filters;
+    }
+    // Content
+    async getContent(contentId) {
+        const webUrl = `${constants_1.NHENTAI_DOMAIN}/g/${contentId}`;
+        const [gallery, similarGalleries] = await Promise.all([
+            this.api.getGallery(contentId),
+            this.api.getSimilarGalleries(contentId)
+        ]);
+        return this.parser.getContent(gallery, similarGalleries, webUrl);
+    }
+    async getChapterData(contentId) {
+        const gallery = await this.api.getGallery(contentId);
+        return this.parser.getChapterData(gallery);
+    }
+    async getPopularTags() {
+        const numPages = await store_1.GlobalStore.getNumPages();
+        const cacheKey = constants_1.PREF_KEYS.cache_tags + numPages;
+        const cachedTags = this.cache.get(cacheKey);
+        if (cachedTags) {
+            return cachedTags;
+        }
+        let popularTags = [];
+        const pagePromises = [];
+        for (let i = 1; i <= numPages; i++) {
+            pagePromises.push(this.fetchHTML(`${constants_1.NHENTAI_DOMAIN}/tags/popular?page=${i}`));
+        }
+        const pages = await Promise.all(pagePromises);
+        pages.forEach(page => {
+            popularTags.push(...this.parser.getTags(page));
+        });
+        popularTags = popularTags.sort((a, b) => a.title.localeCompare(b.title));
+        this.cache.put(cacheKey, popularTags);
+        return popularTags;
+    }
+    async getPopularTagsToExclude() {
+        const numPages = await store_1.GlobalStore.getNumPagesToExclude();
+        const cacheKey = constants_1.PREF_KEYS.cache_tags + numPages;
+        const cachedTags = this.cache.get(cacheKey);
+        if (cachedTags) {
+            return cachedTags;
+        }
+        let popularTags = [];
+        const pagePromises = [];
+        for (let i = 1; i <= numPages; i++) {
+            pagePromises.push(this.fetchHTML(`${constants_1.NHENTAI_DOMAIN}/tags/popular?page=${i}`));
+        }
+        const pages = await Promise.all(pagePromises);
+        pages.forEach(page => {
+            popularTags.push(...this.parser.getTags(page));
+        });
+        popularTags = popularTags.sort((a, b) => a.title.localeCompare(b.title));
+        this.cache.put(cacheKey, popularTags);
+        return popularTags;
+    }
+    async fetchHTML(url, config) {
+        console.log(`Requesting to the url: ${url}${config ? ", config: " + JSON.stringify(config) : ""}`);
+        const response = await this.client.get(url, config);
+        return (0, cheerio_1.load)(response.data);
+    }
+}
+exports.Controller = Controller;
+
+},{"./api":1,"./constants":2,"./parser":5,"./store":6,"@suwatte/daisuke":8,"cheerio":undefined,"memory-cache":72}],4:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Target = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const constants_1 = require("./constants");
+const controller_1 = require("./controller");
+const store_1 = require("./store");
+class Target {
+    constructor() {
+        this.info = {
+            id: "nhentai",
+            website: constants_1.NHENTAI_DOMAIN,
+            version: 1.0,
+            name: "nHentai",
+            supportedLanguages: constants_1.LANGUAGES.map((v) => v.languageCode + "-" + v.regionCode),
+            thumbnail: "nhentai.png",
+            minSupportedAppVersion: "6.0",
+            rating: daisuke_1.CatalogRating.NSFW,
+        };
+        this.controller = new controller_1.Controller();
+    }
+    headers() {
+        return {
+            Referer: constants_1.NHENTAI_DOMAIN + "/",
+        };
+    }
+    // Core
+    async getContent(contentId) {
+        return this.controller.getContent(contentId);
+    }
+    async getChapters(_) {
+        return [];
+    }
+    async getChapterData(contentId, _) {
+        return this.controller.getChapterData(contentId);
+    }
+    async getTags() {
+        const properties = [];
+        const tags = await this.controller.getPopularTags();
+        properties.push({ id: "tags", title: "Tags", tags });
+        return properties;
+    }
+    // Directory
+    getDirectory(request) {
+        return this.controller.getSearchResults(request);
+    }
+    async getDirectoryConfig() {
+        return {
+            filters: await this.controller.getFilters(),
+            sort: {
+                options: constants_1.SEARCH_SORTERS,
+                default: { id: "" }
+            },
+        };
+    }
+    async getSectionsForPage(_) {
+        return this.controller.buildHomePageSections();
+    }
+    resolvePageSection(_link, _sectionKey) {
+        throw new Error("already resolved");
+    }
+    async willRequestImage(url) {
+        return {
+            url,
+            headers: {
+                ...this.headers(),
+            },
+        };
+    }
+    // Preferences
+    async getPreferenceMenu() {
+        return {
+            sections: [
+                {
+                    header: "Excluded Content",
+                    children: [
+                        (0, daisuke_1.UIMultiPicker)({
+                            id: constants_1.PREF_KEYS.exclude_tags,
+                            title: `Excluded Tags`,
+                            options: await this.controller.getPopularTagsToExclude(),
+                            value: await store_1.GlobalStore.getExcludeTags(),
+                            didChange: store_1.GlobalStore.setExcludeTags,
+                        }),
+                        (0, daisuke_1.UIStepper)({
+                            id: constants_1.PREF_KEYS.number_of_tag_pages_to_exclude,
+                            title: `Number of popular tag pages (to exclude)`,
+                            lowerBound: 1,
+                            upperBound: 10,
+                            step: 1,
+                            value: await store_1.GlobalStore.getNumPagesToExclude(),
+                            didChange: store_1.GlobalStore.setNumPagesToExclude,
+                        }),
+                    ],
+                },
+                {
+                    header: "Tags Fetching",
+                    children: [
+                        (0, daisuke_1.UIStepper)({
+                            id: constants_1.PREF_KEYS.number_of_tag_pages_to_exclude,
+                            title: `Number of popular tag pages`,
+                            lowerBound: 1,
+                            upperBound: 5,
+                            step: 1,
+                            value: await store_1.GlobalStore.getNumPages(),
+                            didChange: store_1.GlobalStore.setNumPages,
+                        }),
+                    ],
+                },
+            ],
+        };
+    }
+}
+exports.Target = Target;
+
+},{"./constants":2,"./controller":3,"./store":6,"@suwatte/daisuke":8}],5:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Parser = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const constants_1 = require("./constants");
+const store_1 = require("./store");
+const lodash_1 = require("lodash");
+const utils_1 = require("./utils");
+class Parser {
+    async getSearchResults(galleries, excludeSubtitle) {
+        const items = [];
+        const excludedTags = await store_1.GlobalStore.getExcludeTags();
+        for (const gallery of galleries) {
+            const languages = gallery.tags
+                .filter(tag => tag.type === "language" && tag.name !== "translated")
+                .map(tag => (0, lodash_1.startCase)(tag.name));
+            const containsExcludedTag = gallery.tags.filter(tag => tag.type == "tag").map(tag => tag.id).some(tag => excludedTags.includes(tag.toString()));
+            const subtitle = languages.join(", ");
+            const item = {
+                id: gallery.id.toString(),
+                title: gallery.title.pretty,
+                cover: this.getCover(gallery),
+                info: [subtitle]
+            };
+            if (!excludeSubtitle) {
+                item.subtitle = subtitle;
+            }
+            if (!containsExcludedTag) {
+                items.push(item);
+            }
+        }
+        return items;
+    }
+    async getGalleriesFromCheerio($) {
+        const items = [];
+        $('div.container.index-container div').each((_, manga) => {
+            const id = $(manga).find('a').attr('href')?.split('/')[2];
+            const title = $(manga).find('div.caption').text().trim();
+            const cover = $(manga).find('img').attr('data-src') || "";
+            const dataTags = $(manga).attr("data-tags")?.split(" ").map(v => Number(v));
+            let language = "";
+            if (dataTags) {
+                language = (0, utils_1.getLanguage)(dataTags);
+            }
+            if (id) {
+                items.push({ id, title, cover, info: [language] });
+            }
+        });
+        return items;
+    }
+    async getContent(gallery, similarGalleries, webUrl) {
+        const title = gallery.title.pretty;
+        const summary = `${gallery.num_pages} images`;
+        const isNSFW = true;
+        const cover = this.getCover(gallery);
+        const status = daisuke_1.PublicationStatus.ONGOING;
+        const propertyMap = new Map();
+        const languageName = gallery.tags
+            .find(tag => tag.type == "language" && tag.name !== "translated")
+            ?.name || "";
+        const language = constants_1.LANGUAGES.find(lang => lang.label.toLowerCase() == languageName);
+        const languageCode = language ? `${language.languageCode}-${language.regionCode}` : "";
+        propertyMap.set("temp", { id: "temp", title: "temp", tags: [] });
+        constants_1.TAG_TYPES.forEach((tagType) => {
+            propertyMap.set(tagType.id, { id: tagType.id, title: tagType.title, tags: [] });
+        });
+        let isWebtoon = false;
+        for (const tag of gallery.tags) {
+            if (tag.type == "tag" && tag.name == "webtoon")
+                isWebtoon = true;
+            const property = propertyMap.get(tag.type);
+            property?.tags.push({ id: tag.id.toString(), title: (0, lodash_1.startCase)(tag.name) });
+        }
+        const properties = Array.from(propertyMap.values()).filter((property) => (property.id == "temp" || property.tags.length > 0));
+        let recommendedPanelMode = isWebtoon ? daisuke_1.ReadingMode.WEBTOON : daisuke_1.ReadingMode.PAGED_MANGA;
+        const info = [
+            `♥️Favorite: ${gallery.num_favorites}`
+        ];
+        const chapters = this.getChapters(gallery.upload_date, languageCode);
+        const collections = [];
+        if (similarGalleries.length > 0) {
+            collections.push({
+                id: "similar_galleries",
+                title: "Similar Galleries",
+                highlights: await this.getSearchResults(similarGalleries),
+            });
+        }
+        return {
+            title,
+            summary,
+            cover,
+            status,
+            recommendedPanelMode,
+            isNSFW,
+            webUrl,
+            chapters,
+            properties,
+            info,
+            collections
+        };
+    }
+    getChapters(date, languageCode) {
+        const chapters = [];
+        chapters.push({
+            chapterId: "",
+            number: 1,
+            title: "Images",
+            index: 1,
+            language: languageCode,
+            date: new Date(date * 1000),
+        });
+        return chapters;
+    }
+    getChapterData(gallery) {
+        const pages = this.getImages(gallery);
+        return {
+            pages: pages.map((url) => ({ url })),
+        };
+    }
+    getCover(gallery) {
+        return `https://t.nhentai.net/galleries/${gallery.media_id}/cover.${(0, constants_1.typeOfImage)(gallery.images.cover)}`;
+    }
+    getImages(gallery) {
+        return gallery.images.pages.map((image, i) => {
+            const type = (0, constants_1.typeOfImage)(image);
+            return `https://i.nhentai.net/galleries/${gallery.media_id}/${i + 1}.${type}`;
+        });
+    }
+    getTags($) {
+        const tags = [];
+        $('div.container a').each((_index, element) => {
+            const id = $(element).attr("class")?.match(/tag-(\d+)/)?.[1] || "";
+            const title = $(element).find('span.name').text();
+            tags.push({ id, title: (0, lodash_1.startCase)(title) });
+        });
+        return tags;
+    }
+    getTagAsHighLights($) {
+        const items = [];
+        $('div.container a').each((_index, element) => {
+            const id = $(element).attr("class")?.match(/tag-(\d+)/)?.[1] || "";
+            const title = $(element).find('span.name').text();
+            const count = $(element).find('span.count').text();
+            const subtitle = `📚 ${count}`;
+            items.push({
+                id,
+                title: (0, lodash_1.startCase)(title),
+                subtitle: subtitle,
+                cover: constants_1.TAG_COVER_URL,
+                link: {
+                    request: {
+                        page: 1,
+                        tag: {
+                            tagId: id,
+                            propertyId: "tags"
+                        }
+                    }
+                }
+            });
+        });
+        return items;
+    }
+}
+exports.Parser = Parser;
+
+},{"./constants":2,"./store":6,"./utils":7,"@suwatte/daisuke":8,"lodash":undefined}],6:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GlobalStore = exports.Store = void 0;
+const constants_1 = require("./constants");
+class Store {
+    async getExcludeTags() {
+        const tags = await ObjectStore.stringArray(constants_1.PREF_KEYS.exclude_tags);
+        if (!tags)
+            return [];
+        return tags;
+    }
+    async setExcludeTags(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.exclude_tags, v);
+    }
+    async getNumPages() {
+        const numPages = await ObjectStore.number(constants_1.PREF_KEYS.number_of_tag_pages);
+        if (!numPages)
+            return 3;
+        return numPages;
+    }
+    async setNumPages(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.number_of_tag_pages, v);
+    }
+    async getNumPagesToExclude() {
+        const numPages = await ObjectStore.number(constants_1.PREF_KEYS.number_of_tag_pages_to_exclude);
+        if (!numPages)
+            return 5;
+        return numPages;
+    }
+    async setNumPagesToExclude(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.number_of_tag_pages_to_exclude, v);
+    }
+}
+exports.Store = Store;
+exports.GlobalStore = new Store();
+
+},{"./constants":2}],7:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getLanguage = void 0;
+const constants_1 = require("./constants");
+function getLanguage(dataTags) {
+    for (const dataTag of dataTags) {
+        const language = constants_1.LANGUAGES.find(lang => lang.tagId == dataTag);
+        if (language) {
+            return language.label;
+        }
+    }
+    return "";
+}
+exports.getLanguage = getLanguage;
+
+},{"./constants":2}],8:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./runners"), exports);
+__exportStar(require("./types"), exports);
+
+},{"./runners":32,"./types":62}],9:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+
+},{}],10:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],11:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],12:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],13:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],14:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],15:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],16:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],17:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],18:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./ContentEvent"), exports);
+__exportStar(require("./ChapterEvent"), exports);
+__exportStar(require("./ProgressSync"), exports);
+__exportStar(require("./LibrarySync"), exports);
+__exportStar(require("./StreamContextProvider"), exports);
+__exportStar(require("./ContextMenuHandler"), exports);
+__exportStar(require("./GroupedUpdateProvider"), exports);
+__exportStar(require("./ImageRedrawHandler"), exports);
+
+},{"./ChapterEvent":10,"./ContentEvent":11,"./ContextMenuHandler":12,"./GroupedUpdateProvider":13,"./ImageRedrawHandler":14,"./LibrarySync":15,"./ProgressSync":16,"./StreamContextProvider":17}],19:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./handlers"), exports);
+__exportStar(require("./ContentSource"), exports);
+
+},{"./ContentSource":9,"./handlers":18}],20:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],21:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],22:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./ContentTracker"), exports);
+__exportStar(require("./AdvancedTracker"), exports);
+
+},{"./AdvancedTracker":20,"./ContentTracker":21}],23:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BasicAuthenticationUIIdentifier = void 0;
+var BasicAuthenticationUIIdentifier;
+(function (BasicAuthenticationUIIdentifier) {
+    BasicAuthenticationUIIdentifier[BasicAuthenticationUIIdentifier["EMAIL"] = 0] = "EMAIL";
+    BasicAuthenticationUIIdentifier[BasicAuthenticationUIIdentifier["USERNAME"] = 1] = "USERNAME";
+})(BasicAuthenticationUIIdentifier || (exports.BasicAuthenticationUIIdentifier = BasicAuthenticationUIIdentifier = {}));
+
+},{}],24:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],25:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],26:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],27:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],28:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],29:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],30:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Authentication"), exports);
+__exportStar(require("./Preferences"), exports);
+__exportStar(require("./ImageRequest"), exports);
+__exportStar(require("./DirectoryHandler"), exports);
+__exportStar(require("./PageProvider"), exports);
+__exportStar(require("./Setup"), exports);
+__exportStar(require("./PageResolver"), exports);
+
+},{"./Authentication":23,"./DirectoryHandler":24,"./ImageRequest":25,"./PageProvider":26,"./PageResolver":27,"./Preferences":28,"./Setup":29}],31:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RunnerEnvironment = void 0;
+__exportStar(require("./extensions"), exports);
+var RunnerEnvironment;
+(function (RunnerEnvironment) {
+    RunnerEnvironment[RunnerEnvironment["SOURCE"] = 0] = "SOURCE";
+    RunnerEnvironment[RunnerEnvironment["TRACKER"] = 1] = "TRACKER";
+})(RunnerEnvironment || (exports.RunnerEnvironment = RunnerEnvironment = {}));
+
+},{"./extensions":30}],32:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./ContentSource"), exports);
+__exportStar(require("./Runner"), exports);
+__exportStar(require("./ContentTracker"), exports);
+
+},{"./ContentSource":19,"./ContentTracker":22,"./Runner":31}],33:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],34:[function(require,module,exports){
+"use strict";
+// Picker
+Object.defineProperty(exports, "__esModule", { value: true });
+
+},{}],35:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UIStepper = exports.UIButton = exports.UIDatePicker = exports.UITextField = exports.UIToggle = exports.UIMultiPicker = exports.UIPicker = void 0;
+const UIElements_1 = require("./UIElements");
+const UIPicker = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.SELECT }));
+exports.UIPicker = UIPicker;
+const UIMultiPicker = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.MULTISELECT }));
+exports.UIMultiPicker = UIMultiPicker;
+const UIToggle = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.TOGGLE }));
+exports.UIToggle = UIToggle;
+const UITextField = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.TEXTFIELD }));
+exports.UITextField = UITextField;
+const UIDatePicker = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.DATEPICKER }));
+exports.UIDatePicker = UIDatePicker;
+const UIButton = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.BUTTON }));
+exports.UIButton = UIButton;
+const UIStepper = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.STEPPER }));
+exports.UIStepper = UIStepper;
+
+},{"./UIElements":36}],36:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UIComponentType = void 0;
+var UIComponentType;
+(function (UIComponentType) {
+    UIComponentType[UIComponentType["SELECT"] = 0] = "SELECT";
+    UIComponentType[UIComponentType["MULTISELECT"] = 1] = "MULTISELECT";
+    UIComponentType[UIComponentType["STEPPER"] = 2] = "STEPPER";
+    UIComponentType[UIComponentType["TOGGLE"] = 3] = "TOGGLE";
+    UIComponentType[UIComponentType["TEXTFIELD"] = 4] = "TEXTFIELD";
+    UIComponentType[UIComponentType["BUTTON"] = 5] = "BUTTON";
+    UIComponentType[UIComponentType["DATEPICKER"] = 6] = "DATEPICKER";
+})(UIComponentType || (exports.UIComponentType = UIComponentType = {}));
+
+},{}],37:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Form"), exports);
+__exportStar(require("./UIElements"), exports);
+__exportStar(require("./UIDefinitions"), exports);
+__exportStar(require("./UIElementBuilders"), exports);
+
+},{"./Form":33,"./UIDefinitions":34,"./UIElementBuilders":35,"./UIElements":36}],38:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],39:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DefinedLanguages = void 0;
+var DefinedLanguages;
+(function (DefinedLanguages) {
+    DefinedLanguages["UNIVERSAL"] = "UNIVERSAL";
+    DefinedLanguages["ENGLISH"] = "en_US";
+    DefinedLanguages["KOREAN"] = "ko_KR";
+    DefinedLanguages["JAPANESE"] = "ja_JP";
+    DefinedLanguages["FRENCH"] = "fr_FR";
+    DefinedLanguages["CHINESE"] = "zh-CN";
+    DefinedLanguages["SPANISH"] = "es_ES";
+    DefinedLanguages["PORTUGUESE"] = "pt_BR";
+})(DefinedLanguages || (exports.DefinedLanguages = DefinedLanguages = {}));
+
+},{}],40:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],41:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],42:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],43:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],44:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],45:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],46:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ContentType = exports.ReadingFlag = exports.ReadingMode = exports.PublicationStatus = void 0;
+// Enums
+var PublicationStatus;
+(function (PublicationStatus) {
+    PublicationStatus[PublicationStatus["ONGOING"] = 1] = "ONGOING";
+    PublicationStatus[PublicationStatus["COMPLETED"] = 2] = "COMPLETED";
+    PublicationStatus[PublicationStatus["CANCELLED"] = 3] = "CANCELLED";
+    PublicationStatus[PublicationStatus["HIATUS"] = 4] = "HIATUS";
+})(PublicationStatus || (exports.PublicationStatus = PublicationStatus = {}));
+/**
+ * The method in which the content can be read
+ */
+var ReadingMode;
+(function (ReadingMode) {
+    ReadingMode[ReadingMode["PAGED_MANGA"] = 0] = "PAGED_MANGA";
+    ReadingMode[ReadingMode["PAGED_COMIC"] = 1] = "PAGED_COMIC";
+    ReadingMode[ReadingMode["PAGED_VERTICAL"] = 2] = "PAGED_VERTICAL";
+    ReadingMode[ReadingMode["WEBTOON"] = 3] = "WEBTOON";
+})(ReadingMode || (exports.ReadingMode = ReadingMode = {}));
+var ReadingFlag;
+(function (ReadingFlag) {
+    ReadingFlag[ReadingFlag["READING"] = 0] = "READING";
+    ReadingFlag[ReadingFlag["PLANNED"] = 1] = "PLANNED";
+    ReadingFlag[ReadingFlag["COMPLETED"] = 2] = "COMPLETED";
+    ReadingFlag[ReadingFlag["DROPPED"] = 3] = "DROPPED";
+    ReadingFlag[ReadingFlag["REREADING"] = 4] = "REREADING";
+    ReadingFlag[ReadingFlag["PAUSED"] = 5] = "PAUSED";
+    ReadingFlag[ReadingFlag["UNKNOWN"] = 6] = "UNKNOWN";
+})(ReadingFlag || (exports.ReadingFlag = ReadingFlag = {}));
+var ContentType;
+(function (ContentType) {
+    ContentType[ContentType["MANGA"] = 0] = "MANGA";
+    ContentType[ContentType["MANHUA"] = 1] = "MANHUA";
+    ContentType[ContentType["MANHWA"] = 2] = "MANHWA";
+    ContentType[ContentType["COMIC"] = 3] = "COMIC";
+    ContentType[ContentType["NOVEL"] = 4] = "NOVEL";
+})(ContentType || (exports.ContentType = ContentType = {}));
+
+},{}],47:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],48:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],49:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],50:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProviderLinkType = void 0;
+var ProviderLinkType;
+(function (ProviderLinkType) {
+    ProviderLinkType[ProviderLinkType["WEBSITE"] = 0] = "WEBSITE";
+    ProviderLinkType[ProviderLinkType["TWITTER"] = 1] = "TWITTER";
+    ProviderLinkType[ProviderLinkType["DISCORD"] = 2] = "DISCORD";
+    ProviderLinkType[ProviderLinkType["PATREON"] = 3] = "PATREON";
+})(ProviderLinkType || (exports.ProviderLinkType = ProviderLinkType = {}));
+
+},{}],51:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],52:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Content"), exports);
+__exportStar(require("./Highlight"), exports);
+__exportStar(require("./Chapter"), exports);
+__exportStar(require("./ChapterData"), exports);
+__exportStar(require("./Property"), exports);
+__exportStar(require("./Collection"), exports);
+__exportStar(require("./Provider"), exports);
+__exportStar(require("./Enums"), exports);
+__exportStar(require("./ReaderContext"), exports);
+__exportStar(require("./ContextMenu"), exports);
+__exportStar(require("./DeepLinkContext"), exports);
+__exportStar(require("./BooleanState"), exports);
+__exportStar(require("./ContentProgressState"), exports);
+__exportStar(require("./GroupedUpdatesResponse"), exports);
+
+},{"./BooleanState":38,"./Chapter":39,"./ChapterData":40,"./Collection":41,"./Content":42,"./ContentProgressState":43,"./ContextMenu":44,"./DeepLinkContext":45,"./Enums":46,"./GroupedUpdatesResponse":47,"./Highlight":48,"./Property":49,"./Provider":50,"./ReaderContext":51}],53:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuthMethod = void 0;
+var AuthMethod;
+(function (AuthMethod) {
+    AuthMethod[AuthMethod["USERNAME_PW"] = 0] = "USERNAME_PW";
+    AuthMethod[AuthMethod["EMAIL_PW"] = 1] = "EMAIL_PW";
+    AuthMethod[AuthMethod["WEB"] = 2] = "WEB";
+    AuthMethod[AuthMethod["OAUTH"] = 3] = "OAUTH";
+})(AuthMethod || (exports.AuthMethod = AuthMethod = {}));
+
+},{}],54:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],55:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],56:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CatalogRating = void 0;
+var CatalogRating;
+(function (CatalogRating) {
+    /**
+     * Catalog does not contain ANY SUGGESTIVE OR NSFW content
+     */
+    CatalogRating[CatalogRating["SAFE"] = 0] = "SAFE";
+    /**
+     * Catalog may contain SUGGESTIVE OR NSFW content,
+     * runners must hide NSFW content by default,
+     * users will be required to verify they are of age to view NSFW content
+     */
+    CatalogRating[CatalogRating["MIXED"] = 1] = "MIXED";
+    /**
+     * Catalog contains MAINLY SUGGESTIVE OR NSFW content,
+     * users will be required to verify they are of age to view NSFW content
+     */
+    CatalogRating[CatalogRating["NSFW"] = 2] = "NSFW";
+})(CatalogRating || (exports.CatalogRating = CatalogRating = {}));
+
+},{}],57:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Authentication"), exports);
+__exportStar(require("./RunnerInfo"), exports);
+__exportStar(require("./PagedResult"), exports);
+__exportStar(require("./ContextProvider"), exports);
+
+},{"./Authentication":53,"./ContextProvider":54,"./PagedResult":55,"./RunnerInfo":56}],58:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],59:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FilterType = void 0;
+var FilterType;
+(function (FilterType) {
+    /**
+     * This Represents the filter as a toggle switch, the value returned in the directory request will be a `boolean`
+     */
+    FilterType[FilterType["TOGGLE"] = 0] = "TOGGLE";
+    /**
+     * This represents the filter as a picker, the value returned will be the `key` of the selected option as a `string`
+     */
+    FilterType[FilterType["SELECT"] = 1] = "SELECT";
+    /**
+     * This Represents the filter as a multi-picker, the value returned will the the keys of the selected options as an array of strings
+     */
+    FilterType[FilterType["MULTISELECT"] = 2] = "MULTISELECT";
+    /**
+     * This Represents the filter as a multi-picker,the value returned will be of type {@link ExcludableMultiSelectProp}
+     */
+    FilterType[FilterType["EXCLUDABLE_MULTISELECT"] = 3] = "EXCLUDABLE_MULTISELECT";
+    /**
+     * This will represent the filter as a textfield, the value returned will be a string
+     */
+    FilterType[FilterType["TEXT"] = 4] = "TEXT";
+    /**
+     * This is a basic filter that will only display the title or subtitle, it will not return any value in the populated `DirectoryRequest`
+     */
+    FilterType[FilterType["INFO"] = 5] = "INFO";
+})(FilterType || (exports.FilterType = FilterType = {}));
+
+},{}],60:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],61:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./DirectoryConfig"), exports);
+__exportStar(require("./DirectoryRequest"), exports);
+__exportStar(require("./DirectoryFilter"), exports);
+
+},{"./DirectoryConfig":58,"./DirectoryFilter":59,"./DirectoryRequest":60}],62:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Generate = void 0;
+__exportStar(require("./core"), exports);
+__exportStar(require("./content"), exports);
+__exportStar(require("./networking"), exports);
+__exportStar(require("./UI"), exports);
+__exportStar(require("./tracker"), exports);
+__exportStar(require("./directory"), exports);
+__exportStar(require("./page"), exports);
+const Generate = (v) => v;
+exports.Generate = Generate;
+
+},{"./UI":37,"./content":52,"./core":57,"./directory":61,"./networking":69,"./page":70,"./tracker":71}],63:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NetworkClientBuilder = void 0;
+/**
+ * NetworkClientBuilder is a builder class used for creating and configuring instances of NetworkClient.
+ * The builder allows you to configure various aspects of the NetworkClient, such as rate limits,
+ * request/response transformers (interceptors), headers, cookies, timeout, status validator, and more.
+ */
+class NetworkClientBuilder {
+    constructor() {
+        // Array of functions that transform requests
+        this.requestTransformers = [];
+        // Array of functions that transform responses
+        this.responseTransformers = [];
+        // Object representing HTTP headers, where each key-value pair represents a header
+        this.headers = {};
+        // Array of cookies
+        this.cookies = [];
+    }
+    /**
+     * Sets the rate limit for the NetworkClient.
+     *
+     * @param requests - The maximum number of requests to make per interval.
+     * @param interval - The length of the rate limiting interval in seconds.
+     * @returns The builder, to allow for method chaining.
+     */
+    setRateLimit(requests, interval) {
+        this.requestsPerSecond = requests / interval;
+        return this;
+    }
+    /**
+     * Adds a request interceptor to the NetworkClient.
+     *
+     * @param transformer - The interceptor to add. This should be a function that takes a request and modifies it in some way.
+     * @returns The builder, to allow for method chaining.
+     */
+    addRequestInterceptor(transformer) {
+        this.requestTransformers.push(transformer);
+        return this;
+    }
+    /**
+     * Adds a response interceptor to the NetworkClient.
+     *
+     * @param transformer - The interceptor to add. This should be a function that takes a response and modifies it in some way.
+     * @returns The builder, to allow for method chaining.
+     */
+    addResponseInterceptor(transformer) {
+        this.responseTransformers.push(transformer);
+        return this;
+    }
+    /**
+     * Sets the authorization token for the NetworkClient.
+     *
+     * @param token - The token to be included in the Authorization header of every request.
+     * @returns The builder, to allow for method chaining.
+     */
+    setAuthorizationToken(token) {
+        return this.addHeader("Authorization", token);
+    }
+    /**
+     * Sets the status validator for the NetworkClient.
+     *
+     * @param validator - A function that takes a status code and returns true if it is considered successful.
+     * @returns The builder, to allow for method chaining.
+     */
+    setStatusValidator(validator) {
+        this.statusValidator = validator;
+        return this;
+    }
+    /**
+     * Sets the timeout for requests made by the NetworkClient.
+     *
+     * @param timeout - The maximum time to wait for a request to complete, in milliseconds.
+     * @returns The builder, to allow for method chaining.
+     */
+    setTimeout(timeout) {
+        this.timeout = timeout;
+        return this;
+    }
+    /**
+     * Sets the maximum number of retries for this request by the NetworkClient.
+     *
+     * @param retries - The maximum number of retries for this request
+     * @returns The builder, to allow for method chaining.
+     */
+    setMaxRetries(retries) {
+        this.maxRetries = retries;
+        return this;
+    }
+    /**
+     * Sets a header for the NetworkClient.
+     *
+     * @param key - The name of the header
+     * @param value - The value of the header
+     * @returns The builder, to allow for method chaining.
+     */
+    addHeader(key, value) {
+        this.headers[key] = value;
+        return this;
+    }
+    /**
+     * Sets a cookie for the NetworkClient.
+     *
+     * @param cookie - The cookie to be included in every request.
+     * @returns The builder, to allow for method chaining.
+     */
+    addCookie(cookie) {
+        this.cookies.push(cookie);
+        return this;
+    }
+    /**
+     * Builds a NetworkClient using the parameters set on the builder.
+     *
+     * @returns A NetworkClient with the configured parameters.
+     */
+    build() {
+        return new NetworkClient(this);
+    }
+}
+exports.NetworkClientBuilder = NetworkClientBuilder;
+
+},{}],64:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],65:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],66:[function(require,module,exports){
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.name = void 0;
+const name = (base, known) => __awaiter(void 0, void 0, void 0, function* () {
+    return Object.assign(Object.assign({}, base), known);
+});
+exports.name = name;
+
+},{}],67:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],68:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"dup":9}],69:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Builder"), exports);
+__exportStar(require("./Client"), exports);
+__exportStar(require("./Request"), exports);
+__exportStar(require("./Response"), exports);
+__exportStar(require("./Transformer"), exports);
+__exportStar(require("./Error"), exports);
+
+},{"./Builder":63,"./Client":64,"./Error":65,"./Request":66,"./Response":67,"./Transformer":68}],70:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SectionStyle = void 0;
+var SectionStyle;
+(function (SectionStyle) {
+    SectionStyle[SectionStyle["DEFAULT"] = 0] = "DEFAULT";
+    SectionStyle[SectionStyle["INFO"] = 1] = "INFO";
+    SectionStyle[SectionStyle["GALLERY"] = 2] = "GALLERY";
+    SectionStyle[SectionStyle["NAVIGATION_LIST"] = 3] = "NAVIGATION_LIST";
+    SectionStyle[SectionStyle["ITEM_LIST"] = 4] = "ITEM_LIST";
+    SectionStyle[SectionStyle["PADDED_LIST"] = 5] = "PADDED_LIST";
+    SectionStyle[SectionStyle["TAG"] = 6] = "TAG";
+    SectionStyle[SectionStyle["STANDARD_GRID"] = 7] = "STANDARD_GRID";
+})(SectionStyle || (exports.SectionStyle = SectionStyle = {}));
+
+},{}],71:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TrackStatus = void 0;
+var TrackStatus;
+(function (TrackStatus) {
+    TrackStatus["READING"] = "READING";
+    TrackStatus["PLANNING"] = "PLANNING";
+    TrackStatus["COMPLETED"] = "COMPLETED";
+    TrackStatus["PAUSED"] = "PAUSED";
+    TrackStatus["DROPPED"] = "DROPPED";
+    TrackStatus["REREADING"] = "REREADING";
+})(TrackStatus || (exports.TrackStatus = TrackStatus = {}));
+
+},{}],72:[function(require,module,exports){
+'use strict';
+
+function Cache () {
+  var _cache = Object.create(null);
+  var _hitCount = 0;
+  var _missCount = 0;
+  var _size = 0;
+  var _debug = false;
+
+  this.put = function(key, value, time, timeoutCallback) {
+    if (_debug) {
+      console.log('caching: %s = %j (@%s)', key, value, time);
+    }
+
+    if (typeof time !== 'undefined' && (typeof time !== 'number' || isNaN(time) || time <= 0)) {
+      throw new Error('Cache timeout must be a positive number');
+    } else if (typeof timeoutCallback !== 'undefined' && typeof timeoutCallback !== 'function') {
+      throw new Error('Cache timeout callback must be a function');
+    }
+
+    var oldRecord = _cache[key];
+    if (oldRecord) {
+      clearTimeout(oldRecord.timeout);
+    } else {
+      _size++;
+    }
+
+    var record = {
+      value: value,
+      expire: time + Date.now()
+    };
+
+    if (!isNaN(record.expire)) {
+      record.timeout = setTimeout(function() {
+        _del(key);
+        if (timeoutCallback) {
+          timeoutCallback(key, value);
+        }
+      }.bind(this), time);
+    }
+
+    _cache[key] = record;
+
+    return value;
+  };
+
+  this.del = function(key) {
+    var canDelete = true;
+
+    var oldRecord = _cache[key];
+    if (oldRecord) {
+      clearTimeout(oldRecord.timeout);
+      if (!isNaN(oldRecord.expire) && oldRecord.expire < Date.now()) {
+        canDelete = false;
+      }
+    } else {
+      canDelete = false;
+    }
+
+    if (canDelete) {
+      _del(key);
+    }
+
+    return canDelete;
+  };
+
+  function _del(key){
+    _size--;
+    delete _cache[key];
+  }
+
+  this.clear = function() {
+    for (var key in _cache) {
+      clearTimeout(_cache[key].timeout);
+    }
+    _size = 0;
+    _cache = Object.create(null);
+    if (_debug) {
+      _hitCount = 0;
+      _missCount = 0;
+    }
+  };
+
+  this.get = function(key) {
+    var data = _cache[key];
+    if (typeof data != "undefined") {
+      if (isNaN(data.expire) || data.expire >= Date.now()) {
+        if (_debug) _hitCount++;
+        return data.value;
+      } else {
+        // free some space
+        if (_debug) _missCount++;
+        _size--;
+        delete _cache[key];
+      }
+    } else if (_debug) {
+      _missCount++;
+    }
+    return null;
+  };
+
+  this.size = function() {
+    return _size;
+  };
+
+  this.memsize = function() {
+    var size = 0,
+      key;
+    for (key in _cache) {
+      size++;
+    }
+    return size;
+  };
+
+  this.debug = function(bool) {
+    _debug = bool;
+  };
+
+  this.hits = function() {
+    return _hitCount;
+  };
+
+  this.misses = function() {
+    return _missCount;
+  };
+
+  this.keys = function() {
+    return Object.keys(_cache);
+  };
+
+  this.exportJson = function() {
+    var plainJsCache = {};
+
+    // Discard the `timeout` property.
+    // Note: JSON doesn't support `NaN`, so convert it to `'NaN'`.
+    for (var key in _cache) {
+      var record = _cache[key];
+      plainJsCache[key] = {
+        value: record.value,
+        expire: record.expire || 'NaN',
+      };
+    }
+
+    return JSON.stringify(plainJsCache);
+  };
+
+  this.importJson = function(jsonToImport, options) {
+    var cacheToImport = JSON.parse(jsonToImport);
+    var currTime = Date.now();
+
+    var skipDuplicates = options && options.skipDuplicates;
+
+    for (var key in cacheToImport) {
+      if (cacheToImport.hasOwnProperty(key)) {
+        if (skipDuplicates) {
+          var existingRecord = _cache[key];
+          if (existingRecord) {
+            if (_debug) {
+              console.log('Skipping duplicate imported key \'%s\'', key);
+            }
+            continue;
+          }
+        }
+
+        var record = cacheToImport[key];
+
+        // record.expire could be `'NaN'` if no expiry was set.
+        // Try to subtract from it; a string minus a number is `NaN`, which is perfectly fine here.
+        var remainingTime = record.expire - currTime;
+
+        if (remainingTime <= 0) {
+          // Delete any record that might exist with the same key, since this key is expired.
+          this.del(key);
+          continue;
+        }
+
+        // Remaining time must now be either positive or `NaN`,
+        // but `put` will throw an error if we try to give it `NaN`.
+        remainingTime = remainingTime > 0 ? remainingTime : undefined;
+
+        this.put(key, record.value, remainingTime);
+      }
+    }
+
+    return this.size();
+  };
+}
+
+module.exports = new Cache();
+module.exports.Cache = Cache;
+
+},{}]},{},[4])(4)
+});

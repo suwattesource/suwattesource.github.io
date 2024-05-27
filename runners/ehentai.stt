@@ -1,0 +1,2905 @@
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.EHENTAI_TAG_LINKS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.FILTERS = exports.CATEGORIES = exports.LANGUAGES = exports.TOPLIST_PAGES = exports.LOGIN_COOKIES = exports.EXTENDED_DISPLAY_COOKIE = exports.MANGA_READING_TYPES = exports.VERTICAL_READING_TYPES = exports.CACHE_EXPIRE_TIME = exports.PREF_KEYS = exports.EHENTAI_DOMAIN = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+exports.EHENTAI_DOMAIN = "https://e-hentai.org";
+exports.PREF_KEYS = {
+    cache_next_id: "next_id",
+    cache_request: "request",
+    cache_request_url: "request_url",
+    cache_tags: "tags_",
+    cache_title: "title_",
+    exclude_tags: "exclude_tags",
+    worker_count: "worker_count"
+};
+exports.CACHE_EXPIRE_TIME = 1000 * 60 * 60; // milliseconds in 1 hours
+exports.VERTICAL_READING_TYPES = ["webtoon"];
+exports.MANGA_READING_TYPES = ["manga", "doujinshi"];
+exports.EXTENDED_DISPLAY_COOKIE = { name: "sl", value: "dm_2" };
+exports.LOGIN_COOKIES = [
+    { name: "sl", value: "dm_2" },
+    { name: "ipb_member_id", value: "6641173" },
+    { name: "ipb_pass_hash", value: "d77d14d9d996dc447d9d374771cc4b0c" }
+];
+exports.TOPLIST_PAGES = [
+    {
+        title: " Galleries Yesterday",
+        id: "15",
+    },
+    {
+        title: "Galleries Past Month",
+        id: "13",
+    },
+    {
+        title: " Galleries Past Year",
+        id: "12",
+    },
+    {
+        title: "Galleries All-Time",
+        id: "11",
+    }
+];
+exports.LANGUAGES = [
+    {
+        label: "Chinese",
+        languageCode: "zh",
+        regionCode: "cn",
+    },
+    {
+        label: "English",
+        languageCode: "en",
+        regionCode: "gb",
+    },
+    {
+        label: "Japanese",
+        languageCode: "ja",
+        regionCode: "jp",
+    },
+    {
+        label: "Spanish",
+        languageCode: "es",
+        regionCode: "es",
+    },
+    {
+        label: "French",
+        languageCode: "fr",
+        regionCode: "fr",
+    },
+    {
+        label: "Korean",
+        languageCode: "ko",
+        regionCode: "kr",
+    },
+    {
+        label: "German",
+        languageCode: "de",
+        regionCode: "de",
+    },
+    {
+        label: "Russian",
+        languageCode: "ru",
+        regionCode: "ru",
+    }
+];
+exports.CATEGORIES = [
+    {
+        "id": "2",
+        "title": "Doujinshi",
+    },
+    {
+        "id": "4",
+        "title": "Manga",
+    },
+    {
+        "id": "8",
+        "title": "Artist CG",
+    },
+    {
+        "id": "16",
+        "title": "Game CG",
+    },
+    {
+        "id": "512",
+        "title": "Western",
+    },
+    {
+        "id": "256",
+        "title": "Non-H",
+    },
+    {
+        "id": "32",
+        "title": "Image Set",
+    },
+    {
+        "id": "64",
+        "title": "Cosplay",
+    },
+    {
+        "id": "128",
+        "title": "Asian Porn",
+    },
+    {
+        "id": "1",
+        "title": "Misc",
+    }
+];
+exports.FILTERS = [
+    {
+        id: "category",
+        title: "Category",
+        subtitle: "To exclude",
+        options: exports.CATEGORIES,
+        type: daisuke_1.FilterType.MULTISELECT,
+    }
+];
+exports.HOME_PAGE_SECTIONS = [
+    {
+        id: "popular",
+        title: "Popular",
+        style: daisuke_1.SectionStyle.GALLERY,
+    },
+    {
+        id: "front_page",
+        title: "Front Page",
+        style: daisuke_1.SectionStyle.PADDED_LIST,
+        viewMoreLink: { request: { page: 1, sort: { id: "" } } },
+    },
+];
+exports.SEARCH_SORTERS = [
+    {
+        id: "lt",
+        title: "Latest",
+    },
+];
+exports.EHENTAI_TAG_LINKS = [
+    "https://repo.e-hentai.org/tools/taggroup?show=7",
+    "https://repo.e-hentai.org/tools/taggroup?show=8",
+    "https://repo.e-hentai.org/tools/taggroup?show=9",
+    "https://repo.e-hentai.org/tools/taggroup?show=11"
+];
+
+},{"@suwatte/daisuke":7}],2:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Controller = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const constants_1 = require("./constants");
+const parser_1 = require("./parser");
+const cheerio_1 = require("cheerio");
+const memory_cache_1 = require("memory-cache");
+const filters_json_1 = require("./filters.json");
+const store_1 = require("./store");
+const lodash_1 = require("lodash");
+class Controller {
+    constructor() {
+        this.client = new NetworkClient();
+        this.parser = new parser_1.Parser();
+        this.cache = new memory_cache_1.Cache;
+    }
+    async buildHomePageSections() {
+        const promises = [];
+        const sections = [];
+        for (const section of constants_1.HOME_PAGE_SECTIONS) {
+            let url;
+            switch (section.id) {
+                case 'popular':
+                    url = `${constants_1.EHENTAI_DOMAIN}/popular`;
+                    break;
+                case 'front_page':
+                    url = constants_1.EHENTAI_DOMAIN;
+                    break;
+                default:
+                    throw new Error("Invalid homepage section ID");
+            }
+            promises.push(this.fetchHTML(url, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] }).then(async ($) => {
+                const items = await this.parser.getHomepageSection($, section.id);
+                for (const item of items) {
+                    this.cache.put(constants_1.PREF_KEYS.cache_title + item.id, item.title, constants_1.CACHE_EXPIRE_TIME);
+                }
+                sections.push({ ...section, items });
+            }));
+        }
+        await Promise.all(promises);
+        const sectionIdInOrder = constants_1.HOME_PAGE_SECTIONS.map((section) => {
+            return section.id;
+        });
+        sections.sort((a, b) => sectionIdInOrder.indexOf(a.id) - sectionIdInOrder.indexOf(b.id));
+        return sections;
+    }
+    async getSearchResults(request) {
+        const searchUrl = await this.createSearchURL(request);
+        const $ = await this.fetchHTML(searchUrl, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] });
+        let results;
+        if (searchUrl.includes("toplist")) {
+            results = await this.parser.getToplistGalleries($);
+        }
+        else {
+            results = await this.parser.getSearchResults($);
+        }
+        const nextId = await this.parser.getNextId($);
+        for (const result of results) {
+            this.cache.put(constants_1.PREF_KEYS.cache_title + result.id, result.title, constants_1.CACHE_EXPIRE_TIME);
+        }
+        return {
+            results,
+            isLastPage: nextId == "0"
+        };
+    }
+    async getFilters() {
+        const filters = constants_1.FILTERS;
+        filters.push(...await this.getFilterTags());
+        return filters;
+    }
+    async createSearchURL(request) {
+        let { filters, listId, query, tag, sort, page } = request;
+        if (!query && !tag && sort && sort.id == "lt") {
+            request = this.cache.get(constants_1.PREF_KEYS.cache_request) ?? request;
+            query = request.query;
+            tag = request.tag;
+        }
+        let url = constants_1.EHENTAI_DOMAIN;
+        let nextId = "0";
+        if (page > 1) {
+            nextId = await ObjectStore.string(constants_1.PREF_KEYS.cache_next_id) || "0";
+        }
+        if (filters) {
+            const excludedCategories = filters.category ?? [];
+            const combineCategoryId = excludedCategories.map((tag) => parseInt(tag)).reduce((prev, cur) => prev + cur, 0);
+            const tagTypes = ['male', 'female', 'mixed', 'other'];
+            let keyword = "";
+            tagTypes.forEach(tagType => {
+                const includeTags = filters[tagType]?.included ?? [];
+                const excludeTags = filters[tagType]?.excluded ?? [];
+                includeTags.forEach((tag) => {
+                    keyword += ` ${tag.replace(/(\w+):(.+)/, '$1:"$2"')}`;
+                });
+                excludeTags.forEach((tag) => {
+                    keyword += ` -${tag.replace(/(\w+):(.+)/, '$1:"$2"')}`;
+                });
+            });
+            keyword = keyword.trim();
+            if (!keyword) {
+                const cacheUrl = this.cache.get(constants_1.PREF_KEYS.cache_request_url) || constants_1.EHENTAI_DOMAIN;
+                url = cacheUrl + (cacheUrl.includes("?") ? `&f_cats=${combineCategoryId}` : `?f_cats=${combineCategoryId}`);
+                return url + (url.includes("?") ? `&next=${nextId}` : `?next=${nextId}`);
+            }
+            return `${constants_1.EHENTAI_DOMAIN}?f_search=${encodeURI(keyword)}&f_cats=${combineCategoryId}&next=${nextId}`;
+        }
+        if (listId) {
+            url += `/toplist.php?tl=${listId}`;
+            this.cache.del(constants_1.PREF_KEYS.cache_request_url);
+        }
+        if (query) {
+            url += `/?f_search=${encodeURI(query)}`;
+        }
+        if (tag) {
+            switch (tag.propertyId) {
+                case "uploader":
+                    url += `/uploader/${encodeURI(tag.tagId)}`;
+                    break;
+                case "category":
+                    const categoryId = constants_1.CATEGORIES.filter(category => category.title == tag?.tagId)[0]?.id;
+                    url += `/?f_cats=${1023 - Number(categoryId)}`;
+                    break;
+                default:
+                    url += `/tag/${encodeURI(tag.tagId)}`;
+            }
+        }
+        this.cache.put(constants_1.PREF_KEYS.cache_request, request);
+        this.cache.put(constants_1.PREF_KEYS.cache_request_url, url);
+        if (url == constants_1.EHENTAI_DOMAIN) {
+            this.cache.del(constants_1.PREF_KEYS.cache_request_url);
+        }
+        url = url + (url.includes("?") ? `&next=${nextId}` : `?next=${nextId}`);
+        return url;
+    }
+    // Content
+    async getContent(contentId) {
+        let title = await this.cache.get(constants_1.PREF_KEYS.cache_title + contentId);
+        title = title.replace(/([\(\){}\[\]])/g, ' $1 ').trim().match(/(?:^|\s)[^[\]{}()]+(?![^\[]*])/)?.[0].trim();
+        console.log(title);
+        const [gallery, relatedGalleriesCheerio] = await Promise.all([
+            this.getGalleryData([contentId]),
+            this.fetchHTML(`${constants_1.EHENTAI_DOMAIN}/?f_search=${encodeURI(title)}`)
+        ]);
+        return this.parser.getContent(gallery, relatedGalleriesCheerio, contentId);
+    }
+    async getChapterData(contentId, chapterId) {
+        return this.parser.getChapterData(contentId, Number(chapterId));
+    }
+    async getTags() {
+        const cachedTags = this.cache.get(constants_1.PREF_KEYS.cache_tags);
+        if (cachedTags) {
+            return cachedTags;
+        }
+        let tags = [];
+        const pagePromises = [];
+        for (const url of constants_1.EHENTAI_TAG_LINKS) {
+            pagePromises.push(this.fetchHTML(url, { cookies: constants_1.LOGIN_COOKIES }));
+        }
+        const pages = await Promise.all(pagePromises);
+        pages.forEach(page => {
+            tags.push(...this.parser.getTags(page));
+        });
+        this.cache.put(constants_1.PREF_KEYS.cache_tags, tags);
+        return tags;
+    }
+    async getFilterTags() {
+        const excludeTags = await store_1.GlobalStore.getExcludeTags();
+        const maleFilter = {
+            id: "male",
+            title: "Male",
+            type: daisuke_1.FilterType.EXCLUDABLE_MULTISELECT,
+            options: filters_json_1.male.filter(v => !excludeTags.includes(v.title)).map(v => ({
+                id: v.id.split(":")[1] ?? "",
+                title: (0, lodash_1.startCase)(v.title.split(":")[1] ?? ""),
+            })),
+        };
+        const femaleFilter = {
+            id: "female",
+            title: "Female",
+            type: daisuke_1.FilterType.EXCLUDABLE_MULTISELECT,
+            options: filters_json_1.female.filter(v => !excludeTags.includes(v.title)).map(v => ({
+                id: v.id.split(":")[1] ?? "",
+                title: (0, lodash_1.startCase)(v.title.split(":")[1] ?? ""),
+            })),
+        };
+        const mixedFilter = {
+            id: "mixed",
+            title: "Mixed",
+            type: daisuke_1.FilterType.EXCLUDABLE_MULTISELECT,
+            options: filters_json_1.mixed.filter(v => !excludeTags.includes(v.title)).map(v => ({
+                id: v.id.split(":")[1] ?? "",
+                title: (0, lodash_1.startCase)(v.title.split(":")[1] ?? ""),
+            })),
+        };
+        const otherFilter = {
+            id: "other",
+            title: "Other",
+            type: daisuke_1.FilterType.EXCLUDABLE_MULTISELECT,
+            options: filters_json_1.other.filter(v => !excludeTags.includes(v.title)).map(v => ({
+                id: v.id.split(":")[1] ?? "",
+                title: (0, lodash_1.startCase)(v.title.split(":")[1] ?? ""),
+            })),
+        };
+        return [maleFilter, femaleFilter, mixedFilter, otherFilter];
+    }
+    async getGalleryData(ids) {
+        const req = {
+            url: "https://api.e-hentai.org/api.php",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Referer": constants_1.EHENTAI_DOMAIN + "/",
+            },
+            body: {
+                "method": "gdata",
+                "gidlist": ids.map(id => id.split('/')),
+                "namespace": 1
+            }
+        };
+        const json = await this.requestJSON(req);
+        return json.gmetadata?.[0];
+    }
+    async fetchHTML(url, config) {
+        console.log(`Requesting to the url: ${url}${config ? ", config: " + JSON.stringify(config) : ""}`);
+        const response = await this.client.get(url, config);
+        return (0, cheerio_1.load)(response.data);
+    }
+    async requestJSON(request) {
+        console.log(`Performing JSON request: ${JSON.stringify(request)}`);
+        const { data: resp } = await this.client.request(request);
+        return JSON.parse(resp) ?? resp;
+    }
+}
+exports.Controller = Controller;
+
+},{"./constants":1,"./filters.json":3,"./parser":5,"./store":6,"@suwatte/daisuke":7,"cheerio":undefined,"lodash":undefined,"memory-cache":71}],3:[function(require,module,exports){
+module.exports={
+    "male": [
+        {
+            "id": "male:sole male",
+            "title": "male:sole male"
+        },
+        {
+            "id": "male:yaoi",
+            "title": "male:yaoi"
+        },
+        {
+            "id": "male:males only",
+            "title": "male:males only"
+        },
+        {
+            "id": "male:anal",
+            "title": "male:anal"
+        },
+        {
+            "id": "male:big penis",
+            "title": "male:big penis"
+        },
+        {
+            "id": "male:dark skin",
+            "title": "male:dark skin"
+        },
+        {
+            "id": "male:muscle",
+            "title": "male:muscle"
+        },
+        {
+            "id": "male:glasses",
+            "title": "male:glasses"
+        },
+        {
+            "id": "male:dilf",
+            "title": "male:dilf"
+        },
+        {
+            "id": "male:furry",
+            "title": "male:furry"
+        },
+        {
+            "id": "male:bbm",
+            "title": "male:bbm"
+        },
+        {
+            "id": "male:tomgirl",
+            "title": "male:tomgirl"
+        },
+        {
+            "id": "male:crossdressing",
+            "title": "male:crossdressing"
+        },
+        {
+            "id": "male:schoolboy uniform",
+            "title": "male:schoolboy uniform"
+        },
+        {
+            "id": "male:gender change",
+            "title": "male:gender change"
+        },
+        {
+            "id": "male:anal intercourse",
+            "title": "male:anal intercourse"
+        },
+        {
+            "id": "male:monster",
+            "title": "male:monster"
+        },
+        {
+            "id": "male:condom",
+            "title": "male:condom"
+        },
+        {
+            "id": "male:blowjob",
+            "title": "male:blowjob"
+        },
+        {
+            "id": "male:bondage",
+            "title": "male:bondage"
+        },
+        {
+            "id": "male:bald",
+            "title": "male:bald"
+        },
+        {
+            "id": "male:virginity",
+            "title": "male:virginity"
+        },
+        {
+            "id": "male:first person perspective",
+            "title": "male:first person perspective"
+        },
+        {
+            "id": "male:teacher",
+            "title": "male:teacher"
+        },
+        {
+            "id": "male:rape",
+            "title": "male:rape"
+        },
+        {
+            "id": "male:stockings",
+            "title": "male:stockings"
+        },
+        {
+            "id": "male:group",
+            "title": "male:group"
+        },
+        {
+            "id": "male:facial hair",
+            "title": "male:facial hair"
+        },
+        {
+            "id": "male:old man",
+            "title": "male:old man"
+        },
+        {
+            "id": "male:masturbation",
+            "title": "male:masturbation"
+        },
+        {
+            "id": "male:sex toys",
+            "title": "male:sex toys"
+        },
+        {
+            "id": "male:sweating",
+            "title": "male:sweating"
+        },
+        {
+            "id": "male:harem",
+            "title": "male:harem"
+        },
+        {
+            "id": "male:dickgirl on male",
+            "title": "male:dickgirl on male"
+        },
+        {
+            "id": "male:catboy",
+            "title": "male:catboy"
+        },
+        {
+            "id": "male:nakadashi",
+            "title": "male:nakadashi"
+        },
+        {
+            "id": "male:cheating",
+            "title": "male:cheating"
+        },
+        {
+            "id": "male:gender morph",
+            "title": "male:gender morph"
+        },
+        {
+            "id": "male:prostate massage",
+            "title": "male:prostate massage"
+        },
+        {
+            "id": "male:collar",
+            "title": "male:collar"
+        },
+        {
+            "id": "male:feminization",
+            "title": "male:feminization"
+        },
+        {
+            "id": "male:dog",
+            "title": "male:dog"
+        },
+        {
+            "id": "male:transformation",
+            "title": "male:transformation"
+        },
+        {
+            "id": "male:huge penis",
+            "title": "male:huge penis"
+        },
+        {
+            "id": "male:human on furry",
+            "title": "male:human on furry"
+        },
+        {
+            "id": "male:hairy",
+            "title": "male:hairy"
+        },
+        {
+            "id": "male:military",
+            "title": "male:military"
+        },
+        {
+            "id": "male:ahegao",
+            "title": "male:ahegao"
+        },
+        {
+            "id": "male:snuff",
+            "title": "male:snuff"
+        },
+        {
+            "id": "male:tall man",
+            "title": "male:tall man"
+        },
+        {
+            "id": "male:exhibitionism",
+            "title": "male:exhibitionism"
+        },
+        {
+            "id": "male:demon",
+            "title": "male:demon"
+        },
+        {
+            "id": "male:masked face",
+            "title": "male:masked face"
+        },
+        {
+            "id": "male:handjob",
+            "title": "male:handjob"
+        },
+        {
+            "id": "male:dog boy",
+            "title": "male:dog boy"
+        },
+        {
+            "id": "male:pegging",
+            "title": "male:pegging"
+        },
+        {
+            "id": "male:business suit",
+            "title": "male:business suit"
+        },
+        {
+            "id": "male:horns",
+            "title": "male:horns"
+        },
+        {
+            "id": "male:big balls",
+            "title": "male:big balls"
+        },
+        {
+            "id": "male:schoolgirl uniform",
+            "title": "male:schoolgirl uniform"
+        },
+        {
+            "id": "male:smegma",
+            "title": "male:smegma"
+        },
+        {
+            "id": "male:orc",
+            "title": "male:orc"
+        },
+        {
+            "id": "male:miniguy",
+            "title": "male:miniguy"
+        },
+        {
+            "id": "male:wolf boy",
+            "title": "male:wolf boy"
+        }
+    ],
+    "female": [
+        {
+            "id": "female:big breasts",
+            "title": "female:big breasts"
+        },
+        {
+            "id": "female:sole female",
+            "title": "female:sole female"
+        },
+        {
+            "id": "female:stockings",
+            "title": "female:stockings"
+        },
+        {
+            "id": "female:nakadashi",
+            "title": "female:nakadashi"
+        },
+        {
+            "id": "female:blowjob",
+            "title": "female:blowjob"
+        },
+        {
+            "id": "female:schoolgirl uniform",
+            "title": "female:schoolgirl uniform"
+        },
+        {
+            "id": "female:anal",
+            "title": "female:anal"
+        },
+        {
+            "id": "female:bondage",
+            "title": "female:bondage"
+        },
+        {
+            "id": "female:rape",
+            "title": "female:rape"
+        },
+        {
+            "id": "female:ahegao",
+            "title": "female:ahegao"
+        },
+        {
+            "id": "female:milf",
+            "title": "female:milf"
+        },
+        {
+            "id": "female:glasses",
+            "title": "female:glasses"
+        },
+        {
+            "id": "female:paizuri",
+            "title": "female:paizuri"
+        },
+        {
+            "id": "female:big ass",
+            "title": "female:big ass"
+        },
+        {
+            "id": "female:twintails",
+            "title": "female:twintails"
+        },
+        {
+            "id": "female:swimsuit",
+            "title": "female:swimsuit"
+        },
+        {
+            "id": "female:sex toys",
+            "title": "female:sex toys"
+        },
+        {
+            "id": "female:futanari",
+            "title": "female:futanari"
+        },
+        {
+            "id": "female:x-ray",
+            "title": "female:x-ray"
+        },
+        {
+            "id": "female:double penetration",
+            "title": "female:double penetration"
+        },
+        {
+            "id": "female:collar",
+            "title": "female:collar"
+        },
+        {
+            "id": "female:ponytail",
+            "title": "female:ponytail"
+        },
+        {
+            "id": "female:defloration",
+            "title": "female:defloration"
+        },
+        {
+            "id": "female:yuri",
+            "title": "female:yuri"
+        },
+        {
+            "id": "female:dark skin",
+            "title": "female:dark skin"
+        },
+        {
+            "id": "female:impregnation",
+            "title": "female:impregnation"
+        },
+        {
+            "id": "female:femdom",
+            "title": "female:femdom"
+        },
+        {
+            "id": "female:gloves",
+            "title": "female:gloves"
+        },
+        {
+            "id": "female:kemonomimi",
+            "title": "female:kemonomimi"
+        },
+        {
+            "id": "female:netorare",
+            "title": "female:netorare"
+        },
+        {
+            "id": "female:bikini",
+            "title": "female:bikini"
+        },
+        {
+            "id": "female:pantyhose",
+            "title": "female:pantyhose"
+        },
+        {
+            "id": "female:furry",
+            "title": "female:furry"
+        },
+        {
+            "id": "female:hairy",
+            "title": "female:hairy"
+        },
+        {
+            "id": "female:tentacles",
+            "title": "female:tentacles"
+        },
+        {
+            "id": "female:pregnant",
+            "title": "female:pregnant"
+        },
+        {
+            "id": "female:females only",
+            "title": "female:females only"
+        },
+        {
+            "id": "female:makeup",
+            "title": "female:makeup"
+        },
+        {
+            "id": "female:huge breasts",
+            "title": "female:huge breasts"
+        },
+        {
+            "id": "female:lactation",
+            "title": "female:lactation"
+        },
+        {
+            "id": "female:lingerie",
+            "title": "female:lingerie"
+        },
+        {
+            "id": "female:very long hair",
+            "title": "female:very long hair"
+        },
+        {
+            "id": "female:sister",
+            "title": "female:sister"
+        },
+        {
+            "id": "female:cheating",
+            "title": "female:cheating"
+        },
+        {
+            "id": "female:sweating",
+            "title": "female:sweating"
+        },
+        {
+            "id": "female:mind control",
+            "title": "female:mind control"
+        },
+        {
+            "id": "female:mind break",
+            "title": "female:mind break"
+        },
+        {
+            "id": "female:masturbation",
+            "title": "female:masturbation"
+        },
+        {
+            "id": "female:exhibitionism",
+            "title": "female:exhibitionism"
+        },
+        {
+            "id": "female:handjob",
+            "title": "female:handjob"
+        },
+        {
+            "id": "female:maid",
+            "title": "female:maid"
+        },
+        {
+            "id": "female:mother",
+            "title": "female:mother"
+        },
+        {
+            "id": "female:horns",
+            "title": "female:horns"
+        },
+        {
+            "id": "female:unusual pupils",
+            "title": "female:unusual pupils"
+        },
+        {
+            "id": "female:catgirl",
+            "title": "female:catgirl"
+        },
+        {
+            "id": "female:piercing",
+            "title": "female:piercing"
+        },
+        {
+            "id": "female:garter belt",
+            "title": "female:garter belt"
+        },
+        {
+            "id": "female:bunny girl",
+            "title": "female:bunny girl"
+        },
+        {
+            "id": "female:footjob",
+            "title": "female:footjob"
+        },
+        {
+            "id": "female:urination",
+            "title": "female:urination"
+        },
+        {
+            "id": "female:kissing",
+            "title": "female:kissing"
+        },
+        {
+            "id": "female:anal intercourse",
+            "title": "female:anal intercourse"
+        },
+        {
+            "id": "female:bukkake",
+            "title": "female:bukkake"
+        },
+        {
+            "id": "female:elf",
+            "title": "female:elf"
+        },
+        {
+            "id": "female:beauty mark",
+            "title": "female:beauty mark"
+        },
+        {
+            "id": "female:small breasts",
+            "title": "female:small breasts"
+        },
+        {
+            "id": "female:demon girl",
+            "title": "female:demon girl"
+        },
+        {
+            "id": "female:cunnilingus",
+            "title": "female:cunnilingus"
+        },
+        {
+            "id": "female:gag",
+            "title": "female:gag"
+        },
+        {
+            "id": "female:shemale",
+            "title": "female:shemale"
+        },
+        {
+            "id": "female:fingering",
+            "title": "female:fingering"
+        },
+        {
+            "id": "female:big penis",
+            "title": "female:big penis"
+        },
+        {
+            "id": "female:bbw",
+            "title": "female:bbw"
+        },
+        {
+            "id": "female:tail",
+            "title": "female:tail"
+        },
+        {
+            "id": "female:stomach deformation",
+            "title": "female:stomach deformation"
+        },
+        {
+            "id": "female:inflation",
+            "title": "female:inflation"
+        },
+        {
+            "id": "female:monster girl",
+            "title": "female:monster girl"
+        },
+        {
+            "id": "female:big areolae",
+            "title": "female:big areolae"
+        },
+        {
+            "id": "female:sole dickgirl",
+            "title": "female:sole dickgirl"
+        },
+        {
+            "id": "female:scat",
+            "title": "female:scat"
+        },
+        {
+            "id": "female:blindfold",
+            "title": "female:blindfold"
+        },
+        {
+            "id": "female:thigh high boots",
+            "title": "female:thigh high boots"
+        },
+        {
+            "id": "female:latex",
+            "title": "female:latex"
+        },
+        {
+            "id": "female:filming",
+            "title": "female:filming"
+        },
+        {
+            "id": "female:tanlines",
+            "title": "female:tanlines"
+        },
+        {
+            "id": "female:leotard",
+            "title": "female:leotard"
+        },
+        {
+            "id": "female:prostitution",
+            "title": "female:prostitution"
+        },
+        {
+            "id": "female:muscle",
+            "title": "female:muscle"
+        },
+        {
+            "id": "female:harem",
+            "title": "female:harem"
+        },
+        {
+            "id": "female:bodysuit",
+            "title": "female:bodysuit"
+        },
+        {
+            "id": "female:breast expansion",
+            "title": "female:breast expansion"
+        },
+        {
+            "id": "female:drugs",
+            "title": "female:drugs"
+        },
+        {
+            "id": "female:kimono",
+            "title": "female:kimono"
+        },
+        {
+            "id": "female:teacher",
+            "title": "female:teacher"
+        },
+        {
+            "id": "female:gyaru",
+            "title": "female:gyaru"
+        },
+        {
+            "id": "female:deepthroat",
+            "title": "female:deepthroat"
+        },
+        {
+            "id": "female:wings",
+            "title": "female:wings"
+        },
+        {
+            "id": "female:bloomers",
+            "title": "female:bloomers"
+        },
+        {
+            "id": "female:blackmail",
+            "title": "female:blackmail"
+        },
+        {
+            "id": "female:transformation",
+            "title": "female:transformation"
+        },
+        {
+            "id": "female:fox girl",
+            "title": "female:fox girl"
+        },
+        {
+            "id": "female:high heels",
+            "title": "female:high heels"
+        },
+        {
+            "id": "female:guro",
+            "title": "female:guro"
+        },
+        {
+            "id": "female:hair buns",
+            "title": "female:hair buns"
+        },
+        {
+            "id": "female:rimjob",
+            "title": "female:rimjob"
+        },
+        {
+            "id": "female:snuff",
+            "title": "female:snuff"
+        },
+        {
+            "id": "female:eye-covering bang",
+            "title": "female:eye-covering bang"
+        },
+        {
+            "id": "female:vaginal birth",
+            "title": "female:vaginal birth"
+        },
+        {
+            "id": "female:painted nails",
+            "title": "female:painted nails"
+        },
+        {
+            "id": "female:squirting",
+            "title": "female:squirting"
+        },
+        {
+            "id": "female:corruption",
+            "title": "female:corruption"
+        },
+        {
+            "id": "female:strap-on",
+            "title": "female:strap-on"
+        },
+        {
+            "id": "female:tall girl",
+            "title": "female:tall girl"
+        },
+        {
+            "id": "female:sleeping",
+            "title": "female:sleeping"
+        },
+        {
+            "id": "female:daughter",
+            "title": "female:daughter"
+        },
+        {
+            "id": "female:big nipples",
+            "title": "female:big nipples"
+        },
+        {
+            "id": "female:school swimsuit",
+            "title": "female:school swimsuit"
+        },
+        {
+            "id": "female:shibari",
+            "title": "female:shibari"
+        },
+        {
+            "id": "female:slave",
+            "title": "female:slave"
+        },
+        {
+            "id": "female:crotch tattoo",
+            "title": "female:crotch tattoo"
+        },
+        {
+            "id": "female:nurse",
+            "title": "female:nurse"
+        },
+        {
+            "id": "female:vtuber",
+            "title": "female:vtuber"
+        },
+        {
+            "id": "female:tomboy",
+            "title": "female:tomboy"
+        },
+        {
+            "id": "female:inverted nipples",
+            "title": "female:inverted nipples"
+        },
+        {
+            "id": "female:group",
+            "title": "female:group"
+        },
+        {
+            "id": "female:hairy armpits",
+            "title": "female:hairy armpits"
+        },
+        {
+            "id": "female:dickgirl on dickgirl",
+            "title": "female:dickgirl on dickgirl"
+        },
+        {
+            "id": "female:breast feeding",
+            "title": "female:breast feeding"
+        },
+        {
+            "id": "female:penis enlargement",
+            "title": "female:penis enlargement"
+        },
+        {
+            "id": "female:tiara",
+            "title": "female:tiara"
+        },
+        {
+            "id": "female:apron",
+            "title": "female:apron"
+        },
+        {
+            "id": "female:magical girl",
+            "title": "female:magical girl"
+        },
+        {
+            "id": "female:bdsm",
+            "title": "female:bdsm"
+        },
+        {
+            "id": "female:enema",
+            "title": "female:enema"
+        },
+        {
+            "id": "female:ryona",
+            "title": "female:ryona"
+        },
+        {
+            "id": "female:spanking",
+            "title": "female:spanking"
+        },
+        {
+            "id": "female:large tattoo",
+            "title": "female:large tattoo"
+        },
+        {
+            "id": "female:miko",
+            "title": "female:miko"
+        },
+        {
+            "id": "female:vore",
+            "title": "female:vore"
+        },
+        {
+            "id": "female:fishnets",
+            "title": "female:fishnets"
+        },
+        {
+            "id": "female:blowjob face",
+            "title": "female:blowjob face"
+        },
+        {
+            "id": "female:body writing",
+            "title": "female:body writing"
+        },
+        {
+            "id": "female:cervix penetration",
+            "title": "female:cervix penetration"
+        },
+        {
+            "id": "female:hotpants",
+            "title": "female:hotpants"
+        },
+        {
+            "id": "female:torture",
+            "title": "female:torture"
+        },
+        {
+            "id": "female:giantess",
+            "title": "female:giantess"
+        },
+        {
+            "id": "female:cumflation",
+            "title": "female:cumflation"
+        },
+        {
+            "id": "female:gaping",
+            "title": "female:gaping"
+        },
+        {
+            "id": "female:halo",
+            "title": "female:halo"
+        },
+        {
+            "id": "female:humiliation",
+            "title": "female:humiliation"
+        },
+        {
+            "id": "female:pasties",
+            "title": "female:pasties"
+        },
+        {
+            "id": "female:big balls",
+            "title": "female:big balls"
+        },
+        {
+            "id": "female:exposed clothing",
+            "title": "female:exposed clothing"
+        },
+        {
+            "id": "female:nun",
+            "title": "female:nun"
+        },
+        {
+            "id": "female:nipple fuck",
+            "title": "female:nipple fuck"
+        },
+        {
+            "id": "female:facesitting",
+            "title": "female:facesitting"
+        },
+        {
+            "id": "female:bisexual",
+            "title": "female:bisexual"
+        },
+        {
+            "id": "female:business suit",
+            "title": "female:business suit"
+        },
+        {
+            "id": "female:smell",
+            "title": "female:smell"
+        },
+        {
+            "id": "female:urethra insertion",
+            "title": "female:urethra insertion"
+        },
+        {
+            "id": "female:fisting",
+            "title": "female:fisting"
+        },
+        {
+            "id": "female:witch",
+            "title": "female:witch"
+        },
+        {
+            "id": "female:focus anal",
+            "title": "female:focus anal"
+        },
+        {
+            "id": "female:hidden sex",
+            "title": "female:hidden sex"
+        },
+        {
+            "id": "female:drunk",
+            "title": "female:drunk"
+        },
+        {
+            "id": "female:male on dickgirl",
+            "title": "female:male on dickgirl"
+        },
+        {
+            "id": "female:dog girl",
+            "title": "female:dog girl"
+        },
+        {
+            "id": "female:huge penis",
+            "title": "female:huge penis"
+        },
+        {
+            "id": "female:leash",
+            "title": "female:leash"
+        },
+        {
+            "id": "female:horse girl",
+            "title": "female:horse girl"
+        },
+        {
+            "id": "female:leg lock",
+            "title": "female:leg lock"
+        },
+        {
+            "id": "female:cowgirl",
+            "title": "female:cowgirl"
+        },
+        {
+            "id": "female:pixie cut",
+            "title": "female:pixie cut"
+        },
+        {
+            "id": "female:large insertions",
+            "title": "female:large insertions"
+        },
+        {
+            "id": "female:bike shorts",
+            "title": "female:bike shorts"
+        },
+        {
+            "id": "female:gokkun",
+            "title": "female:gokkun"
+        },
+        {
+            "id": "female:solo action",
+            "title": "female:solo action"
+        },
+        {
+            "id": "female:tribadism",
+            "title": "female:tribadism"
+        },
+        {
+            "id": "female:petplay",
+            "title": "female:petplay"
+        },
+        {
+            "id": "female:milking",
+            "title": "female:milking"
+        },
+        {
+            "id": "female:chikan",
+            "title": "female:chikan"
+        },
+        {
+            "id": "female:triple penetration",
+            "title": "female:triple penetration"
+        },
+        {
+            "id": "female:body modification",
+            "title": "female:body modification"
+        },
+        {
+            "id": "female:eyepatch",
+            "title": "female:eyepatch"
+        },
+        {
+            "id": "female:freckles",
+            "title": "female:freckles"
+        },
+        {
+            "id": "female:amputee",
+            "title": "female:amputee"
+        },
+        {
+            "id": "female:robot",
+            "title": "female:robot"
+        },
+        {
+            "id": "female:cosplaying",
+            "title": "female:cosplaying"
+        },
+        {
+            "id": "female:tail plug",
+            "title": "female:tail plug"
+        },
+        {
+            "id": "female:oni",
+            "title": "female:oni"
+        },
+        {
+            "id": "female:eggs",
+            "title": "female:eggs"
+        },
+        {
+            "id": "female:oyakodon",
+            "title": "female:oyakodon"
+        },
+        {
+            "id": "female:prolapse",
+            "title": "female:prolapse"
+        },
+        {
+            "id": "female:blood",
+            "title": "female:blood"
+        },
+        {
+            "id": "female:dickgirl on female",
+            "title": "female:dickgirl on female"
+        },
+        {
+            "id": "female:chinese dress",
+            "title": "female:chinese dress"
+        },
+        {
+            "id": "female:christmas",
+            "title": "female:christmas"
+        },
+        {
+            "id": "female:possession",
+            "title": "female:possession"
+        },
+        {
+            "id": "female:detached sleeves",
+            "title": "female:detached sleeves"
+        },
+        {
+            "id": "female:eyemask",
+            "title": "female:eyemask"
+        },
+        {
+            "id": "female:wolf girl",
+            "title": "female:wolf girl"
+        },
+        {
+            "id": "female:corset",
+            "title": "female:corset"
+        },
+        {
+            "id": "female:asphyxiation",
+            "title": "female:asphyxiation"
+        },
+        {
+            "id": "female:cousin",
+            "title": "female:cousin"
+        }
+    ],
+    "mixed": [
+        {
+            "id": "mixed:group",
+            "title": "mixed:group"
+        },
+        {
+            "id": "mixed:ffm threesome",
+            "title": "mixed:ffm threesome"
+        },
+        {
+            "id": "mixed:mmf threesome",
+            "title": "mixed:mmf threesome"
+        },
+        {
+            "id": "mixed:inseki",
+            "title": "mixed:inseki"
+        }
+    ],
+    "other": [
+        {
+            "id": "other:mosaic censorship",
+            "title": "other:mosaic censorship"
+        },
+        {
+            "id": "other:full color",
+            "title": "other:full color"
+        },
+        {
+            "id": "other:multi-work series",
+            "title": "other:multi-work series"
+        },
+        {
+            "id": "other:3d",
+            "title": "other:3d"
+        },
+        {
+            "id": "other:uncensored",
+            "title": "other:uncensored"
+        },
+        {
+            "id": "other:comic",
+            "title": "other:comic"
+        },
+        {
+            "id": "other:variant set",
+            "title": "other:variant set"
+        },
+        {
+            "id": "other:western imageset",
+            "title": "other:western imageset"
+        },
+        {
+            "id": "other:tankoubon",
+            "title": "other:tankoubon"
+        },
+        {
+            "id": "other:full censorship",
+            "title": "other:full censorship"
+        },
+        {
+            "id": "other:western cg",
+            "title": "other:western cg"
+        },
+        {
+            "id": "other:story arc",
+            "title": "other:story arc"
+        },
+        {
+            "id": "other:non-nude",
+            "title": "other:non-nude"
+        },
+        {
+            "id": "other:artbook",
+            "title": "other:artbook"
+        },
+        {
+            "id": "other:no penetration",
+            "title": "other:no penetration"
+        },
+        {
+            "id": "other:nudity only",
+            "title": "other:nudity only"
+        },
+        {
+            "id": "other:anthology",
+            "title": "other:anthology"
+        },
+        {
+            "id": "other:extraneous ads",
+            "title": "other:extraneous ads"
+        },
+        {
+            "id": "other:animated",
+            "title": "other:animated"
+        },
+        {
+            "id": "other:3d imageset",
+            "title": "other:3d imageset"
+        },
+        {
+            "id": "other:sample",
+            "title": "other:sample"
+        },
+        {
+            "id": "other:incomplete",
+            "title": "other:incomplete"
+        },
+        {
+            "id": "other:non-h imageset",
+            "title": "other:non-h imageset"
+        },
+        {
+            "id": "other:themeless",
+            "title": "other:themeless"
+        },
+        {
+            "id": "other:scanmark",
+            "title": "other:scanmark"
+        },
+        {
+            "id": "other:novel",
+            "title": "other:novel"
+        },
+        {
+            "id": "other:western non-h",
+            "title": "other:western non-h"
+        },
+        {
+            "id": "other:hardcore",
+            "title": "other:hardcore"
+        }
+    ]
+}
+
+},{}],4:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Target = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const constants_1 = require("./constants");
+const controller_1 = require("./controller");
+const store_1 = require("./store");
+class Target {
+    constructor() {
+        this.info = {
+            id: "ehentai",
+            website: constants_1.EHENTAI_DOMAIN,
+            version: 1.0,
+            name: "E-Hentai",
+            supportedLanguages: constants_1.LANGUAGES.map((v) => v.languageCode + "-" + v.regionCode),
+            thumbnail: "ehentai.png",
+            minSupportedAppVersion: "6.0",
+            rating: daisuke_1.CatalogRating.NSFW,
+        };
+        this.controller = new controller_1.Controller();
+    }
+    headers() {
+        return {
+            Referer: constants_1.EHENTAI_DOMAIN + "/",
+        };
+    }
+    // Core
+    async getContent(contentId) {
+        return this.controller.getContent(contentId);
+    }
+    async getChapters(_) {
+        return [];
+    }
+    async getChapterData(contentId, chapterId) {
+        return this.controller.getChapterData(contentId, chapterId);
+    }
+    async getTags() {
+        const properties = [];
+        const tagFilters = await this.controller.getFilterTags();
+        for (const tagFilter of tagFilters) {
+            properties.push({ id: tagFilter.id, title: tagFilter.title, tags: tagFilter.options ?? [] });
+        }
+        return properties;
+    }
+    // Directory
+    getDirectory(request) {
+        return this.controller.getSearchResults(request);
+    }
+    async getDirectoryConfig() {
+        return {
+            filters: await this.controller.getFilters(),
+            sort: {
+                options: constants_1.SEARCH_SORTERS,
+                default: { id: "" }
+            },
+            lists: constants_1.TOPLIST_PAGES,
+        };
+    }
+    async getSectionsForPage(_) {
+        return this.controller.buildHomePageSections();
+    }
+    resolvePageSection(_link, _sectionKey) {
+        throw new Error("already resolved");
+    }
+    async willRequestImage(url) {
+        return {
+            url,
+            headers: {
+                ...this.headers(),
+            },
+        };
+    }
+    // Preferences
+    async getPreferenceMenu() {
+        return {
+            sections: [
+                {
+                    header: "Excluded Content",
+                    children: [
+                        (0, daisuke_1.UIMultiPicker)({
+                            id: constants_1.PREF_KEYS.exclude_tags,
+                            title: `Excluded Tags`,
+                            options: await this.controller.getTags(),
+                            value: await store_1.GlobalStore.getExcludeTags(),
+                            didChange: store_1.GlobalStore.setExcludeTags,
+                        }),
+                    ],
+                },
+                {
+                    header: "Image Fetching",
+                    children: [
+                        (0, daisuke_1.UIStepper)({
+                            id: constants_1.PREF_KEYS.worker_count,
+                            title: "Number of workers",
+                            lowerBound: 1,
+                            upperBound: 10,
+                            step: 1,
+                            value: await store_1.GlobalStore.getWorkerCount(),
+                            didChange: store_1.GlobalStore.setWorkerCount,
+                        }),
+                    ],
+                },
+            ],
+        };
+    }
+}
+exports.Target = Target;
+
+},{"./constants":1,"./controller":2,"./store":6,"@suwatte/daisuke":7}],5:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Parser = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
+const cheerio_1 = require("cheerio");
+const constants_1 = require("./constants");
+const store_1 = require("./store");
+const lodash_1 = require("lodash");
+class Parser {
+    constructor() {
+        this.client = new NetworkClient();
+        this.getNextId = async ($) => {
+            let nextId = "0";
+            const nextLinkUrl = $('.searchnav #unext').attr('href');
+            if (nextLinkUrl) {
+                const idString = nextLinkUrl.split('next=')[1] || "0";
+                if (idString) {
+                    nextId = idString;
+                }
+            }
+            await ObjectStore.set(constants_1.PREF_KEYS.cache_next_id, nextId);
+            return nextId;
+        };
+    }
+    async getHomepageSection($, id) {
+        const highlights = [];
+        switch (id) {
+            case "popular":
+                return this.getPopularGalleries($);
+            case "front_page":
+                return (await this.getSearchResults($)).slice(0, 16);
+            default:
+        }
+        return highlights;
+    }
+    async getPopularGalleries($) {
+        const items = await this.getSearchResults($);
+        return items.map((item) => {
+            return { id: item.id, title: item.title, cover: item.cover, info: [item.subtitle || ""] };
+        });
+    }
+    async getSearchResults($) {
+        const items = [];
+        const excludeTags = await store_1.GlobalStore.getExcludeTags();
+        $('table.itg.glte tbody tr').each((_index, element) => {
+            const $element = $(element);
+            const idElement = $element.find('.gl1e a').attr("href");
+            const id = idElement ? `${idElement.split('/').slice(-3, -1).join('/')}` : "";
+            const title = $element.find('.glname .glink').text().trim();
+            const subtitle = $element.find('.gl3e div').first().text().trim();
+            const imageElement = $element.find('.gl1e img');
+            const cover = imageElement.attr("data-src") ?? imageElement.attr("src") ?? "";
+            const tags = $element.find(".gl4e tbody div").toArray().map((element) => {
+                return element.attribs["title"] || "";
+            });
+            const containsExcludedTag = tags.some(tag => excludeTags.includes(tag));
+            if (id && title && !containsExcludedTag) {
+                items.push({
+                    id,
+                    cover,
+                    title,
+                    subtitle,
+                    info: [subtitle]
+                });
+            }
+        });
+        return items;
+    }
+    async getToplistGalleries($) {
+        const items = [];
+        const excludeTags = await store_1.GlobalStore.getExcludeTags();
+        $('table.itg tbody tr').each((_index, element) => {
+            const $element = $(element);
+            const idElement = $element.find('.glname a').attr('href');
+            const id = idElement ? `${idElement.split('/').slice(-3, -1).join('/')}` : "";
+            const title = $element.find('.glname .glink').text().trim();
+            const subtitle = $element.find('.gl1c .cn').text().trim();
+            const imageElement = $element.find('.glthumb img');
+            const cover = imageElement.attr("data-src") ?? imageElement.attr("src") ?? "";
+            const tags = $element.find("td.gl3c.glname div").toArray().map((element) => {
+                return element.attribs["title"] || "";
+            });
+            const containsExcludedTag = tags.some(cat => excludeTags.some(excludeTag => cat.includes(excludeTag)));
+            if (id && title && !containsExcludedTag) {
+                items.push({
+                    id,
+                    cover,
+                    title,
+                    subtitle
+                });
+            }
+        });
+        return items;
+    }
+    async getContent(gallery, relatedGalleriesCheerio, contentId) {
+        const title = gallery.title;
+        const summary = `${gallery.filecount} images`;
+        const isNSFW = true;
+        const cover = gallery.thumb;
+        let status = daisuke_1.PublicationStatus.ONGOING;
+        let languageCode = "";
+        const propertyMap = new Map();
+        propertyMap.set("temp", { id: "temp", title: "temp", tags: [] });
+        propertyMap.set("uploader", {
+            id: "uploader",
+            title: "Uploader",
+            tags: [{ id: gallery.uploader, title: (0, lodash_1.startCase)(gallery.uploader) }]
+        });
+        propertyMap.set("category", {
+            id: "category",
+            title: "Category",
+            tags: [{ id: gallery.category, title: (0, lodash_1.startCase)(gallery.category) }]
+        });
+        let recommendedPanelMode = daisuke_1.ReadingMode.PAGED_COMIC;
+        if (constants_1.MANGA_READING_TYPES.includes(gallery.category.toLowerCase())) {
+            recommendedPanelMode = daisuke_1.ReadingMode.PAGED_MANGA;
+        }
+        for (const tag of gallery.tags) {
+            const parts = tag.split(":");
+            const id = parts[0];
+            const title = parts[1];
+            if (constants_1.VERTICAL_READING_TYPES.includes(title)) {
+                recommendedPanelMode = daisuke_1.ReadingMode.WEBTOON;
+            }
+            if (id == "language" && title != "translated") {
+                const language = constants_1.LANGUAGES.find(lang => lang.label == title);
+                languageCode = language ? `${language.languageCode}-${language.regionCode}` : languageCode;
+            }
+            if (!propertyMap.has(id)) {
+                propertyMap.set(id, { id: id, title: (0, lodash_1.startCase)(id), tags: [] });
+            }
+            const property = propertyMap.get(id);
+            property?.tags.push({ id: tag, title: (0, lodash_1.startCase)(title) });
+        }
+        const chapters = this.getChapters(gallery.filecount, gallery.posted, languageCode);
+        // Related Content
+        const collections = [];
+        const relatedGalleries = await this.getSearchResults(relatedGalleriesCheerio);
+        if (relatedGalleries.length > 0) {
+            collections.push({
+                id: "related_galleries",
+                title: "Related Galleries",
+                highlights: relatedGalleries.filter(gallery => gallery.id != contentId),
+            });
+        }
+        const info = [
+            `⭐️ Rating: ${Number(gallery.rating).toFixed(2)} / 5`,
+        ];
+        const webUrl = `${constants_1.EHENTAI_DOMAIN}/g/${contentId}`;
+        return {
+            title,
+            summary,
+            cover,
+            status,
+            recommendedPanelMode,
+            isNSFW,
+            webUrl,
+            chapters,
+            collections,
+            properties: Array.from(propertyMap.values()),
+            info,
+        };
+    }
+    getChapters(fileCount, date, languageCode) {
+        const chapters = [];
+        chapters.push({
+            chapterId: fileCount.toString(),
+            number: 1,
+            title: "Images",
+            index: 1,
+            language: languageCode,
+            date: new Date(parseInt(date, 10) * 1000),
+        });
+        return chapters;
+    }
+    async getChapterData(contentId, numberCount) {
+        const pages = await this.parsePages(contentId, numberCount);
+        return {
+            pages: pages.map((url) => ({ url })),
+        };
+    }
+    async getImage(url) {
+        const response = await this.client.get(url);
+        const $ = (0, cheerio_1.load)(response.data);
+        return $('#img').attr('src') ?? '';
+    }
+    async parsePage(id, page) {
+        const response = await this.client.get(`https://e-hentai.org/g/${id}/?p=${page}`);
+        const $ = (0, cheerio_1.load)(response.data);
+        const pages = [];
+        const pageDivArr = $('div.gdtm').toArray();
+        for (const page of pageDivArr) {
+            pages.push(this.getImage($('a', page).attr('href') ?? ''));
+        }
+        return Promise.all(pages);
+    }
+    async parsePages(id, pageCount) {
+        const iterations = Math.ceil(pageCount / 40);
+        const maxWorkers = await store_1.GlobalStore.getWorkerCount();
+        const results = []; // Store results in a nested array
+        let nextIteration = 0;
+        const worker = async () => {
+            while (nextIteration < iterations) {
+                const taskIndex = nextIteration++;
+                results[taskIndex] = await this.parsePage(id, taskIndex);
+            }
+        };
+        const workerPromises = [];
+        for (let i = 0; i < maxWorkers; i++) {
+            workerPromises.push(worker());
+        }
+        await Promise.all(workerPromises);
+        return results.flat();
+    }
+    getTags($) {
+        const tags = [];
+        $('tbody td a').each((_index, element) => {
+            const id = $(element).text();
+            const title = id;
+            tags.push({ id, title });
+        });
+        return tags;
+    }
+}
+exports.Parser = Parser;
+
+},{"./constants":1,"./store":6,"@suwatte/daisuke":7,"cheerio":undefined,"lodash":undefined}],6:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GlobalStore = exports.Store = void 0;
+const constants_1 = require("./constants");
+class Store {
+    async getExcludeTags() {
+        const tags = await ObjectStore.stringArray(constants_1.PREF_KEYS.exclude_tags);
+        if (!tags)
+            return [];
+        return tags;
+    }
+    async setExcludeTags(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.exclude_tags, v);
+    }
+    async getWorkerCount() {
+        const value = await ObjectStore.number(constants_1.PREF_KEYS.worker_count);
+        if (!value)
+            return 5;
+        return value;
+    }
+    async setWorkerCount(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.worker_count, v);
+    }
+}
+exports.Store = Store;
+exports.GlobalStore = new Store();
+
+},{"./constants":1}],7:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./runners"), exports);
+__exportStar(require("./types"), exports);
+
+},{"./runners":31,"./types":61}],8:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+
+},{}],9:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],10:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],11:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],12:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],13:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],14:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],15:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],16:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],17:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./ContentEvent"), exports);
+__exportStar(require("./ChapterEvent"), exports);
+__exportStar(require("./ProgressSync"), exports);
+__exportStar(require("./LibrarySync"), exports);
+__exportStar(require("./StreamContextProvider"), exports);
+__exportStar(require("./ContextMenuHandler"), exports);
+__exportStar(require("./GroupedUpdateProvider"), exports);
+__exportStar(require("./ImageRedrawHandler"), exports);
+
+},{"./ChapterEvent":9,"./ContentEvent":10,"./ContextMenuHandler":11,"./GroupedUpdateProvider":12,"./ImageRedrawHandler":13,"./LibrarySync":14,"./ProgressSync":15,"./StreamContextProvider":16}],18:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./handlers"), exports);
+__exportStar(require("./ContentSource"), exports);
+
+},{"./ContentSource":8,"./handlers":17}],19:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],20:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],21:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./ContentTracker"), exports);
+__exportStar(require("./AdvancedTracker"), exports);
+
+},{"./AdvancedTracker":19,"./ContentTracker":20}],22:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BasicAuthenticationUIIdentifier = void 0;
+var BasicAuthenticationUIIdentifier;
+(function (BasicAuthenticationUIIdentifier) {
+    BasicAuthenticationUIIdentifier[BasicAuthenticationUIIdentifier["EMAIL"] = 0] = "EMAIL";
+    BasicAuthenticationUIIdentifier[BasicAuthenticationUIIdentifier["USERNAME"] = 1] = "USERNAME";
+})(BasicAuthenticationUIIdentifier || (exports.BasicAuthenticationUIIdentifier = BasicAuthenticationUIIdentifier = {}));
+
+},{}],23:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],24:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],25:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],26:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],27:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],28:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],29:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Authentication"), exports);
+__exportStar(require("./Preferences"), exports);
+__exportStar(require("./ImageRequest"), exports);
+__exportStar(require("./DirectoryHandler"), exports);
+__exportStar(require("./PageProvider"), exports);
+__exportStar(require("./Setup"), exports);
+__exportStar(require("./PageResolver"), exports);
+
+},{"./Authentication":22,"./DirectoryHandler":23,"./ImageRequest":24,"./PageProvider":25,"./PageResolver":26,"./Preferences":27,"./Setup":28}],30:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RunnerEnvironment = void 0;
+__exportStar(require("./extensions"), exports);
+var RunnerEnvironment;
+(function (RunnerEnvironment) {
+    RunnerEnvironment[RunnerEnvironment["SOURCE"] = 0] = "SOURCE";
+    RunnerEnvironment[RunnerEnvironment["TRACKER"] = 1] = "TRACKER";
+})(RunnerEnvironment || (exports.RunnerEnvironment = RunnerEnvironment = {}));
+
+},{"./extensions":29}],31:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./ContentSource"), exports);
+__exportStar(require("./Runner"), exports);
+__exportStar(require("./ContentTracker"), exports);
+
+},{"./ContentSource":18,"./ContentTracker":21,"./Runner":30}],32:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],33:[function(require,module,exports){
+"use strict";
+// Picker
+Object.defineProperty(exports, "__esModule", { value: true });
+
+},{}],34:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UIStepper = exports.UIButton = exports.UIDatePicker = exports.UITextField = exports.UIToggle = exports.UIMultiPicker = exports.UIPicker = void 0;
+const UIElements_1 = require("./UIElements");
+const UIPicker = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.SELECT }));
+exports.UIPicker = UIPicker;
+const UIMultiPicker = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.MULTISELECT }));
+exports.UIMultiPicker = UIMultiPicker;
+const UIToggle = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.TOGGLE }));
+exports.UIToggle = UIToggle;
+const UITextField = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.TEXTFIELD }));
+exports.UITextField = UITextField;
+const UIDatePicker = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.DATEPICKER }));
+exports.UIDatePicker = UIDatePicker;
+const UIButton = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.BUTTON }));
+exports.UIButton = UIButton;
+const UIStepper = (props) => (Object.assign(Object.assign({}, props), { type: UIElements_1.UIComponentType.STEPPER }));
+exports.UIStepper = UIStepper;
+
+},{"./UIElements":35}],35:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UIComponentType = void 0;
+var UIComponentType;
+(function (UIComponentType) {
+    UIComponentType[UIComponentType["SELECT"] = 0] = "SELECT";
+    UIComponentType[UIComponentType["MULTISELECT"] = 1] = "MULTISELECT";
+    UIComponentType[UIComponentType["STEPPER"] = 2] = "STEPPER";
+    UIComponentType[UIComponentType["TOGGLE"] = 3] = "TOGGLE";
+    UIComponentType[UIComponentType["TEXTFIELD"] = 4] = "TEXTFIELD";
+    UIComponentType[UIComponentType["BUTTON"] = 5] = "BUTTON";
+    UIComponentType[UIComponentType["DATEPICKER"] = 6] = "DATEPICKER";
+})(UIComponentType || (exports.UIComponentType = UIComponentType = {}));
+
+},{}],36:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Form"), exports);
+__exportStar(require("./UIElements"), exports);
+__exportStar(require("./UIDefinitions"), exports);
+__exportStar(require("./UIElementBuilders"), exports);
+
+},{"./Form":32,"./UIDefinitions":33,"./UIElementBuilders":34,"./UIElements":35}],37:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],38:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DefinedLanguages = void 0;
+var DefinedLanguages;
+(function (DefinedLanguages) {
+    DefinedLanguages["UNIVERSAL"] = "UNIVERSAL";
+    DefinedLanguages["ENGLISH"] = "en_US";
+    DefinedLanguages["KOREAN"] = "ko_KR";
+    DefinedLanguages["JAPANESE"] = "ja_JP";
+    DefinedLanguages["FRENCH"] = "fr_FR";
+    DefinedLanguages["CHINESE"] = "zh-CN";
+    DefinedLanguages["SPANISH"] = "es_ES";
+    DefinedLanguages["PORTUGUESE"] = "pt_BR";
+})(DefinedLanguages || (exports.DefinedLanguages = DefinedLanguages = {}));
+
+},{}],39:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],40:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],41:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],42:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],43:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],44:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],45:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ContentType = exports.ReadingFlag = exports.ReadingMode = exports.PublicationStatus = void 0;
+// Enums
+var PublicationStatus;
+(function (PublicationStatus) {
+    PublicationStatus[PublicationStatus["ONGOING"] = 1] = "ONGOING";
+    PublicationStatus[PublicationStatus["COMPLETED"] = 2] = "COMPLETED";
+    PublicationStatus[PublicationStatus["CANCELLED"] = 3] = "CANCELLED";
+    PublicationStatus[PublicationStatus["HIATUS"] = 4] = "HIATUS";
+})(PublicationStatus || (exports.PublicationStatus = PublicationStatus = {}));
+/**
+ * The method in which the content can be read
+ */
+var ReadingMode;
+(function (ReadingMode) {
+    ReadingMode[ReadingMode["PAGED_MANGA"] = 0] = "PAGED_MANGA";
+    ReadingMode[ReadingMode["PAGED_COMIC"] = 1] = "PAGED_COMIC";
+    ReadingMode[ReadingMode["PAGED_VERTICAL"] = 2] = "PAGED_VERTICAL";
+    ReadingMode[ReadingMode["WEBTOON"] = 3] = "WEBTOON";
+})(ReadingMode || (exports.ReadingMode = ReadingMode = {}));
+var ReadingFlag;
+(function (ReadingFlag) {
+    ReadingFlag[ReadingFlag["READING"] = 0] = "READING";
+    ReadingFlag[ReadingFlag["PLANNED"] = 1] = "PLANNED";
+    ReadingFlag[ReadingFlag["COMPLETED"] = 2] = "COMPLETED";
+    ReadingFlag[ReadingFlag["DROPPED"] = 3] = "DROPPED";
+    ReadingFlag[ReadingFlag["REREADING"] = 4] = "REREADING";
+    ReadingFlag[ReadingFlag["PAUSED"] = 5] = "PAUSED";
+    ReadingFlag[ReadingFlag["UNKNOWN"] = 6] = "UNKNOWN";
+})(ReadingFlag || (exports.ReadingFlag = ReadingFlag = {}));
+var ContentType;
+(function (ContentType) {
+    ContentType[ContentType["MANGA"] = 0] = "MANGA";
+    ContentType[ContentType["MANHUA"] = 1] = "MANHUA";
+    ContentType[ContentType["MANHWA"] = 2] = "MANHWA";
+    ContentType[ContentType["COMIC"] = 3] = "COMIC";
+    ContentType[ContentType["NOVEL"] = 4] = "NOVEL";
+})(ContentType || (exports.ContentType = ContentType = {}));
+
+},{}],46:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],47:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],48:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],49:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProviderLinkType = void 0;
+var ProviderLinkType;
+(function (ProviderLinkType) {
+    ProviderLinkType[ProviderLinkType["WEBSITE"] = 0] = "WEBSITE";
+    ProviderLinkType[ProviderLinkType["TWITTER"] = 1] = "TWITTER";
+    ProviderLinkType[ProviderLinkType["DISCORD"] = 2] = "DISCORD";
+    ProviderLinkType[ProviderLinkType["PATREON"] = 3] = "PATREON";
+})(ProviderLinkType || (exports.ProviderLinkType = ProviderLinkType = {}));
+
+},{}],50:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],51:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Content"), exports);
+__exportStar(require("./Highlight"), exports);
+__exportStar(require("./Chapter"), exports);
+__exportStar(require("./ChapterData"), exports);
+__exportStar(require("./Property"), exports);
+__exportStar(require("./Collection"), exports);
+__exportStar(require("./Provider"), exports);
+__exportStar(require("./Enums"), exports);
+__exportStar(require("./ReaderContext"), exports);
+__exportStar(require("./ContextMenu"), exports);
+__exportStar(require("./DeepLinkContext"), exports);
+__exportStar(require("./BooleanState"), exports);
+__exportStar(require("./ContentProgressState"), exports);
+__exportStar(require("./GroupedUpdatesResponse"), exports);
+
+},{"./BooleanState":37,"./Chapter":38,"./ChapterData":39,"./Collection":40,"./Content":41,"./ContentProgressState":42,"./ContextMenu":43,"./DeepLinkContext":44,"./Enums":45,"./GroupedUpdatesResponse":46,"./Highlight":47,"./Property":48,"./Provider":49,"./ReaderContext":50}],52:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuthMethod = void 0;
+var AuthMethod;
+(function (AuthMethod) {
+    AuthMethod[AuthMethod["USERNAME_PW"] = 0] = "USERNAME_PW";
+    AuthMethod[AuthMethod["EMAIL_PW"] = 1] = "EMAIL_PW";
+    AuthMethod[AuthMethod["WEB"] = 2] = "WEB";
+    AuthMethod[AuthMethod["OAUTH"] = 3] = "OAUTH";
+})(AuthMethod || (exports.AuthMethod = AuthMethod = {}));
+
+},{}],53:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],54:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],55:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CatalogRating = void 0;
+var CatalogRating;
+(function (CatalogRating) {
+    /**
+     * Catalog does not contain ANY SUGGESTIVE OR NSFW content
+     */
+    CatalogRating[CatalogRating["SAFE"] = 0] = "SAFE";
+    /**
+     * Catalog may contain SUGGESTIVE OR NSFW content,
+     * runners must hide NSFW content by default,
+     * users will be required to verify they are of age to view NSFW content
+     */
+    CatalogRating[CatalogRating["MIXED"] = 1] = "MIXED";
+    /**
+     * Catalog contains MAINLY SUGGESTIVE OR NSFW content,
+     * users will be required to verify they are of age to view NSFW content
+     */
+    CatalogRating[CatalogRating["NSFW"] = 2] = "NSFW";
+})(CatalogRating || (exports.CatalogRating = CatalogRating = {}));
+
+},{}],56:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Authentication"), exports);
+__exportStar(require("./RunnerInfo"), exports);
+__exportStar(require("./PagedResult"), exports);
+__exportStar(require("./ContextProvider"), exports);
+
+},{"./Authentication":52,"./ContextProvider":53,"./PagedResult":54,"./RunnerInfo":55}],57:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],58:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FilterType = void 0;
+var FilterType;
+(function (FilterType) {
+    /**
+     * This Represents the filter as a toggle switch, the value returned in the directory request will be a `boolean`
+     */
+    FilterType[FilterType["TOGGLE"] = 0] = "TOGGLE";
+    /**
+     * This represents the filter as a picker, the value returned will be the `key` of the selected option as a `string`
+     */
+    FilterType[FilterType["SELECT"] = 1] = "SELECT";
+    /**
+     * This Represents the filter as a multi-picker, the value returned will the the keys of the selected options as an array of strings
+     */
+    FilterType[FilterType["MULTISELECT"] = 2] = "MULTISELECT";
+    /**
+     * This Represents the filter as a multi-picker,the value returned will be of type {@link ExcludableMultiSelectProp}
+     */
+    FilterType[FilterType["EXCLUDABLE_MULTISELECT"] = 3] = "EXCLUDABLE_MULTISELECT";
+    /**
+     * This will represent the filter as a textfield, the value returned will be a string
+     */
+    FilterType[FilterType["TEXT"] = 4] = "TEXT";
+    /**
+     * This is a basic filter that will only display the title or subtitle, it will not return any value in the populated `DirectoryRequest`
+     */
+    FilterType[FilterType["INFO"] = 5] = "INFO";
+})(FilterType || (exports.FilterType = FilterType = {}));
+
+},{}],59:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],60:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./DirectoryConfig"), exports);
+__exportStar(require("./DirectoryRequest"), exports);
+__exportStar(require("./DirectoryFilter"), exports);
+
+},{"./DirectoryConfig":57,"./DirectoryFilter":58,"./DirectoryRequest":59}],61:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Generate = void 0;
+__exportStar(require("./core"), exports);
+__exportStar(require("./content"), exports);
+__exportStar(require("./networking"), exports);
+__exportStar(require("./UI"), exports);
+__exportStar(require("./tracker"), exports);
+__exportStar(require("./directory"), exports);
+__exportStar(require("./page"), exports);
+const Generate = (v) => v;
+exports.Generate = Generate;
+
+},{"./UI":36,"./content":51,"./core":56,"./directory":60,"./networking":68,"./page":69,"./tracker":70}],62:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NetworkClientBuilder = void 0;
+/**
+ * NetworkClientBuilder is a builder class used for creating and configuring instances of NetworkClient.
+ * The builder allows you to configure various aspects of the NetworkClient, such as rate limits,
+ * request/response transformers (interceptors), headers, cookies, timeout, status validator, and more.
+ */
+class NetworkClientBuilder {
+    constructor() {
+        // Array of functions that transform requests
+        this.requestTransformers = [];
+        // Array of functions that transform responses
+        this.responseTransformers = [];
+        // Object representing HTTP headers, where each key-value pair represents a header
+        this.headers = {};
+        // Array of cookies
+        this.cookies = [];
+    }
+    /**
+     * Sets the rate limit for the NetworkClient.
+     *
+     * @param requests - The maximum number of requests to make per interval.
+     * @param interval - The length of the rate limiting interval in seconds.
+     * @returns The builder, to allow for method chaining.
+     */
+    setRateLimit(requests, interval) {
+        this.requestsPerSecond = requests / interval;
+        return this;
+    }
+    /**
+     * Adds a request interceptor to the NetworkClient.
+     *
+     * @param transformer - The interceptor to add. This should be a function that takes a request and modifies it in some way.
+     * @returns The builder, to allow for method chaining.
+     */
+    addRequestInterceptor(transformer) {
+        this.requestTransformers.push(transformer);
+        return this;
+    }
+    /**
+     * Adds a response interceptor to the NetworkClient.
+     *
+     * @param transformer - The interceptor to add. This should be a function that takes a response and modifies it in some way.
+     * @returns The builder, to allow for method chaining.
+     */
+    addResponseInterceptor(transformer) {
+        this.responseTransformers.push(transformer);
+        return this;
+    }
+    /**
+     * Sets the authorization token for the NetworkClient.
+     *
+     * @param token - The token to be included in the Authorization header of every request.
+     * @returns The builder, to allow for method chaining.
+     */
+    setAuthorizationToken(token) {
+        return this.addHeader("Authorization", token);
+    }
+    /**
+     * Sets the status validator for the NetworkClient.
+     *
+     * @param validator - A function that takes a status code and returns true if it is considered successful.
+     * @returns The builder, to allow for method chaining.
+     */
+    setStatusValidator(validator) {
+        this.statusValidator = validator;
+        return this;
+    }
+    /**
+     * Sets the timeout for requests made by the NetworkClient.
+     *
+     * @param timeout - The maximum time to wait for a request to complete, in milliseconds.
+     * @returns The builder, to allow for method chaining.
+     */
+    setTimeout(timeout) {
+        this.timeout = timeout;
+        return this;
+    }
+    /**
+     * Sets the maximum number of retries for this request by the NetworkClient.
+     *
+     * @param retries - The maximum number of retries for this request
+     * @returns The builder, to allow for method chaining.
+     */
+    setMaxRetries(retries) {
+        this.maxRetries = retries;
+        return this;
+    }
+    /**
+     * Sets a header for the NetworkClient.
+     *
+     * @param key - The name of the header
+     * @param value - The value of the header
+     * @returns The builder, to allow for method chaining.
+     */
+    addHeader(key, value) {
+        this.headers[key] = value;
+        return this;
+    }
+    /**
+     * Sets a cookie for the NetworkClient.
+     *
+     * @param cookie - The cookie to be included in every request.
+     * @returns The builder, to allow for method chaining.
+     */
+    addCookie(cookie) {
+        this.cookies.push(cookie);
+        return this;
+    }
+    /**
+     * Builds a NetworkClient using the parameters set on the builder.
+     *
+     * @returns A NetworkClient with the configured parameters.
+     */
+    build() {
+        return new NetworkClient(this);
+    }
+}
+exports.NetworkClientBuilder = NetworkClientBuilder;
+
+},{}],63:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],64:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],65:[function(require,module,exports){
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.name = void 0;
+const name = (base, known) => __awaiter(void 0, void 0, void 0, function* () {
+    return Object.assign(Object.assign({}, base), known);
+});
+exports.name = name;
+
+},{}],66:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],67:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],68:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./Builder"), exports);
+__exportStar(require("./Client"), exports);
+__exportStar(require("./Request"), exports);
+__exportStar(require("./Response"), exports);
+__exportStar(require("./Transformer"), exports);
+__exportStar(require("./Error"), exports);
+
+},{"./Builder":62,"./Client":63,"./Error":64,"./Request":65,"./Response":66,"./Transformer":67}],69:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SectionStyle = void 0;
+var SectionStyle;
+(function (SectionStyle) {
+    SectionStyle[SectionStyle["DEFAULT"] = 0] = "DEFAULT";
+    SectionStyle[SectionStyle["INFO"] = 1] = "INFO";
+    SectionStyle[SectionStyle["GALLERY"] = 2] = "GALLERY";
+    SectionStyle[SectionStyle["NAVIGATION_LIST"] = 3] = "NAVIGATION_LIST";
+    SectionStyle[SectionStyle["ITEM_LIST"] = 4] = "ITEM_LIST";
+    SectionStyle[SectionStyle["PADDED_LIST"] = 5] = "PADDED_LIST";
+    SectionStyle[SectionStyle["TAG"] = 6] = "TAG";
+    SectionStyle[SectionStyle["STANDARD_GRID"] = 7] = "STANDARD_GRID";
+})(SectionStyle || (exports.SectionStyle = SectionStyle = {}));
+
+},{}],70:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TrackStatus = void 0;
+var TrackStatus;
+(function (TrackStatus) {
+    TrackStatus["READING"] = "READING";
+    TrackStatus["PLANNING"] = "PLANNING";
+    TrackStatus["COMPLETED"] = "COMPLETED";
+    TrackStatus["PAUSED"] = "PAUSED";
+    TrackStatus["DROPPED"] = "DROPPED";
+    TrackStatus["REREADING"] = "REREADING";
+})(TrackStatus || (exports.TrackStatus = TrackStatus = {}));
+
+},{}],71:[function(require,module,exports){
+'use strict';
+
+function Cache () {
+  var _cache = Object.create(null);
+  var _hitCount = 0;
+  var _missCount = 0;
+  var _size = 0;
+  var _debug = false;
+
+  this.put = function(key, value, time, timeoutCallback) {
+    if (_debug) {
+      console.log('caching: %s = %j (@%s)', key, value, time);
+    }
+
+    if (typeof time !== 'undefined' && (typeof time !== 'number' || isNaN(time) || time <= 0)) {
+      throw new Error('Cache timeout must be a positive number');
+    } else if (typeof timeoutCallback !== 'undefined' && typeof timeoutCallback !== 'function') {
+      throw new Error('Cache timeout callback must be a function');
+    }
+
+    var oldRecord = _cache[key];
+    if (oldRecord) {
+      clearTimeout(oldRecord.timeout);
+    } else {
+      _size++;
+    }
+
+    var record = {
+      value: value,
+      expire: time + Date.now()
+    };
+
+    if (!isNaN(record.expire)) {
+      record.timeout = setTimeout(function() {
+        _del(key);
+        if (timeoutCallback) {
+          timeoutCallback(key, value);
+        }
+      }.bind(this), time);
+    }
+
+    _cache[key] = record;
+
+    return value;
+  };
+
+  this.del = function(key) {
+    var canDelete = true;
+
+    var oldRecord = _cache[key];
+    if (oldRecord) {
+      clearTimeout(oldRecord.timeout);
+      if (!isNaN(oldRecord.expire) && oldRecord.expire < Date.now()) {
+        canDelete = false;
+      }
+    } else {
+      canDelete = false;
+    }
+
+    if (canDelete) {
+      _del(key);
+    }
+
+    return canDelete;
+  };
+
+  function _del(key){
+    _size--;
+    delete _cache[key];
+  }
+
+  this.clear = function() {
+    for (var key in _cache) {
+      clearTimeout(_cache[key].timeout);
+    }
+    _size = 0;
+    _cache = Object.create(null);
+    if (_debug) {
+      _hitCount = 0;
+      _missCount = 0;
+    }
+  };
+
+  this.get = function(key) {
+    var data = _cache[key];
+    if (typeof data != "undefined") {
+      if (isNaN(data.expire) || data.expire >= Date.now()) {
+        if (_debug) _hitCount++;
+        return data.value;
+      } else {
+        // free some space
+        if (_debug) _missCount++;
+        _size--;
+        delete _cache[key];
+      }
+    } else if (_debug) {
+      _missCount++;
+    }
+    return null;
+  };
+
+  this.size = function() {
+    return _size;
+  };
+
+  this.memsize = function() {
+    var size = 0,
+      key;
+    for (key in _cache) {
+      size++;
+    }
+    return size;
+  };
+
+  this.debug = function(bool) {
+    _debug = bool;
+  };
+
+  this.hits = function() {
+    return _hitCount;
+  };
+
+  this.misses = function() {
+    return _missCount;
+  };
+
+  this.keys = function() {
+    return Object.keys(_cache);
+  };
+
+  this.exportJson = function() {
+    var plainJsCache = {};
+
+    // Discard the `timeout` property.
+    // Note: JSON doesn't support `NaN`, so convert it to `'NaN'`.
+    for (var key in _cache) {
+      var record = _cache[key];
+      plainJsCache[key] = {
+        value: record.value,
+        expire: record.expire || 'NaN',
+      };
+    }
+
+    return JSON.stringify(plainJsCache);
+  };
+
+  this.importJson = function(jsonToImport, options) {
+    var cacheToImport = JSON.parse(jsonToImport);
+    var currTime = Date.now();
+
+    var skipDuplicates = options && options.skipDuplicates;
+
+    for (var key in cacheToImport) {
+      if (cacheToImport.hasOwnProperty(key)) {
+        if (skipDuplicates) {
+          var existingRecord = _cache[key];
+          if (existingRecord) {
+            if (_debug) {
+              console.log('Skipping duplicate imported key \'%s\'', key);
+            }
+            continue;
+          }
+        }
+
+        var record = cacheToImport[key];
+
+        // record.expire could be `'NaN'` if no expiry was set.
+        // Try to subtract from it; a string minus a number is `NaN`, which is perfectly fine here.
+        var remainingTime = record.expire - currTime;
+
+        if (remainingTime <= 0) {
+          // Delete any record that might exist with the same key, since this key is expired.
+          this.del(key);
+          continue;
+        }
+
+        // Remaining time must now be either positive or `NaN`,
+        // but `put` will throw an error if we try to give it `NaN`.
+        remainingTime = remainingTime > 0 ? remainingTime : undefined;
+
+        this.put(key, record.value, remainingTime);
+      }
+    }
+
+    return this.size();
+  };
+}
+
+module.exports = new Cache();
+module.exports.Cache = Cache;
+
+},{}]},{},[4])(4)
+});
