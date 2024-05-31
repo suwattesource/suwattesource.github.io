@@ -1,5 +1,4 @@
 import {
-    ChapterData,
     Content,
     DirectoryRequest,
     FilterType,
@@ -47,7 +46,7 @@ export class Controller {
     async getSearchResults(request: DirectoryRequest): Promise<PagedResult> {
         const searchConfig = await this.createSearchURL(request);
         const $ = await this.fetchHTML(searchConfig.url)
-        let parseFunction = searchConfig.func.bind(this.parser)
+        const parseFunction = searchConfig.func.bind(this.parser)
         const results = await parseFunction($)
         return {
             results,
@@ -80,6 +79,7 @@ export class Controller {
         let baseUrl = `${IMHENTAI_DOMAIN}/search`
         const cacheKey = PREF_KEYS.cache_request
 
+        // eslint-disable-next-line prefer-const
         let {filters, query, tag, sort, page} = request
 
 
@@ -190,19 +190,9 @@ export class Controller {
 
     async getChapterData(contentId: string) {
         const $ = await this.fetchHTML(`${IMHENTAI_DOMAIN}/view/${contentId}/1`);
-        const chapterData =  this.parser.getChapterData($);
-        void this.preload(chapterData)
-        return chapterData
+        return this.parser.getChapterData($);
     }
 
-    async preload(chapterData: ChapterData) {
-        const pages = chapterData.pages?.slice(0, 32) || []
-        for (const page of pages) {
-            if (page.url != null) {
-                void this.client.get(page.url, {headers: {Referer: IMHENTAI_DOMAIN + "/"}})
-            }
-        }
-    }
 
     private async fetchHTML(url: string, config?: NetworkRequestConfig) {
         console.log(`Requesting to the url: ${url}${config ? ", config: " + JSON.stringify(config) : ""}`)

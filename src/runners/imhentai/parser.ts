@@ -13,7 +13,7 @@ import {
 import {Cheerio, CheerioAPI, Element} from "cheerio";
 
 import {
-    DATE_THRESHOLD,
+    COMPLETED_STATUS_DATE_THRESHOLD,
     LANGUAGE_MAPPING,
     MANGA_READING_TYPES,
     TAG_COVER_URL,
@@ -52,14 +52,11 @@ export class Parser {
     getContent($: CheerioAPI, webUrl: string): Content {
 
         const title = $("h1").text()
-        let summary = ""
         const altTitle = $('p.subtitle').text()
+        const additionalTitles: string[] = []
         if (altTitle) {
-            summary = `Alternative title: ${altTitle}`;
+            additionalTitles.push(altTitle)
         }
-        const totalImages = $('li.pages').text().replace('Pages: ', '') + " images";
-        summary += `\n${totalImages}`
-
         const genres = $('a', $('span:contains(Tags)').parent()).toArray();
         const parodies = $('a', $('span:contains(Parodies)').parent()).toArray();
         const artists = $('a', $('span:contains(Artists)').parent()).toArray();
@@ -74,7 +71,7 @@ export class Parser {
         const timeElement = $('li.posted').text();
         const date = this.convertDate(timeElement);
         const currentDate = new Date();
-        if (currentDate.getTime() - date.getTime() > DATE_THRESHOLD) {
+        if (currentDate.getTime() - date.getTime() > COMPLETED_STATUS_DATE_THRESHOLD) {
             status = PublicationStatus.COMPLETED
         }
 
@@ -157,6 +154,7 @@ export class Parser {
 
         const chapters = this.getChapters($)
 
+        const totalImages = $('li.pages').text().replace('Pages: ', '')
         const likes = $('#like_btn').text();
         const dislikes = $('#dlike_btn').text();
         const favourites = $('#add_fav_btn').text().trim().match(/\d+/)?.[0];
@@ -167,6 +165,7 @@ export class Parser {
             `🤍 Favourite (${favourites})`,
             `⬇️ Download (${download})`,
             `😄 Fapped (${fapped})`,
+            `🖼️ Images: ${totalImages}`,
         ]
 
         // Related Content
@@ -183,9 +182,9 @@ export class Parser {
 
         return {
             title,
+            additionalTitles,
             cover,
             status,
-            summary,
             recommendedPanelMode,
             isNSFW,
             webUrl,
@@ -251,10 +250,9 @@ export class Parser {
         const pages: string[] = []
         const imageDir = $("#image_dir").val() as string;
         const galleryId = $("#gallery_id").val() as string;
-        const uId = parseInt($("#u_id").val() as string);
+        const imageUrl = $('#gimg').attr('data-src') as string;
+        const imageServer = imageUrl.match(/:\/\/(www\.)?(.[^/]+)/)?.[2] || '';
 
-
-        const imageServer = this.getImageServer(uId)
         const scriptContent = $("script").filter((_, el) => {
             return $(el).text().includes("var g_th");
         }).text();
@@ -334,26 +332,6 @@ export class Parser {
             image = imageObj?.attr('src')
         }
         return image?.trim() || ""
-    }
-
-    getImageServer(uId: number): string {
-        if (uId >= 1 && uId <= 274825) {
-            return "m1.imhentai.xxx";
-        } else if (uId <= 403818) {
-            return "m2.imhentai.xxx";
-        } else if (uId <= 527143) {
-            return "m3.imhentai.xxx";
-        } else if (uId <= 632481) {
-            return "m4.imhentai.xxx";
-        } else if (uId <= 816010) {
-            return "m5.imhentai.xxx";
-        } else if (uId <= 970098) {
-            return "m6.imhentai.xxx";
-        } else if (uId <= 1121113) {
-            return "m7.imhentai.xxx";
-        } else {
-            return "m8.imhentai.xxx";
-        }
     }
 
     isLastPage = ($: CheerioAPI): boolean => {

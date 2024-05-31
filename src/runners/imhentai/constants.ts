@@ -10,12 +10,9 @@ export const PREF_KEYS = {
     number_of_tag_pages: "number_of_tag_pages"
 };
 
-export const DATE_THRESHOLD = 1000 * 60 * 60 * 24 * 365; // milliseconds in a year
+export const COMPLETED_STATUS_DATE_THRESHOLD = 1000 * 60 * 60 * 24 * 365; // milliseconds in a year
 export const VERTICAL_READING_TYPES = ["Webtoon"];
-
 export const MANGA_READING_TYPES = ["Manga", "Doujinshi"];
-
-
 export const HOME_PAGE_SECTIONS: PageSection[] = [
     {
         id: "manga",

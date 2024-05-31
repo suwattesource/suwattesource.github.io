@@ -24,7 +24,7 @@ describe("IMHentai Tests", () => {
     });
 
     test("Reader", async () => {
-        const data = await source.getChapterData("84565", "2176683");
+        const data = await source.getChapterData("1260328", "");
         expect(ChapterDataSchema.parse(data)).toEqual(expect.any(Object));
     });
 });
