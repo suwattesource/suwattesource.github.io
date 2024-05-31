@@ -1,7 +1,7 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TAG_COVER_URL = exports.EXCLUDED_TAG = exports.DEFAULT_EXCLUDED_TAGS = exports.FILTERS = exports.LANGUAGE_MAPPING = exports.SEARCH_SORTERS = exports.LANGUAGE_OPTIONS = exports.LANGUAGES = exports.SECTIONS = exports.HOME_PAGE_SECTIONS = exports.MANGA_READING_TYPES = exports.VERTICAL_READING_TYPES = exports.DATE_THRESHOLD = exports.PREF_KEYS = exports.IMHENTAI_DOMAIN = void 0;
+exports.TAG_COVER_URL = exports.EXCLUDED_TAG = exports.DEFAULT_EXCLUDED_TAGS = exports.FILTERS = exports.LANGUAGE_MAPPING = exports.SEARCH_SORTERS = exports.LANGUAGE_OPTIONS = exports.LANGUAGES = exports.SECTIONS = exports.HOME_PAGE_SECTIONS = exports.MANGA_READING_TYPES = exports.VERTICAL_READING_TYPES = exports.COMPLETED_STATUS_DATE_THRESHOLD = exports.PREF_KEYS = exports.IMHENTAI_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.IMHENTAI_DOMAIN = "https://imhentai.xxx";
 exports.PREF_KEYS = {
@@ -11,7 +11,7 @@ exports.PREF_KEYS = {
     exclude_tags: "exclude_tags",
     number_of_tag_pages: "number_of_tag_pages"
 };
-exports.DATE_THRESHOLD = 1000 * 60 * 60 * 24 * 365; // milliseconds in a year
+exports.COMPLETED_STATUS_DATE_THRESHOLD = 1000 * 60 * 60 * 24 * 365; // milliseconds in a year
 exports.VERTICAL_READING_TYPES = ["Webtoon"];
 exports.MANGA_READING_TYPES = ["Manga", "Doujinshi"];
 exports.HOME_PAGE_SECTIONS = [
@@ -362,7 +362,7 @@ class Controller {
     async getSearchResults(request) {
         const searchConfig = await this.createSearchURL(request);
         const $ = await this.fetchHTML(searchConfig.url);
-        let parseFunction = searchConfig.func.bind(this.parser);
+        const parseFunction = searchConfig.func.bind(this.parser);
         const results = await parseFunction($);
         return {
             results,
@@ -392,6 +392,7 @@ class Controller {
         let keyword = "";
         let baseUrl = `${constants_1.IMHENTAI_DOMAIN}/search`;
         const cacheKey = constants_1.PREF_KEYS.cache_request;
+        // eslint-disable-next-line prefer-const
         let { filters, query, tag, sort, page } = request;
         if (!filters && !query && !tag && sort && sort.id) {
             request = this.cache.get(cacheKey) ?? request;
@@ -489,17 +490,7 @@ class Controller {
     }
     async getChapterData(contentId) {
         const $ = await this.fetchHTML(`${constants_1.IMHENTAI_DOMAIN}/view/${contentId}/1`);
-        const chapterData = this.parser.getChapterData($);
-        void this.preload(chapterData);
-        return chapterData;
-    }
-    async preload(chapterData) {
-        const pages = chapterData.pages?.slice(0, 32) || [];
-        for (const page of pages) {
-            if (page.url != null) {
-                void this.client.get(page.url, { headers: { Referer: constants_1.IMHENTAI_DOMAIN + "/" } });
-            }
-        }
+        return this.parser.getChapterData($);
     }
     async fetchHTML(url, config) {
         console.log(`Requesting to the url: ${url}${config ? ", config: " + JSON.stringify(config) : ""}`);
@@ -523,7 +514,7 @@ class Target {
         this.info = {
             id: "imhentai",
             website: constants_1.IMHENTAI_DOMAIN,
-            version: 1.0,
+            version: 1.1,
             name: "IMHentai",
             supportedLanguages: constants_1.LANGUAGES.map((v) => v.languageCode + "-" + v.regionCode),
             thumbnail: "imhentai.png",
@@ -709,13 +700,11 @@ class Parser {
     }
     getContent($, webUrl) {
         const title = $("h1").text();
-        let summary = "";
         const altTitle = $('p.subtitle').text();
+        const additionalTitles = [];
         if (altTitle) {
-            summary = `Alternative title: ${altTitle}`;
+            additionalTitles.push(altTitle);
         }
-        const totalImages = $('li.pages').text().replace('Pages: ', '') + " images";
-        summary += `\n${totalImages}`;
         const genres = $('a', $('span:contains(Tags)').parent()).toArray();
         const parodies = $('a', $('span:contains(Parodies)').parent()).toArray();
         const artists = $('a', $('span:contains(Artists)').parent()).toArray();
@@ -728,7 +717,7 @@ class Parser {
         const timeElement = $('li.posted').text();
         const date = this.convertDate(timeElement);
         const currentDate = new Date();
-        if (currentDate.getTime() - date.getTime() > constants_1.DATE_THRESHOLD) {
+        if (currentDate.getTime() - date.getTime() > constants_1.COMPLETED_STATUS_DATE_THRESHOLD) {
             status = daisuke_1.PublicationStatus.COMPLETED;
         }
         let recommendedPanelMode = daisuke_1.ReadingMode.PAGED_COMIC;
@@ -802,6 +791,7 @@ class Parser {
         const coverElement = $('img.lazy').first();
         const cover = coverElement.attr('data-src') || coverElement.first().attr('src') || "";
         const chapters = this.getChapters($);
+        const totalImages = $('li.pages').text().replace('Pages: ', '');
         const likes = $('#like_btn').text();
         const dislikes = $('#dlike_btn').text();
         const favourites = $('#add_fav_btn').text().trim().match(/\d+/)?.[0];
@@ -812,6 +802,7 @@ class Parser {
             `🤍 Favourite (${favourites})`,
             `⬇️ Download (${download})`,
             `😄 Fapped (${fapped})`,
+            `🖼️ Images: ${totalImages}`,
         ];
         // Related Content
         const collections = [];
@@ -825,9 +816,9 @@ class Parser {
         }
         return {
             title,
+            additionalTitles,
             cover,
             status,
-            summary,
             recommendedPanelMode,
             isNSFW,
             webUrl,
@@ -889,8 +880,8 @@ class Parser {
         const pages = [];
         const imageDir = $("#image_dir").val();
         const galleryId = $("#gallery_id").val();
-        const uId = parseInt($("#u_id").val());
-        const imageServer = this.getImageServer(uId);
+        const imageUrl = $('#gimg').attr('data-src');
+        const imageServer = imageUrl.match(/:\/\/(www\.)?(.[^/]+)/)?.[2] || '';
         const scriptContent = $("script").filter((_, el) => {
             return $(el).text().includes("var g_th");
         }).text();
@@ -927,32 +918,6 @@ class Parser {
             image = imageObj?.attr('src');
         }
         return image?.trim() || "";
-    }
-    getImageServer(uId) {
-        if (uId >= 1 && uId <= 274825) {
-            return "m1.imhentai.xxx";
-        }
-        else if (uId <= 403818) {
-            return "m2.imhentai.xxx";
-        }
-        else if (uId <= 527143) {
-            return "m3.imhentai.xxx";
-        }
-        else if (uId <= 632481) {
-            return "m4.imhentai.xxx";
-        }
-        else if (uId <= 816010) {
-            return "m5.imhentai.xxx";
-        }
-        else if (uId <= 970098) {
-            return "m6.imhentai.xxx";
-        }
-        else if (uId <= 1121113) {
-            return "m7.imhentai.xxx";
-        }
-        else {
-            return "m8.imhentai.xxx";
-        }
     }
     getTags($) {
         const tags = [];
