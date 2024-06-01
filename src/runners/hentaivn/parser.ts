@@ -90,7 +90,9 @@ export class Parser {
             const title = $(manga).find('h2.des-same a b')?.text().trim() || '';
             const id = $(manga).find('h2.des-same a').attr('href')?.slice(1) || '';
             const cover = $(manga).find('div.img-same div').css("background")?.replace(/^url\(["']?/, '').replace(/["']?\)$/, '') || ''
-            items.push({id, title, cover});
+            const categories = $(manga).find('p>span').slice(1).toArray().map(v => $(v).text())
+            const info = categories.join(", ").match(/.{1,32}(,\s|$)|.{1,32}$/g) || []
+            items.push({id, title, cover, info});
         });
 
         return items;
@@ -142,6 +144,36 @@ export class Parser {
         return items.map((item) => {
             return {id: item.id, title: item.title, cover: item.cover, info: item.info}
         })
+    }
+
+    async getUploadMangas($: CheerioAPI): Promise<Highlight[]> {
+        const items: Highlight[] = [];
+        const excludeCategories = await GlobalStore.getExcludeCategories()
+
+        $('.content-left > ul:nth-child(1)>li').each((_: any, manga: any) => {
+            const title = $(manga).find('div.box-description h2 a')?.eq(0).text().trim() || '';
+            let index = 3
+            const subtitle = $(manga).find('b:contains(\'Tên Khác\')').text()
+            if (subtitle) {
+                index += 1
+            }
+            const id = $(manga).find('div a').attr('href')?.slice(1) || '';
+            const cover = $(manga).find('div a img').attr('data-src') || '';
+            const categories = $(manga)
+                .find("p span a")
+                .toArray()
+                .map((element: Element) => {
+                    return element.attribs['href'] || "";
+                });
+            const likes = $(manga).find(`div.box-description p:nth-child(${index})`).text().trim().replace('\n', '')
+
+            const containsExcludedCategory = categories.some(cat => (excludeCategories).includes(cat));
+            if (id && !containsExcludedCategory) {
+                items.push({id, title, subtitle: likes, cover});
+            }
+        });
+
+        return items;
     }
 
 
@@ -203,13 +235,15 @@ export class Parser {
         const title = $("h1[itemprop='name'] a").text().replace(/\n/g, '');
         const cover = $("div.page-ava img[rel='image_src']").attr('src') || "";
         const summary = $("p:contains('Nội dung')").next().text();
+        const titles = $('a', $('span:contains("Tên Khác:")').parent()).toArray();
+        const additionalTitles = titles.map(v => $(v).text().trim())
 
         const genres = $('a', $('span:contains("Thể Loại:")').parent()).toArray();
         const translators = $('a', $('span:contains("Nhóm dịch:")').parent()).toArray();
         const authors = $('a', $('span:contains("Tác giả:")').parent()).toArray();
         const characters = $('a', $('span:contains("Nhân vật:")').parent()).toArray();
         const parodies = $('a', $('span:contains("Doujinshi:")').parent()).toArray();
-
+        const uploader = $('.name-uploader > a').first().toArray()
 
         const genreTags = this.createTags($, genres)
         let recommendedPanelMode = ReadingMode.PAGED_MANGA;
@@ -276,6 +310,15 @@ export class Parser {
             });
         }
 
+        if (uploader) {
+            properties.push({
+                    id: "uploader",
+                    title: "Đăng bởi",
+                    tags: this.createTags($, uploader)
+                }
+            )
+        }
+
         const info: string[] = []
         const viewText = $('span.info:contains("Lượt xem:")').parent().text();
         const views = viewText.substring(viewText.indexOf('L')).split('\n')[0]?.slice(9).trim()
@@ -304,6 +347,7 @@ export class Parser {
 
         return {
             title,
+            additionalTitles,
             cover,
             status,
             summary,

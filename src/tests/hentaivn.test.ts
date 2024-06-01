@@ -6,15 +6,23 @@ import {ChapterDataSchema, ChapterSchema, ContentSchema, PagedResultSchema,} fro
 describe("HentaiVN Tests", () => {
     const source = emulate(Target);
 
+    test("Homepage", async (): Promise<void> => {
+        const sections = await source.getSectionsForPage({id: "home"})
+        console.log(sections)
+    });
+
     test("Query", async () => {
         const data = await source.getDirectory(
-            {query: "xxxxx", page: 1}
+            {tag: {
+                    propertyId: "",
+                    tagId: "/user-309169"
+                }, page: 1}
         )
         expect(PagedResultSchema.parse(data)).toEqual(expect.any(Object));
     });
 
     test("Profile", async () => {
-        const content = await source.getContent("35336-doc-truyen-my-hero-intern.html");
+        const content = await source.getContent("37017-doc-truyen-cau-chuyen-ve-nang-meo-yandere-cua-toi-vat-kho-toi-toi-kiet-suc.html");
         expect(ContentSchema.parse(content)).toEqual(expect.any(Object));
         expect(content.title).toBe("Shexyo");
         expect(content.recommendedPanelMode).toBe(ReadingMode.PAGED_COMIC);

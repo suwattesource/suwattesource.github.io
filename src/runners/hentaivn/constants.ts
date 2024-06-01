@@ -76,7 +76,7 @@ export const HOME_PAGE_SECTIONS: PageSection[] = [
     {
         id: "random_suggestion",
         title: "Gợi ý ngẫu nhiên",
-        style: SectionStyle.DEFAULT,
+        style: SectionStyle.INFO,
     },
     {
         id: "recommend",
@@ -108,8 +108,6 @@ export const HOME_PAGE_SECTIONS: PageSection[] = [
         viewMoreLink: {request: {page: 1, configID: "new_update", sort: {id: ""}}},
     },
 ];
-
-export const DEFAULT_EXCLUDED_TAGS = ["/the-loai-55-guro.html", "/the-loai-134-scat.html", "/the-loai-96-yaoi.html"]
 
 export const IMAGE_SERVERS: Option[] = [
     {

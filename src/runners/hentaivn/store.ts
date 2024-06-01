@@ -1,17 +1,11 @@
 import _ from "lodash";
-import {
-    DEFAULT_EXCLUDED_TAGS,
-    DEFAULT_IMAGE_SERVER_DOMAIN,
-    HENTAIVN_DOMAIN,
-    IMAGE_SERVER_DOMAIN,
-    PREF_KEYS
-} from "./constants";
+import {DEFAULT_IMAGE_SERVER_DOMAIN, HENTAIVN_DOMAIN, IMAGE_SERVER_DOMAIN, PREF_KEYS} from "./constants";
 
 export class Store {
 
     async getExcludeCategories(): Promise<string[]> {
         const tags = await ObjectStore.stringArray(PREF_KEYS.exclude_categories);
-        if (!tags) return DEFAULT_EXCLUDED_TAGS;
+        if (!tags) return [];
         return tags;
     }
 

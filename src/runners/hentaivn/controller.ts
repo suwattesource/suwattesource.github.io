@@ -82,7 +82,7 @@ export class Controller {
     async getSearchResults(request: DirectoryRequest): Promise<PagedResult> {
         const searchConfig = await this.createSearchConfig(request)
         const $ = await this.fetchHTML(searchConfig.url, {cookies: searchConfig.cookies})
-        let parseFunction = searchConfig.func.bind(this.parser)
+        const parseFunction = searchConfig.func.bind(this.parser)
         const results = await parseFunction($)
 
         return {
@@ -116,6 +116,7 @@ export class Controller {
         const domain = await GlobalStore.getDomain()
         const cacheKey = PREF_KEYS.cache_request
 
+        // eslint-disable-next-line prefer-const
         let {configID, filters, query, tag, sort, page} = request
 
         if (configID) {
@@ -175,6 +176,13 @@ export class Controller {
         }
 
         if (tag) {
+            if (tag.propertyId == "uploader") {
+                return {
+                    url: `${domain}${encodeURI(tag.tagId)}?page=${page}`,
+                    cookies: cookies,
+                    func: this.parser.getUploadMangas
+                }
+            }
             return {
                 url: `${domain}${encodeURI(tag.tagId)}?page=${page}`,
                 cookies: cookies,
