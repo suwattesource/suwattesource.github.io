@@ -272,10 +272,17 @@ class Controller {
             };
         }
         if (tag) {
+            if (tag.propertyId == "upload") {
+                return {
+                    url: `${domain}${encodeURI(tag.tagId)}?page=${page}`,
+                    cookies: cookies,
+                    func: this.parser.getUploadMangas
+                };
+            }
             return {
                 url: `${domain}${encodeURI(tag.tagId)}?page=${page}`,
                 cookies: cookies,
-                func: this.parser.getUploadMangas
+                func: this.parser.getMangasWithLikes
             };
         }
         return { url: `${domain}/danh-sach.html?page=${page}`, cookies: cookies, func: this.parser.getMangasWithLikes };
