@@ -1,7 +1,7 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IMAGE_SERVER_DOMAIN = exports.DEFAULT_IMAGE_SERVER_DOMAIN = exports.REPLACEABLE_IMAGE_SERVER_DOMAIN = exports.IMAGE_SERVERS = exports.DEFAULT_EXCLUDED_TAGS = exports.HOME_PAGE_SECTIONS = exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.COMIC_TYPES = exports.VERTICAL_TYPES = exports.PREF_KEYS = exports.HENTAIVN_DOMAIN = void 0;
+exports.IMAGE_SERVER_DOMAIN = exports.DEFAULT_IMAGE_SERVER_DOMAIN = exports.REPLACEABLE_IMAGE_SERVER_DOMAIN = exports.IMAGE_SERVERS = exports.HOME_PAGE_SECTIONS = exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.COMIC_TYPES = exports.VERTICAL_TYPES = exports.PREF_KEYS = exports.HENTAIVN_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.HENTAIVN_DOMAIN = "https://hentaihvn.tv";
 exports.PREF_KEYS = {
@@ -104,7 +104,6 @@ exports.HOME_PAGE_SECTIONS = [
         viewMoreLink: { request: { page: 1, configID: "new_update", sort: { id: "" } } },
     },
 ];
-exports.DEFAULT_EXCLUDED_TAGS = ["/the-loai-55-guro.html", "/the-loai-134-scat.html", "/the-loai-96-yaoi.html"];
 exports.IMAGE_SERVERS = [
     {
         id: "server_1",
@@ -276,7 +275,7 @@ class Controller {
             return {
                 url: `${domain}${encodeURI(tag.tagId)}?page=${page}`,
                 cookies: cookies,
-                func: this.parser.getMangasWithLikes
+                func: this.parser.getUploadMangas
             };
         }
         return { url: `${domain}/danh-sach.html?page=${page}`, cookies: cookies, func: this.parser.getMangasWithLikes };
@@ -488,7 +487,9 @@ class Parser {
             const title = $(manga).find('h2.des-same a b')?.text().trim() || '';
             const id = $(manga).find('h2.des-same a').attr('href')?.slice(1) || '';
             const cover = $(manga).find('div.img-same div').css("background")?.replace(/^url\(["']?/, '').replace(/["']?\)$/, '') || '';
-            items.push({ id, title, cover });
+            const categories = $(manga).find('p>span').slice(1).toArray().map(v => $(v).text());
+            const info = categories.join(", ").match(/.{1,32}(,\s|$)|.{1,32}$/g) || [];
+            items.push({ id, title, cover, info });
         });
         return items;
     }
@@ -532,6 +533,27 @@ class Parser {
         return items.map((item) => {
             return { id: item.id, title: item.title, cover: item.cover, info: item.info };
         });
+    }
+    async getUploadMangas($) {
+        const items = [];
+        const excludeCategories = await store_1.GlobalStore.getExcludeCategories();
+        $('.content-left > ul:nth-child(1)>li').each((_, manga) => {
+            const title = $(manga).find('div.box-description h2 a')?.eq(0).text().trim() || '';
+            const id = $(manga).find('div a').attr('href')?.slice(1) || '';
+            const cover = $(manga).find('div a img').attr('data-src') || '';
+            const categories = $(manga)
+                .find("p span a")
+                .toArray()
+                .map((element) => {
+                return element.attribs['href'] || "";
+            });
+            const likes = $(manga).find('div.box-description p:nth-child(3)').text().trim().replace('\n', '');
+            const containsExcludedCategory = categories.some(cat => (excludeCategories).includes(cat));
+            if (id && !containsExcludedCategory) {
+                items.push({ id, title, subtitle: likes, cover });
+            }
+        });
+        return items;
     }
     async getHomepageSection($, id) {
         switch (id) {
@@ -791,7 +813,7 @@ class Store {
     async getExcludeCategories() {
         const tags = await ObjectStore.stringArray(constants_1.PREF_KEYS.exclude_categories);
         if (!tags)
-            return constants_1.DEFAULT_EXCLUDED_TAGS;
+            return [];
         return tags;
     }
     async setExcludeCategories(v) {
