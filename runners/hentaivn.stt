@@ -539,6 +539,11 @@ class Parser {
         const excludeCategories = await store_1.GlobalStore.getExcludeCategories();
         $('.content-left > ul:nth-child(1)>li').each((_, manga) => {
             const title = $(manga).find('div.box-description h2 a')?.eq(0).text().trim() || '';
+            let index = 3;
+            const subtitle = $(manga).find('b:contains(\'Tên Khác\')').text();
+            if (subtitle) {
+                index += 1;
+            }
             const id = $(manga).find('div a').attr('href')?.slice(1) || '';
             const cover = $(manga).find('div a img').attr('data-src') || '';
             const categories = $(manga)
@@ -547,7 +552,7 @@ class Parser {
                 .map((element) => {
                 return element.attribs['href'] || "";
             });
-            const likes = $(manga).find('div.box-description p:nth-child(3)').text().trim().replace('\n', '');
+            const likes = $(manga).find(`div.box-description p:nth-child(${index})`).text().trim().replace('\n', '');
             const containsExcludedCategory = categories.some(cat => (excludeCategories).includes(cat));
             if (id && !containsExcludedCategory) {
                 items.push({ id, title, subtitle: likes, cover });
