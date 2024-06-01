@@ -272,7 +272,7 @@ class Controller {
             };
         }
         if (tag) {
-            if (tag.propertyId == "upload") {
+            if (tag.propertyId == "uploader") {
                 return {
                     url: `${domain}${encodeURI(tag.tagId)}?page=${page}`,
                     cookies: cookies,
