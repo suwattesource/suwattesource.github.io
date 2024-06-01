@@ -72,7 +72,7 @@ exports.HOME_PAGE_SECTIONS = [
     {
         id: "random_suggestion",
         title: "Gợi ý ngẫu nhiên",
-        style: daisuke_1.SectionStyle.DEFAULT,
+        style: daisuke_1.SectionStyle.INFO,
     },
     {
         id: "recommend",
@@ -195,7 +195,7 @@ class Controller {
     async getSearchResults(request) {
         const searchConfig = await this.createSearchConfig(request);
         const $ = await this.fetchHTML(searchConfig.url, { cookies: searchConfig.cookies });
-        let parseFunction = searchConfig.func.bind(this.parser);
+        const parseFunction = searchConfig.func.bind(this.parser);
         const results = await parseFunction($);
         return {
             results,
@@ -223,6 +223,7 @@ class Controller {
         };
         const domain = await store_1.GlobalStore.getDomain();
         const cacheKey = constants_1.PREF_KEYS.cache_request;
+        // eslint-disable-next-line prefer-const
         let { configID, filters, query, tag, sort, page } = request;
         if (configID) {
             if (configID == "new_update") {
@@ -313,7 +314,7 @@ class Target {
         this.info = {
             id: "hentaivn",
             website: constants_1.HENTAIVN_DOMAIN,
-            version: 1.0,
+            version: 1.1,
             name: "HentaiVN",
             supportedLanguages: ["vi-vn"],
             thumbnail: "hentaivn.png",
@@ -583,11 +584,14 @@ class Parser {
         const title = $("h1[itemprop='name'] a").text().replace(/\n/g, '');
         const cover = $("div.page-ava img[rel='image_src']").attr('src') || "";
         const summary = $("p:contains('Nội dung')").next().text();
+        const titles = $('a', $('span:contains("Tên Khác:")').parent()).toArray();
+        const additionalTitles = titles.map(v => $(v).text().trim());
         const genres = $('a', $('span:contains("Thể Loại:")').parent()).toArray();
         const translators = $('a', $('span:contains("Nhóm dịch:")').parent()).toArray();
         const authors = $('a', $('span:contains("Tác giả:")').parent()).toArray();
         const characters = $('a', $('span:contains("Nhân vật:")').parent()).toArray();
         const parodies = $('a', $('span:contains("Doujinshi:")').parent()).toArray();
+        const uploader = $('.name-uploader > a').first().toArray();
         const genreTags = this.createTags($, genres);
         let recommendedPanelMode = daisuke_1.ReadingMode.PAGED_MANGA;
         genreTags.forEach((genre) => {
@@ -648,6 +652,13 @@ class Parser {
                 tags: this.createTags($, parodies),
             });
         }
+        if (uploader) {
+            properties.push({
+                id: "uploader",
+                title: "Đăng bởi",
+                tags: this.createTags($, uploader)
+            });
+        }
         const info = [];
         const viewText = $('span.info:contains("Lượt xem:")').parent().text();
         const views = viewText.substring(viewText.indexOf('L')).split('\n')[0]?.slice(9).trim();
@@ -671,6 +682,7 @@ class Parser {
         const chapters = await this.getChapters($);
         return {
             title,
+            additionalTitles,
             cover,
             status,
             summary,
