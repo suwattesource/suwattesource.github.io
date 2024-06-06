@@ -496,7 +496,7 @@ class Controller {
     }
     async preload(chapterData) {
         const pages = chapterData.pages || [];
-        const chunkSize = 20;
+        const chunkSize = 5;
         for (let i = 0; i < pages.length; i += chunkSize) {
             const chunk = pages.slice(i, i + chunkSize);
             const promises = chunk.map(async (page) => {
@@ -505,7 +505,8 @@ class Controller {
                         await this.client.get(page.url, { headers: { Referer: constants_1.IMHENTAI_DOMAIN + "/" } });
                     }
                     catch (error) {
-                        console.log(`Failed to load page ${page.url}:`, error);
+                        const errorMessage = error.message || 'Unknown error';
+                        console.log(`Failed to load page ${page.url}:`, errorMessage, error);
                     }
                 }
                 // Return a resolved promise for null URLs to maintain consistent return types
