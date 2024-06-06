@@ -8,6 +8,7 @@ import {SearchGalleryRequest} from "./type";
 
 export class Controller {
     private api = new API()
+    private client = new NetworkClient();
     private parser = new Parser();
     private cache: CacheClass<string, DirectoryRequest> = new memoryCache.Cache();
 
@@ -104,7 +105,15 @@ export class Controller {
 
     async getChapterData(comicId: string, chapterId: string) {
         const urls = await this.api.getChapterImages(comicId, chapterId)
+        void this.preload(urls)
         return this.parser.getChapterData(urls)
+    }
+
+    async preload(chapterImages: string[]) {
+        const domain = await GlobalStore.getDomain()
+        for (const url of chapterImages) {
+            void this.client.get(url, {headers: {Referer: domain + "/"}})
+        }
     }
 
     async getFilters() {

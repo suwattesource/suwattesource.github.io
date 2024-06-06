@@ -1,7 +1,9 @@
 import {DirectoryFilter, FilterType, Option, PageSection, PublicationStatus, SectionStyle,} from "@suwatte/daisuke";
 
 
-export const BLOGTRUYEN_DOMAIN = "https://blogtruyenmoi.com";
+export const BLOGTRUYEN_DOMAIN = "https://blogtruyen.vn";
+export const BLOGTRUYENMOI_DOMAIN = "https://blogtruyenmoi.com";
+
 export const LOAD_LIST_MANGA = "/ajax/Search/AjaxLoadListManga"
 export const LOAD_MANGA_BY_AUTHOR = "/ajax/Author/AjaxLoadMangaByAuthor"
 export const LOAD_MANGA_BY_TRANSLATE_TEAM = "/ajax/TranslateTeam/AjaxLoadMangaByTranslateTeam"
@@ -22,6 +24,18 @@ export const STATUS_KEYS: Record<string, PublicationStatus> = {
 
 export const VERTICAL_TYPES = ["Manhwa", "Manhua", "Tu chân - tu tiên", "Webtoon"];
 export const COMIC_TYPES = ["VnComic"];
+
+
+export const DOMAIN_OPTIONS: Option[] = [
+    {
+        title: BLOGTRUYEN_DOMAIN,
+        id: BLOGTRUYEN_DOMAIN,
+    },
+    {
+        title: BLOGTRUYENMOI_DOMAIN,
+        id: BLOGTRUYENMOI_DOMAIN,
+    },
+];
 
 export const HOME_PAGE_SECTIONS: PageSection[] = [
     {

@@ -185,7 +185,7 @@ export class Controller {
 
     async preload(chapterData: ChapterData) {
         const domain = await GlobalStore.getDomain()
-        const pages = chapterData.pages?.slice(32) || []
+        const pages = chapterData.pages || []
         for (const page of pages) {
             if (page.url != null) {
                 void this.client.get(page.url, {headers: {Referer: domain + "/"}})

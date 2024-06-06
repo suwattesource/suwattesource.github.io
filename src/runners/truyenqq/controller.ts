@@ -1,4 +1,5 @@
 import {
+    ChapterData,
     DirectoryRequest,
     NetworkClientBuilder,
     NetworkRequestConfig,
@@ -64,28 +65,6 @@ export class Controller {
                 sections.push({...section, items})
             }
         }
-        const resp = await this.client.request(
-            {
-                url: "https://truyenqqviet.com/frontend/public/login",
-                headers: {
-                    "content-type": "application/x-www-form-urlencoded",
-                    "x-requested-with": "XMLHttpRequest"
-                },
-                cookies: [
-                    {
-                        "name": "QiQiSession",
-                        "value": "thanhnha123"
-                    }
-                ],
-                body: {
-                    email: "nt.nha1809@gmail.com",
-                    password: "Thanhnha123@",
-                    expire: 1
-                },
-                method: "POST"
-            }
-        )
-        console.log(resp)
         const sectionIdInOrder = HOME_PAGE_SECTIONS.map((section) => {
             return section.id
         })
@@ -223,7 +202,19 @@ export class Controller {
         const domain = await GlobalStore.getDomain();
         const chapterUrl = chapterId.replace('http://', 'https://').includes(domain) ? chapterId : domain + chapterId;
         const $ = await this.fetchHTML(chapterUrl);
-        return this.parser.getChapterData($);
+        const chapterData = await this.parser.getChapterData($);
+        void this.preload(chapterData)
+        return chapterData
+    }
+
+    async preload(chapterData: ChapterData) {
+        const domain = await GlobalStore.getDomain();
+        const pages = chapterData.pages || []
+        for (const page of pages) {
+            if (page.url != null) {
+                void this.client.get(page.url, {headers: {Referer: domain + "/"}})
+            }
+        }
     }
 
     async handleAuth(username: string, password: string) {

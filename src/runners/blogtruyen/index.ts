@@ -18,9 +18,9 @@ import {
     ResolvedPageSection,
     RunnerInfo,
     RunnerPreferenceProvider,
-    UITextField,
+    UIPicker,
 } from "@suwatte/daisuke";
-import {BLOGTRUYEN_DOMAIN, PREF_KEYS, SEARCH_SORTERS} from "./constants";
+import {BLOGTRUYEN_DOMAIN, DOMAIN_OPTIONS, PREF_KEYS, SEARCH_SORTERS} from "./constants";
 import {Controller} from "./controller";
 import {GlobalStore} from "./store";
 
@@ -119,12 +119,15 @@ export class Target implements ContentSource,
                 {
                     header: "BlogTruyen Domain",
                     children: [
-                        UITextField({
-                            id: PREF_KEYS.domain,
-                            title: "Domain name",
-                            value: await GlobalStore.getDomain(),
-                            didChange: GlobalStore.setDomain.bind(GlobalStore)
-                        }),
+                        UIPicker(
+                            {
+                                id: PREF_KEYS.domain,
+                                title: "Domain name",
+                                options: DOMAIN_OPTIONS,
+                                value: await GlobalStore.getDomain(),
+                                didChange: GlobalStore.setDomain.bind(GlobalStore)
+                            }
+                        ),
                     ],
                 },
             ],

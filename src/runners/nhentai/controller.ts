@@ -1,4 +1,5 @@
 import {
+    ChapterData,
     Content,
     DirectoryFilter,
     DirectoryRequest,
@@ -57,6 +58,7 @@ export class Controller {
     }
 
     async getGalleries(request: DirectoryRequest): Promise<Highlight[]> {
+        // eslint-disable-next-line prefer-const
         let {filters, query, tag, sort, page} = request
 
         const searchGalleryRequest: SearchGalleryRequest = {page: page}
@@ -129,7 +131,18 @@ export class Controller {
 
     async getChapterData(contentId: string) {
         const gallery = await this.api.getGallery(contentId)
-        return this.parser.getChapterData(gallery);
+        const chapterData = this.parser.getChapterData(gallery);
+        void this.preload(chapterData);
+        return chapterData;
+    }
+
+    async preload(chapterData: ChapterData) {
+        const pages = chapterData.pages || []
+        for (const page of pages) {
+            if (page.url != null) {
+                void this.client.get(page.url, {headers: {Referer: NHENTAI_DOMAIN + "/"}})
+            }
+        }
     }
 
 

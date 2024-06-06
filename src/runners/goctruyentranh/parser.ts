@@ -42,7 +42,7 @@ export class Parser {
             }
         }
         const title = gallery.name
-        const additionalTitles = gallery.otherName.split(',').map(v=>v.trim())
+        const additionalTitles = gallery.otherName.split(',').map(v => v.trim())
         const cover = gallery.photo
         const summary = gallery.description
         const categories: Tag[] = [];

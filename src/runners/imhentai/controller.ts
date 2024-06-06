@@ -1,4 +1,5 @@
 import {
+    ChapterData,
     Content,
     DirectoryRequest,
     FilterType,
@@ -190,9 +191,19 @@ export class Controller {
 
     async getChapterData(contentId: string) {
         const $ = await this.fetchHTML(`${IMHENTAI_DOMAIN}/view/${contentId}/1`);
-        return this.parser.getChapterData($);
+        const chapterData = this.parser.getChapterData($);
+        void this.preload(chapterData)
+        return chapterData
     }
 
+    async preload(chapterData: ChapterData) {
+        const pages = chapterData.pages || []
+        for (const page of pages) {
+            if (page.url != null) {
+                void this.client.get(page.url, {headers: {Referer: IMHENTAI_DOMAIN + "/"}})
+            }
+        }
+    }
 
     private async fetchHTML(url: string, config?: NetworkRequestConfig) {
         console.log(`Requesting to the url: ${url}${config ? ", config: " + JSON.stringify(config) : ""}`)
