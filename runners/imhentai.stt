@@ -491,38 +491,15 @@ class Controller {
     async getChapterData(contentId) {
         const $ = await this.fetchHTML(`${constants_1.IMHENTAI_DOMAIN}/view/${contentId}/1`);
         const chapterData = this.parser.getChapterData($);
-        await this.preload(chapterData);
+        void this.preload(chapterData);
         return chapterData;
     }
     async preload(chapterData) {
         const pages = chapterData.pages || [];
-        const chunkSize = 5;
-        for (let i = 0; i < pages.length; i += chunkSize) {
-            const chunk = pages.slice(i, i + chunkSize);
-            const promises = chunk.map(async (page) => {
-                if (page.url != null) {
-                    try {
-                        await this.client.get(page.url, { headers: { Referer: constants_1.IMHENTAI_DOMAIN + "/" } });
-                    }
-                    catch (error) {
-                        console.error(`Failed to load page ${page.url}:`, `Error type: ${typeof error}`);
-                        // Log the error directly
-                        console.error('Direct error log:', error);
-                        // Convert error to string as a fallback
-                        let errorString;
-                        try {
-                            errorString = JSON.stringify(error, Object.getOwnPropertyNames(error));
-                        }
-                        catch (jsonError) {
-                            errorString = 'Error converting error object to string';
-                        }
-                        console.error(`Error details: ${errorString}`);
-                    }
-                }
-                // Return a resolved promise for null URLs to maintain consistent return types
-                return Promise.resolve();
-            });
-            await Promise.all(promises);
+        for (const page of pages) {
+            if (page.url != null) {
+                void this.client.get(page.url, { headers: { Referer: constants_1.IMHENTAI_DOMAIN + "/" } });
+            }
         }
     }
     async fetchHTML(url, config) {
