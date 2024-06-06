@@ -223,6 +223,7 @@ const api_1 = require("./api");
 class Controller {
     constructor() {
         this.api = new api_1.API();
+        this.client = new NetworkClient();
         this.parser = new parser_1.Parser();
         this.cache = new memory_cache_1.default.Cache();
     }
@@ -301,7 +302,14 @@ class Controller {
     }
     async getChapterData(comicId, chapterId) {
         const urls = await this.api.getChapterImages(comicId, chapterId);
+        void this.preload(urls);
         return this.parser.getChapterData(urls);
+    }
+    async preload(chapterImages) {
+        const domain = await store_1.GlobalStore.getDomain();
+        for (const url of chapterImages) {
+            void this.client.get(url, { headers: { Referer: domain + "/" } });
+        }
     }
     async getFilters() {
         const categories = await this.api.getCategories();

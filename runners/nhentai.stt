@@ -318,6 +318,7 @@ class Controller {
         };
     }
     async getGalleries(request) {
+        // eslint-disable-next-line prefer-const
         let { filters, query, tag, sort, page } = request;
         const searchGalleryRequest = { page: page };
         if (!filters && !query && !tag && sort && sort.id) {
@@ -379,7 +380,17 @@ class Controller {
     }
     async getChapterData(contentId) {
         const gallery = await this.api.getGallery(contentId);
-        return this.parser.getChapterData(gallery);
+        const chapterData = this.parser.getChapterData(gallery);
+        void this.preload(chapterData);
+        return chapterData;
+    }
+    async preload(chapterData) {
+        const pages = chapterData.pages || [];
+        for (const page of pages) {
+            if (page.url != null) {
+                void this.client.get(page.url, { headers: { Referer: constants_1.NHENTAI_DOMAIN + "/" } });
+            }
+        }
     }
     async getPopularTags() {
         const numPages = await store_1.GlobalStore.getNumPages();
