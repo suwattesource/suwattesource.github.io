@@ -505,8 +505,18 @@ class Controller {
                         await this.client.get(page.url, { headers: { Referer: constants_1.IMHENTAI_DOMAIN + "/" } });
                     }
                     catch (error) {
-                        const errorMessage = error.message || 'Unknown error';
-                        console.log(`Failed to load page ${page.url}:`, errorMessage, error);
+                        console.error(`Failed to load page ${page.url}:`, `Error type: ${typeof error}`);
+                        // Log the error directly
+                        console.error('Direct error log:', error);
+                        // Convert error to string as a fallback
+                        let errorString;
+                        try {
+                            errorString = JSON.stringify(error, Object.getOwnPropertyNames(error));
+                        }
+                        catch (jsonError) {
+                            errorString = 'Error converting error object to string';
+                        }
+                        console.error(`Error details: ${errorString}`);
                     }
                 }
                 // Return a resolved promise for null URLs to maintain consistent return types
