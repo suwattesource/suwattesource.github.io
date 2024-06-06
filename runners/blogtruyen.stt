@@ -1,9 +1,10 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SEARCH_SORTERS = exports.DEFAULT_FILTERS = exports.STATUSES = exports.HOME_PAGE_SECTIONS = exports.COMIC_TYPES = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.PREF_KEYS = exports.LOAD_MANGA_BY_CATEGORY = exports.LOAD_MANGA_CREATED = exports.LOAD_MANGA_BY_TRANSLATE_TEAM = exports.LOAD_MANGA_BY_AUTHOR = exports.LOAD_LIST_MANGA = exports.BLOGTRUYEN_DOMAIN = void 0;
+exports.SEARCH_SORTERS = exports.DEFAULT_FILTERS = exports.STATUSES = exports.HOME_PAGE_SECTIONS = exports.DOMAIN_OPTIONS = exports.COMIC_TYPES = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.PREF_KEYS = exports.LOAD_MANGA_BY_CATEGORY = exports.LOAD_MANGA_CREATED = exports.LOAD_MANGA_BY_TRANSLATE_TEAM = exports.LOAD_MANGA_BY_AUTHOR = exports.LOAD_LIST_MANGA = exports.BLOGTRUYENMOI_DOMAIN = exports.BLOGTRUYEN_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
-exports.BLOGTRUYEN_DOMAIN = "https://blogtruyenmoi.com";
+exports.BLOGTRUYEN_DOMAIN = "https://blogtruyen.vn";
+exports.BLOGTRUYENMOI_DOMAIN = "https://blogtruyenmoi.com";
 exports.LOAD_LIST_MANGA = "/ajax/Search/AjaxLoadListManga";
 exports.LOAD_MANGA_BY_AUTHOR = "/ajax/Author/AjaxLoadMangaByAuthor";
 exports.LOAD_MANGA_BY_TRANSLATE_TEAM = "/ajax/TranslateTeam/AjaxLoadMangaByTranslateTeam";
@@ -21,6 +22,16 @@ exports.STATUS_KEYS = {
 };
 exports.VERTICAL_TYPES = ["Manhwa", "Manhua", "Tu chân - tu tiên", "Webtoon"];
 exports.COMIC_TYPES = ["VnComic"];
+exports.DOMAIN_OPTIONS = [
+    {
+        title: "Blog Truyện",
+        id: exports.BLOGTRUYEN_DOMAIN,
+    },
+    {
+        title: "Blog Truyện Mới",
+        id: exports.BLOGTRUYENMOI_DOMAIN,
+    },
+];
 exports.HOME_PAGE_SECTIONS = [
     {
         id: "trending",
@@ -612,9 +623,10 @@ class Target {
                 {
                     header: "BlogTruyen Domain",
                     children: [
-                        (0, daisuke_1.UITextField)({
+                        (0, daisuke_1.UIPicker)({
                             id: constants_1.PREF_KEYS.domain,
                             title: "Domain name",
+                            options: constants_1.DOMAIN_OPTIONS,
                             value: await store_1.GlobalStore.getDomain(),
                             didChange: store_1.GlobalStore.setDomain.bind(store_1.GlobalStore)
                         }),
