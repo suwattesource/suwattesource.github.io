@@ -24,11 +24,11 @@ exports.VERTICAL_TYPES = ["Manhwa", "Manhua", "Tu chân - tu tiên", "Webtoon"];
 exports.COMIC_TYPES = ["VnComic"];
 exports.DOMAIN_OPTIONS = [
     {
-        title: "Blog Truyện",
+        title: exports.BLOGTRUYEN_DOMAIN,
         id: exports.BLOGTRUYEN_DOMAIN,
     },
     {
-        title: "Blog Truyện Mới",
+        title: exports.BLOGTRUYENMOI_DOMAIN,
         id: exports.BLOGTRUYENMOI_DOMAIN,
     },
 ];
