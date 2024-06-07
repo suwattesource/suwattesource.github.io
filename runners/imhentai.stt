@@ -917,12 +917,12 @@ class Parser {
             return chapters;
         }
         const numberOfChapters = Math.ceil(images.length / numberOfPictures);
-        for (let i = 1; i <= numberOfChapters; i++) {
+        for (let i = numberOfChapters; i >= 1; i--) {
             chapters.push({
                 chapterId: i.toString(),
                 number: i,
                 title: `Chapter ${i}`,
-                index: i,
+                index: numberOfChapters - i,
                 language: language,
                 date: this.convertDate(timeElement),
             });
