@@ -49,7 +49,7 @@ export class Parser {
         return items;
     }
 
-    getContent($: CheerioAPI, webUrl: string): Content {
+    async getContent($: CheerioAPI, chapterData: ChapterData, webUrl: string): Promise<Content> {
 
         const title = $("h1").text()
         const altTitle = $('p.subtitle').text()
@@ -152,7 +152,7 @@ export class Parser {
         const coverElement = $('img.lazy').first()
         const cover = coverElement.attr('data-src') || coverElement.first().attr('src') || ""
 
-        const chapters = this.getChapters($)
+        const chapters = await this.getChapters($, chapterData)
 
         const totalImages = $('li.pages').text().replace('Pages: ', '')
         const likes = $('#like_btn').text();
@@ -213,7 +213,7 @@ export class Parser {
         return items;
     }
 
-    getChapters($: CheerioAPI): Chapter[] {
+    async getChapters($: CheerioAPI, chapterData: ChapterData): Promise<Chapter[]> {
         const chapters: Chapter[] = [];
 
         const languageTag = $('a', $('span:contains(Language)').parent()).first().text().trim()
@@ -234,14 +234,31 @@ export class Parser {
 
         const timeElement = $('li.posted').text();
 
-        chapters.push({
-            chapterId: "chapter",
-            number: 1,
-            title: "Images",
-            index: 1,
-            language: language,
-            date: this.convertDate(timeElement),
-        });
+        const images = chapterData.pages?.filter(v => v).map(v => String(v.url)) || []
+        const numberOfImages = await GlobalStore.getNumImages()
+        if (numberOfImages == 0) {
+            chapters.push({
+                chapterId: "chapter",
+                number: 1,
+                title: "Images",
+                index: 1,
+                language: language,
+                date: this.convertDate(timeElement),
+            });
+            return chapters;
+        }
+
+        const numberOfChapters = Math.ceil(images.length / numberOfImages);
+        for (let i = numberOfChapters; i >= 1; i--) {
+            chapters.push({
+                chapterId: i.toString(),
+                number: i,
+                title: `Image ${(i - 1) * numberOfImages + 1} - ${Math.min(i * numberOfImages, images.length)}`,
+                index: numberOfChapters - i,
+                language: language,
+                date: this.convertDate(timeElement),
+            });
+        }
         return chapters;
     }
 

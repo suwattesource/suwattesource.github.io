@@ -3,11 +3,13 @@ import {DirectoryFilter, FilterType, Option, PageSection, SectionStyle,} from "@
 export const IMHENTAI_DOMAIN = "https://imhentai.xxx";
 
 export const PREF_KEYS = {
+    cache_chapter_images: "chapter_images",
     cache_request: "request",
     cache_tags: "tags_",
     lang: "language",
     exclude_tags: "exclude_tags",
-    number_of_tag_pages: "number_of_tag_pages"
+    number_of_tag_pages: "number_of_tag_pages",
+    number_of_images_per_chapter: "number_of_images_per_chapter"
 };
 
 export const COMPLETED_STATUS_DATE_THRESHOLD = 1000 * 60 * 60 * 24 * 365; // milliseconds in a year

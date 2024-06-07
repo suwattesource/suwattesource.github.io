@@ -20,10 +20,9 @@ import {
     UIMultiPicker,
     UIStepper,
 } from "@suwatte/daisuke";
-import {EXCLUDED_TAG, IMHENTAI_DOMAIN, LANGUAGES, SEARCH_SORTERS} from "./constants";
+import {EXCLUDED_TAG, IMHENTAI_DOMAIN, LANGUAGES, PREF_KEYS, SEARCH_SORTERS} from "./constants";
 import {Controller} from "./controller";
 import {GlobalStore} from "./store";
-import {PREF_KEYS} from "../nhentai/constants";
 
 export class Target
     implements ContentSource, RunnerPreferenceProvider, ImageRequestHandler, PageLinkResolver {
@@ -56,9 +55,9 @@ export class Target
 
     async getChapterData(
         contentId: string,
-        _: string
+        chapterId: string
     ): Promise<ChapterData> {
-        return this.controller.getChapterData(contentId);
+        return this.controller.getChapterData(contentId, chapterId);
     }
 
     async getTags(): Promise<Property[]> {
@@ -136,6 +135,20 @@ export class Target
                             step: 1,
                             value: await GlobalStore.getNumPages(),
                             didChange: GlobalStore.setNumPages,
+                        }),
+                    ],
+                },
+                {
+                    header: "Chapter Split",
+                    children: [
+                        UIStepper({
+                            id: PREF_KEYS.number_of_images_per_chapter,
+                            title: `Max images per chapter`,
+                            lowerBound: 0,
+                            upperBound: 1000,
+                            step: 10,
+                            value: await GlobalStore.getNumImages(),
+                            didChange: GlobalStore.setNumImages,
                         }),
                     ],
                 },

@@ -20,7 +20,7 @@ import {SearchConfig} from "./type";
 export class Controller {
     private client = new NetworkClient();
     private parser = new Parser();
-    private cache: CacheClass<string, DirectoryRequest | Option[]> = new memoryCache.Cache();
+    private cache: CacheClass<string, DirectoryRequest | Option[] | ChapterData> = new memoryCache.Cache();
 
 
     async buildHomePageSections() {
@@ -185,23 +185,36 @@ export class Controller {
     // Content
     async getContent(contentId: string): Promise<Content> {
         const webUrl = `${IMHENTAI_DOMAIN}/gallery/${contentId}`
-        const $ = await this.fetchHTML(webUrl)
-        return this.parser.getContent($, webUrl);
+        const chapterDataUrl = `${IMHENTAI_DOMAIN}/view/${contentId}/1`
+        const [content, chapterDataCheerio] = await Promise.all([
+            this.fetchHTML(webUrl),
+            this.fetchHTML(chapterDataUrl),
+        ]);
+        const chapterData = this.parser.getChapterData(chapterDataCheerio);
+        this.cache.put(PREF_KEYS.cache_chapter_images, chapterData)
+        return this.parser.getContent(content, chapterData, webUrl);
     }
 
-    async getChapterData(contentId: string) {
-        const $ = await this.fetchHTML(`${IMHENTAI_DOMAIN}/view/${contentId}/1`);
-        const chapterData = this.parser.getChapterData($);
-        void this.preload(chapterData)
+    async getChapterData(contentId: string, chapterId: string) {
+        let chapterData = <ChapterData>this.cache.get(PREF_KEYS.cache_chapter_images)
+        const totalImages = chapterData.pages?.filter(v => v).map(v => String(v.url)) || []
+        const numberOfImages = await GlobalStore.getNumImages()
+        if (numberOfImages == 0) {
+            void this.preload(totalImages)
+            return chapterData
+        }
+        const getChapterImages = (images: string[], k: number, i: number) => images.slice(i * k, (i + 1) * k);
+        const images = getChapterImages(totalImages, numberOfImages, Number(chapterId) - 1);
+        void this.preload(images)
+        chapterData = {
+            pages: images.map(v => ({url: v}))
+        }
         return chapterData
     }
 
-    async preload(chapterData: ChapterData) {
-        const pages = chapterData.pages || []
-        for (const page of pages) {
-            if (page.url != null) {
-                void this.client.get(page.url, {headers: {Referer: IMHENTAI_DOMAIN + "/"}})
-            }
+    async preload(images: string[]) {
+        for (const image of images) {
+            void this.client.get(image, {headers: {Referer: IMHENTAI_DOMAIN + "/"}})
         }
     }
 
