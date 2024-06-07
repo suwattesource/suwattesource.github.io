@@ -903,7 +903,7 @@ class Parser {
             language = 'ru-ru';
         }
         const timeElement = $('li.posted').text();
-        const images = chapterData.pages?.filter(v => !v).map(v => String(v.url)) || [];
+        const images = chapterData.pages?.filter(v => v).map(v => String(v.url)) || [];
         const numberOfPictures = await store_1.GlobalStore.getNumPictures();
         if (numberOfPictures == 0) {
             chapters.push({
