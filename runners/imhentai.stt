@@ -491,7 +491,7 @@ class Controller {
     async getChapterData(contentId) {
         const $ = await this.fetchHTML(`${constants_1.IMHENTAI_DOMAIN}/view/${contentId}/1`);
         const chapterData = this.parser.getChapterData($);
-        void this.preload(chapterData);
+        await this.preload(chapterData);
         return chapterData;
     }
     async preload(chapterData) {
