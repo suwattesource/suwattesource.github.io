@@ -496,11 +496,10 @@ class Controller {
     }
     async preload(chapterData) {
         const pages = chapterData.pages || [];
-        for (const page of pages) {
-            if (page.url != null) {
-                void this.client.get(page.url, { headers: { Referer: constants_1.IMHENTAI_DOMAIN + "/" } });
-            }
-        }
+        const preloadPromises = pages
+            .filter((page) => page.url != null)
+            .map(page => this.client.get(page.url, { headers: { Referer: `${constants_1.IMHENTAI_DOMAIN}/` } }));
+        await Promise.all(preloadPromises);
     }
     async fetchHTML(url, config) {
         console.log(`Requesting to the url: ${url}${config ? ", config: " + JSON.stringify(config) : ""}`);
