@@ -5,12 +5,13 @@ exports.TAG_COVER_URL = exports.EXCLUDED_TAG = exports.DEFAULT_EXCLUDED_TAGS = e
 const daisuke_1 = require("@suwatte/daisuke");
 exports.IMHENTAI_DOMAIN = "https://imhentai.xxx";
 exports.PREF_KEYS = {
+    cache_chapter_images: "chapter_images",
     cache_request: "request",
     cache_tags: "tags_",
     lang: "language",
     exclude_tags: "exclude_tags",
     number_of_tag_pages: "number_of_tag_pages",
-    number_of_picture_per_chapter: "number_of_picture_per_chapter"
+    number_of_images_per_chapter: "number_of_images_per_chapter"
 };
 exports.COMPLETED_STATUS_DATE_THRESHOLD = 1000 * 60 * 60 * 24 * 365; // milliseconds in a year
 exports.VERTICAL_READING_TYPES = ["Webtoon"];
@@ -492,19 +493,19 @@ class Controller {
             this.fetchHTML(chapterDataUrl),
         ]);
         const chapterData = this.parser.getChapterData(chapterDataCheerio);
-        this.cache.put(contentId, chapterData);
+        this.cache.put(constants_1.PREF_KEYS.cache_chapter_images, chapterData);
         return this.parser.getContent(content, chapterData, webUrl);
     }
     async getChapterData(contentId, chapterId) {
         let chapterData = this.cache.get(contentId);
         const totalImages = chapterData.pages?.filter(v => v).map(v => String(v.url)) || [];
-        const numberOfPictures = await store_1.GlobalStore.getNumPictures();
-        if (numberOfPictures == 0) {
+        const numberOfImages = await store_1.GlobalStore.getNumImages();
+        if (numberOfImages == 0) {
             void this.preload(totalImages);
             return chapterData;
         }
         const getChapterImages = (images, k, i) => images.slice(i * k, (i + 1) * k);
-        const images = getChapterImages(totalImages, numberOfPictures, Number(chapterId) - 1);
+        const images = getChapterImages(totalImages, numberOfImages, Number(chapterId) - 1);
         void this.preload(images);
         chapterData = {
             pages: images.map(v => ({ url: v }))
@@ -632,13 +633,13 @@ class Target {
                     header: "Chapter Split",
                     children: [
                         (0, daisuke_1.UIStepper)({
-                            id: constants_1.PREF_KEYS.number_of_picture_per_chapter,
-                            title: `Max pictures per chapter`,
+                            id: constants_1.PREF_KEYS.number_of_images_per_chapter,
+                            title: `Max images per chapter`,
                             lowerBound: 0,
                             upperBound: 1000,
                             step: 10,
-                            value: await store_1.GlobalStore.getNumPictures(),
-                            didChange: store_1.GlobalStore.setNumPictures,
+                            value: await store_1.GlobalStore.getNumImages(),
+                            didChange: store_1.GlobalStore.setNumImages,
                         }),
                     ],
                 },
@@ -904,8 +905,8 @@ class Parser {
         }
         const timeElement = $('li.posted').text();
         const images = chapterData.pages?.filter(v => v).map(v => String(v.url)) || [];
-        const numberOfPictures = await store_1.GlobalStore.getNumPictures();
-        if (numberOfPictures == 0) {
+        const numberOfImages = await store_1.GlobalStore.getNumImages();
+        if (numberOfImages == 0) {
             chapters.push({
                 chapterId: "chapter",
                 number: 1,
@@ -916,12 +917,12 @@ class Parser {
             });
             return chapters;
         }
-        const numberOfChapters = Math.ceil(images.length / numberOfPictures);
+        const numberOfChapters = Math.ceil(images.length / numberOfImages);
         for (let i = numberOfChapters; i >= 1; i--) {
             chapters.push({
                 chapterId: i.toString(),
                 number: i,
-                title: `Chapter ${i}`,
+                title: `Image ${(i - 1) * numberOfChapters + 1} - ${Math.max(i * numberOfChapters, images.length)}`,
                 index: numberOfChapters - i,
                 language: language,
                 date: this.convertDate(timeElement),
@@ -1037,14 +1038,14 @@ class Store {
     async setNumPages(v) {
         return ObjectStore.set(constants_1.PREF_KEYS.number_of_tag_pages, v);
     }
-    async getNumPictures() {
-        const numPictures = await ObjectStore.number(constants_1.PREF_KEYS.number_of_picture_per_chapter);
-        if (!numPictures)
+    async getNumImages() {
+        const numImages = await ObjectStore.number(constants_1.PREF_KEYS.number_of_images_per_chapter);
+        if (!numImages)
             return 0;
-        return numPictures;
+        return numImages;
     }
-    async setNumPictures(v) {
-        return ObjectStore.set(constants_1.PREF_KEYS.number_of_picture_per_chapter, v);
+    async setNumImages(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.number_of_images_per_chapter, v);
     }
 }
 exports.Store = Store;
