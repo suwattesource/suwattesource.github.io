@@ -497,7 +497,7 @@ class Controller {
     }
     async getChapterData(contentId, chapterId) {
         let chapterData = this.cache.get(contentId);
-        const totalImages = chapterData.pages?.filter(v => !v).map(v => String(v.url)) || [];
+        const totalImages = chapterData.pages?.filter(v => v).map(v => String(v.url)) || [];
         const numberOfPictures = await store_1.GlobalStore.getNumPictures();
         if (numberOfPictures == 0) {
             void this.preload(totalImages);
