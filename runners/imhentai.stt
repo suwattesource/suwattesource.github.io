@@ -497,7 +497,7 @@ class Controller {
         return this.parser.getContent(content, chapterData, webUrl);
     }
     async getChapterData(contentId, chapterId) {
-        let chapterData = this.cache.get(contentId);
+        let chapterData = this.cache.get(constants_1.PREF_KEYS.cache_chapter_images);
         const totalImages = chapterData.pages?.filter(v => v).map(v => String(v.url)) || [];
         const numberOfImages = await store_1.GlobalStore.getNumImages();
         if (numberOfImages == 0) {
@@ -922,7 +922,7 @@ class Parser {
             chapters.push({
                 chapterId: i.toString(),
                 number: i,
-                title: `Image ${(i - 1) * numberOfChapters + 1} - ${Math.max(i * numberOfChapters, images.length)}`,
+                title: `Image ${(i - 1) * numberOfImages + 1} - ${Math.min(i * numberOfImages, images.length)}`,
                 index: numberOfChapters - i,
                 language: language,
                 date: this.convertDate(timeElement),
