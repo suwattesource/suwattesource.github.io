@@ -293,7 +293,7 @@ class Controller {
         return this.parser.getContent(gallery, contentId);
     }
     async getChapterData(contentId, chapterId) {
-        const response = await this.client.get(`https://e-hentai.org/g/${contentId}/?p=${chapterId}`);
+        const response = await this.client.get(`https://e-hentai.org/g/${contentId}/?p=${Number(chapterId) - 1}`);
         const $ = (0, cheerio_1.load)(response.data);
         const pages = await this.parser.parsePage($);
         void this.preload(pages);
@@ -1832,7 +1832,7 @@ class Parser {
     getChapters(fileCount, date, languageCode) {
         const chapters = [];
         const totalPages = Math.ceil(fileCount / 40);
-        for (let i = totalPages - 1; i >= 0; i--) {
+        for (let i = totalPages; i >= 1; i--) {
             chapters.push({
                 chapterId: i.toString(),
                 number: i,
