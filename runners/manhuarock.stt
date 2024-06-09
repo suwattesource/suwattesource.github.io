@@ -393,7 +393,7 @@ class Parser {
         $('.row-content-chapter > li').each((_, element) => {
             const chapterId = $(element).find('a').attr('href') || "";
             const title = $(element).find('a').text().trim();
-            const number = Number(title.match(/(?:Chapter|Chương) (\d+(\.\d+)?)/i)?.[1]);
+            const number = Number(title.match(/(?:Chapter|Chương|Chuong) (\d+(\.\d+)?)/i)?.[1]);
             const date = $(element).find('.chapter-time').text().trim();
             chapters.push({
                 chapterId,
