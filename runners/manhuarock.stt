@@ -1,10 +1,11 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SEARCH_SORTERS = exports.DEFAULT_FILTERS = exports.STATUSES = exports.HOME_PAGE_SECTIONS = exports.DOMAIN_OPTIONS = exports.COMIC_TYPES = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.PREF_KEYS = exports.LOAD_MANGA_BY_CATEGORY = exports.LOAD_MANGA_CREATED = exports.LOAD_MANGA_BY_TRANSLATE_TEAM = exports.LOAD_MANGA_BY_AUTHOR = exports.LOAD_LIST_MANGA = exports.TWOTEN_DOMAIN = exports.MANHUAROCK_DOMAIN = void 0;
+exports.SEARCH_SORTERS = exports.DEFAULT_FILTERS = exports.STATUSES = exports.HOME_PAGE_SECTIONS = exports.DOMAIN_OPTIONS = exports.COMIC_TYPES = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.PREF_KEYS = exports.LOAD_MANGA_BY_CATEGORY = exports.LOAD_MANGA_CREATED = exports.LOAD_MANGA_BY_TRANSLATE_TEAM = exports.LOAD_MANGA_BY_AUTHOR = exports.LOAD_LIST_MANGA = exports.IMAGE_LIST = exports.TWOTEN_DOMAIN = exports.MANHUAROCK_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.MANHUAROCK_DOMAIN = "https://manhuarockz.com";
 exports.TWOTEN_DOMAIN = "https://2ten.net";
+exports.IMAGE_LIST = "/ajax/image/list/chap/{chapterID}?mode=vertical&quality=high";
 exports.LOAD_LIST_MANGA = "/ajax/Search/AjaxLoadListManga";
 exports.LOAD_MANGA_BY_AUTHOR = "/ajax/Author/AjaxLoadMangaByAuthor";
 exports.LOAD_MANGA_BY_TRANSLATE_TEAM = "/ajax/TranslateTeam/AjaxLoadMangaByTranslateTeam";
@@ -240,7 +241,11 @@ class Controller {
         return this.parser.getChapters($);
     }
     async getChapterData(chapterId) {
-        const $ = await this.fetchHTML(chapterId);
+        chapterId = chapterId.split('/').pop() || "";
+        const domain = await store_1.GlobalStore.getDomain();
+        const url = domain + constants_1.IMAGE_LIST.replace('{chapterID}', chapterId);
+        const response = await this.client.get(url);
+        const $ = (0, cheerio_1.load)(JSON.parse(response.data).html);
         const chapterData = this.parser.getChapterData($);
         void this.preload(chapterData);
         return chapterData;
@@ -753,7 +758,7 @@ class Parser {
     }
     getChapterData($) {
         const urls = [];
-        $('.read-content.tcenter > div > img').each((_, element) => {
+        $('.image-placeholder > img').each((_, element) => {
             const url = $(element).attr('data-src') || "";
             urls.push(url);
         });
