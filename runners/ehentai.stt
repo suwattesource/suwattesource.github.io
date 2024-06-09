@@ -1,7 +1,7 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EHENTAI_TAG_LINKS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.FILTERS = exports.CATEGORIES = exports.LANGUAGES = exports.TOPLIST_PAGES = exports.LOGIN_COOKIES = exports.EXTENDED_DISPLAY_COOKIE = exports.MANGA_READING_TYPES = exports.VERTICAL_READING_TYPES = exports.CACHE_EXPIRE_TIME = exports.PREF_KEYS = exports.EHENTAI_DOMAIN = void 0;
+exports.EHENTAI_TAG_LINKS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.FILTERS = exports.CATEGORIES = exports.LANGUAGES = exports.TOPLIST_PAGES = exports.LOGIN_COOKIES = exports.EXTENDED_DISPLAY_COOKIE = exports.MANGA_READING_TYPES = exports.VERTICAL_READING_TYPES = exports.PREF_KEYS = exports.EHENTAI_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.EHENTAI_DOMAIN = "https://e-hentai.org";
 exports.PREF_KEYS = {
@@ -13,7 +13,6 @@ exports.PREF_KEYS = {
     exclude_tags: "exclude_tags",
     worker_count: "worker_count"
 };
-exports.CACHE_EXPIRE_TIME = 1000 * 60 * 60; // milliseconds in 1 hours
 exports.VERTICAL_READING_TYPES = ["webtoon"];
 exports.MANGA_READING_TYPES = ["manga", "doujinshi"];
 exports.EXTENDED_DISPLAY_COOKIE = { name: "sl", value: "dm_2" };
@@ -194,9 +193,6 @@ class Controller {
             }
             promises.push(this.fetchHTML(url, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] }).then(async ($) => {
                 const items = await this.parser.getHomepageSection($, section.id);
-                for (const item of items) {
-                    this.cache.put(constants_1.PREF_KEYS.cache_title + item.id, item.title, constants_1.CACHE_EXPIRE_TIME);
-                }
                 sections.push({ ...section, items });
             }));
         }
@@ -218,9 +214,6 @@ class Controller {
             results = await this.parser.getSearchResults($);
         }
         const nextId = await this.parser.getNextId($);
-        for (const result of results) {
-            this.cache.put(constants_1.PREF_KEYS.cache_title + result.id, result.title, constants_1.CACHE_EXPIRE_TIME);
-        }
         return {
             results,
             isLastPage: nextId == "0"
@@ -232,6 +225,7 @@ class Controller {
         return filters;
     }
     async createSearchURL(request) {
+        // eslint-disable-next-line prefer-const
         let { filters, listId, query, tag, sort, page } = request;
         if (!query && !tag && sort && sort.id == "lt") {
             request = this.cache.get(constants_1.PREF_KEYS.cache_request) ?? request;
@@ -279,6 +273,7 @@ class Controller {
                     url += `/uploader/${encodeURI(tag.tagId)}`;
                     break;
                 case "category":
+                    // eslint-disable-next-line no-case-declarations
                     const categoryId = constants_1.CATEGORIES.filter(category => category.title == tag?.tagId)[0]?.id;
                     url += `/?f_cats=${1023 - Number(categoryId)}`;
                     break;
@@ -296,14 +291,8 @@ class Controller {
     }
     // Content
     async getContent(contentId) {
-        let title = await this.cache.get(constants_1.PREF_KEYS.cache_title + contentId);
-        title = title.replace(/([\(\){}\[\]])/g, ' $1 ').trim().match(/(?:^|\s)[^[\]{}()]+(?![^\[]*])/)?.[0].trim();
-        console.log(title);
-        const [gallery, relatedGalleriesCheerio] = await Promise.all([
-            this.getGalleryData([contentId]),
-            this.fetchHTML(`${constants_1.EHENTAI_DOMAIN}/?f_search=${encodeURI(title)}`)
-        ]);
-        return this.parser.getContent(gallery, relatedGalleriesCheerio, contentId);
+        const gallery = await this.getGalleryData([contentId]);
+        return this.parser.getContent(gallery, contentId);
     }
     async getChapterData(contentId, chapterId) {
         return this.parser.getChapterData(contentId, Number(chapterId));
@@ -313,7 +302,7 @@ class Controller {
         if (cachedTags) {
             return cachedTags;
         }
-        let tags = [];
+        const tags = [];
         const pagePromises = [];
         for (const url of constants_1.EHENTAI_TAG_LINKS) {
             pagePromises.push(this.fetchHTML(url, { cookies: constants_1.LOGIN_COOKIES }));
@@ -401,14 +390,6 @@ module.exports={
         {
             "id": "male:sole male",
             "title": "male:sole male"
-        },
-        {
-            "id": "male:yaoi",
-            "title": "male:yaoi"
-        },
-        {
-            "id": "male:males only",
-            "title": "male:males only"
         },
         {
             "id": "male:anal",
@@ -589,10 +570,6 @@ module.exports={
         {
             "id": "male:ahegao",
             "title": "male:ahegao"
-        },
-        {
-            "id": "male:snuff",
-            "title": "male:snuff"
         },
         {
             "id": "male:tall man",
@@ -973,10 +950,6 @@ module.exports={
             "title": "female:sole dickgirl"
         },
         {
-            "id": "female:scat",
-            "title": "female:scat"
-        },
-        {
             "id": "female:blindfold",
             "title": "female:blindfold"
         },
@@ -1065,20 +1038,12 @@ module.exports={
             "title": "female:high heels"
         },
         {
-            "id": "female:guro",
-            "title": "female:guro"
-        },
-        {
             "id": "female:hair buns",
             "title": "female:hair buns"
         },
         {
             "id": "female:rimjob",
             "title": "female:rimjob"
-        },
-        {
-            "id": "female:snuff",
-            "title": "female:snuff"
         },
         {
             "id": "female:eye-covering bang",
@@ -1811,12 +1776,12 @@ class Parser {
         });
         return items;
     }
-    async getContent(gallery, relatedGalleriesCheerio, contentId) {
+    async getContent(gallery, contentId) {
         const title = gallery.title;
         const summary = `${gallery.filecount} images`;
         const isNSFW = true;
         const cover = gallery.thumb;
-        let status = daisuke_1.PublicationStatus.ONGOING;
+        const status = daisuke_1.PublicationStatus.ONGOING;
         let languageCode = "";
         const propertyMap = new Map();
         propertyMap.set("temp", { id: "temp", title: "temp", tags: [] });
@@ -1852,16 +1817,6 @@ class Parser {
             property?.tags.push({ id: tag, title: (0, lodash_1.startCase)(title) });
         }
         const chapters = this.getChapters(gallery.filecount, gallery.posted, languageCode);
-        // Related Content
-        const collections = [];
-        const relatedGalleries = await this.getSearchResults(relatedGalleriesCheerio);
-        if (relatedGalleries.length > 0) {
-            collections.push({
-                id: "related_galleries",
-                title: "Related Galleries",
-                highlights: relatedGalleries.filter(gallery => gallery.id != contentId),
-            });
-        }
         const info = [
             `⭐️ Rating: ${Number(gallery.rating).toFixed(2)} / 5`,
         ];
@@ -1875,7 +1830,6 @@ class Parser {
             isNSFW,
             webUrl,
             chapters,
-            collections,
             properties: Array.from(propertyMap.values()),
             info,
         };
