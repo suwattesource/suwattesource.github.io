@@ -11,7 +11,6 @@ import {
     PageSection
 } from "@suwatte/daisuke";
 import {
-    CACHE_EXPIRE_TIME,
     CATEGORIES,
     EHENTAI_DOMAIN,
     EHENTAI_TAG_LINKS,
@@ -52,9 +51,6 @@ export class Controller {
             promises.push(
                 this.fetchHTML(url, {cookies: [EXTENDED_DISPLAY_COOKIE]}).then(async ($) => {
                     const items = await this.parser.getHomepageSection($, section.id)
-                    for (const item of items) {
-                        this.cache.put(PREF_KEYS.cache_title + item.id, item.title, CACHE_EXPIRE_TIME)
-                    }
                     sections.push({...section, items})
                 })
             )
@@ -79,10 +75,6 @@ export class Controller {
         }
         const nextId = await this.parser.getNextId($)
 
-        for (const result of results) {
-            this.cache.put(PREF_KEYS.cache_title + result.id, result.title, CACHE_EXPIRE_TIME)
-        }
-
         return {
             results,
             isLastPage: nextId == "0"
@@ -96,6 +88,7 @@ export class Controller {
     }
 
     async createSearchURL(request: DirectoryRequest): Promise<string> {
+        // eslint-disable-next-line prefer-const
         let {filters, listId, query, tag, sort, page} = request
 
         if (!query && !tag && sort && sort.id == "lt") {
@@ -151,6 +144,7 @@ export class Controller {
                     url += `/uploader/${encodeURI(tag.tagId)}`
                     break
                 case "category":
+                    // eslint-disable-next-line no-case-declarations
                     const categoryId = CATEGORIES.filter(category => category.title == tag?.tagId)[0]?.id
                     url += `/?f_cats=${1023 - Number(categoryId)}`
                     break
@@ -170,20 +164,24 @@ export class Controller {
 
     // Content
     async getContent(contentId: string): Promise<Content> {
-        let title = await this.cache.get(PREF_KEYS.cache_title + contentId)
-        title = title.replace(/([\(\){}\[\]])/g, ' $1 ').trim().match(/(?:^|\s)[^[\]{}()]+(?![^\[]*])/)?.[0].trim();
-        console.log(title)
-        const [gallery, relatedGalleriesCheerio] = await Promise.all(
-            [
-                this.getGalleryData([contentId]),
-                this.fetchHTML(`${EHENTAI_DOMAIN}/?f_search=${encodeURI(title)}`)
-            ]
-        );
-        return this.parser.getContent(gallery, relatedGalleriesCheerio, contentId);
+        const gallery = await this.getGalleryData([contentId])
+        return this.parser.getContent(gallery, contentId);
     }
 
     async getChapterData(contentId: string, chapterId: string) {
-        return this.parser.getChapterData(contentId, Number(chapterId));
+        const response = await this.client.get(`https://e-hentai.org/g/${contentId}/?p=${Number(chapterId)-1}`);
+        const $ = load(response.data);
+        const pages = await this.parser.parsePage($)
+        void this.preload(pages)
+        return {
+            pages: pages.map((url) => ({url})),
+        };
+    }
+
+    async preload(images: string[]) {
+        for (const image of images) {
+            void this.client.get(image, {headers: {Referer: EHENTAI_DOMAIN + "/"}})
+        }
     }
 
     async getTags(): Promise<Option[]> {
@@ -191,7 +189,7 @@ export class Controller {
         if (cachedTags) {
             return cachedTags
         }
-        let tags: Option[] = [];
+        const tags: Option[] = [];
         const pagePromises = [];
         for (const url of EHENTAI_TAG_LINKS) {
             pagePromises.push(this.fetchHTML(url, {cookies: LOGIN_COOKIES}))

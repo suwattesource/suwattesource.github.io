@@ -18,7 +18,6 @@ import {
     RunnerInfo,
     RunnerPreferenceProvider,
     UIMultiPicker,
-    UIStepper,
 } from "@suwatte/daisuke";
 import {EHENTAI_DOMAIN, LANGUAGES, PREF_KEYS, SEARCH_SORTERS, TOPLIST_PAGES} from "./constants";
 import {Controller} from "./controller";
@@ -69,7 +68,6 @@ export class Target
         return properties
     }
 
-
     // Directory
     getDirectory(request: DirectoryRequest): Promise<PagedResult> {
         return this.controller.getSearchResults(request);
@@ -107,7 +105,6 @@ export class Target
         };
     }
 
-
     // Preferences
     async getPreferenceMenu(): Promise<Form> {
         return {
@@ -121,20 +118,6 @@ export class Target
                             options: await this.controller.getTags(),
                             value: await GlobalStore.getExcludeTags(),
                             didChange: GlobalStore.setExcludeTags,
-                        }),
-                    ],
-                },
-                {
-                    header: "Image Fetching",
-                    children: [
-                        UIStepper({
-                            id: PREF_KEYS.worker_count,
-                            title: "Number of workers",
-                            lowerBound: 1,
-                            upperBound: 10,
-                            step: 1,
-                            value: await GlobalStore.getWorkerCount(),
-                            didChange: GlobalStore.setWorkerCount,
                         }),
                     ],
                 },

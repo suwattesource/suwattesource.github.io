@@ -1,14 +1,4 @@
-import {
-    Chapter,
-    ChapterData,
-    Content,
-    Highlight,
-    HighlightCollection,
-    Option,
-    Property,
-    PublicationStatus,
-    ReadingMode,
-} from "@suwatte/daisuke";
+import {Chapter, Content, Highlight, Option, Property, PublicationStatus, ReadingMode,} from "@suwatte/daisuke";
 import {CheerioAPI, load} from "cheerio";
 import {EHENTAI_DOMAIN, LANGUAGES, MANGA_READING_TYPES, PREF_KEYS, VERTICAL_READING_TYPES} from "./constants";
 import {GlobalStore} from "./store";
@@ -103,13 +93,12 @@ export class Parser {
         return items;
     }
 
-    async getContent(gallery: any, relatedGalleriesCheerio: CheerioAPI, contentId: string): Promise<Content> {
+    async getContent(gallery: any, contentId: string): Promise<Content> {
         const title = gallery.title;
-
         const summary = `${gallery.filecount} images`;
         const isNSFW = true;
         const cover = gallery.thumb;
-        let status = PublicationStatus.ONGOING;
+        const status = PublicationStatus.ONGOING;
         let languageCode = "";
 
         const propertyMap = new Map<string, Property>();
@@ -151,18 +140,6 @@ export class Parser {
 
         const chapters = this.getChapters(gallery.filecount, gallery.posted, languageCode)
 
-        // Related Content
-        const collections: HighlightCollection[] = [];
-        const relatedGalleries = await this.getSearchResults(relatedGalleriesCheerio);
-
-        if (relatedGalleries.length > 0) {
-            collections.push({
-                id: "related_galleries",
-                title: "Related Galleries",
-                highlights: relatedGalleries.filter(gallery => gallery.id != contentId),
-            });
-        }
-
         const info = [
             `⭐️ Rating: ${Number(gallery.rating).toFixed(2)} / 5`,
         ]
@@ -178,7 +155,6 @@ export class Parser {
             isNSFW,
             webUrl,
             chapters,
-            collections,
             properties: Array.from(propertyMap.values()),
             info,
         };
@@ -186,24 +162,18 @@ export class Parser {
 
     getChapters(fileCount: number, date: string, languageCode: string): Chapter[] {
         const chapters: Chapter[] = [];
-        chapters.push({
-            chapterId: fileCount.toString(),
-            number: 1,
-            title: "Images",
-            index: 1,
-            language: languageCode,
-            date: new Date(parseInt(date, 10) * 1000),
-        });
+        const totalPages = Math.ceil(fileCount / 40);
+        for (let i = totalPages; i >= 1; i--) {
+            chapters.push({
+                chapterId: i.toString(),
+                number: i,
+                title: `Page ${i}`,
+                index: totalPages - i,
+                language: languageCode,
+                date: new Date(parseInt(date, 10) * 1000),
+            });
+        }
         return chapters;
-    }
-
-
-    async getChapterData(contentId: string, numberCount: number): Promise<ChapterData> {
-        const pages = await this.parsePages(contentId, numberCount)
-
-        return {
-            pages: pages.map((url) => ({url})),
-        };
     }
 
     async getImage(url: string): Promise<string> {
@@ -212,41 +182,14 @@ export class Parser {
         return $('#img').attr('src') ?? ''
     }
 
-    async parsePage(id: string, page: number): Promise<string[]> {
-        const response = await this.client.get(`https://e-hentai.org/g/${id}/?p=${page}`);
-        const $ = load(response.data);
-
+    async parsePage($: CheerioAPI): Promise<string[]> {
         const pages: Promise<string>[] = []
         const pageDivArr = $('div.gdtm').toArray()
-
         for (const page of pageDivArr) {
             pages.push(this.getImage($('a', page).attr('href') ?? ''))
         }
 
         return Promise.all(pages)
-    }
-
-    async parsePages(id: string, pageCount: number): Promise<string[]> {
-        const iterations = Math.ceil(pageCount / 40);
-        const maxWorkers = await GlobalStore.getWorkerCount();
-
-        const results: string[][] = []; // Store results in a nested array
-        let nextIteration = 0;
-
-        const worker = async () => {
-            while (nextIteration < iterations) {
-                const taskIndex = nextIteration++;
-                results[taskIndex] = await this.parsePage(id, taskIndex);
-            }
-        }
-
-        const workerPromises = [];
-        for (let i = 0; i < maxWorkers; i++) {
-            workerPromises.push(worker());
-        }
-
-        await Promise.all(workerPromises);
-        return results.flat();
     }
 
     getNextId = async ($: CheerioAPI): Promise<string> => {

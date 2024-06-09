@@ -7,12 +7,8 @@ export const PREF_KEYS = {
     cache_request: "request",
     cache_request_url: "request_url",
     cache_tags: "tags_",
-    cache_title: "title_",
     exclude_tags: "exclude_tags",
-    worker_count: "worker_count"
 };
-
-export const CACHE_EXPIRE_TIME = 1000 * 60 * 60 // milliseconds in 1 hours
 
 export const VERTICAL_READING_TYPES = ["webtoon"];
 
