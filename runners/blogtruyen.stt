@@ -856,7 +856,7 @@ class Parser {
         $('#list-chapters > p').each((_, element) => {
             const chapterId = $(element).find('a').attr('href') || "";
             const title = $(element).find('a').attr('title')?.trim() || "";
-            let number = Number(title.match(/(?:Chap|Chương) (\d+(\.\d+)?)/i)?.[1]);
+            let number = Number(title.match(/(?:Chap|Chapter|Chương|Chuong) (\d+(\.\d+)?)/i)?.[1]);
             const date = $(element).find('span.publishedDate').text().trim() || "";
             if (!number) {
                 number = 0;
