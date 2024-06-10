@@ -45,12 +45,12 @@ export const HOME_PAGE_SECTIONS: PageSection[] = [
     },
     {
         id: "top-hot",
-        title: "Hot",
+        title: "Truyện hot",
         style: SectionStyle.GALLERY,
     },
     {
         id: "top-week",
-        title: "Top Week",
+        title: "Top lượt xem tuần",
         style: SectionStyle.NAVIGATION_LIST,
     },
     {

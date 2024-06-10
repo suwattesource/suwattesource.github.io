@@ -71,7 +71,7 @@ export class Parser {
             const id = $(element).find('span.ellipsis > a').attr('href') || "";
             const views = $(element).find('span.fl-r').text();
             let title = $(element).find('span.ellipsis > a').attr('title') || "";
-            title = `${title} [${views} views]`
+            title = `${title} [${views} lượt xem]`
             const cover = ""
             items.push({id, title, cover})
         });
@@ -110,7 +110,7 @@ export class Parser {
             const publishedDate = $(element).find('span.publishedDate').text()
             const categories = $(element).find("div.category > a").map((_, elem) => $(elem).text()).get().join(", ");
             const info = categories.match(/.{1,32}(,\s|$)|.{1,32}$/g) || [];
-            info.splice(0, 0, `${totalChapter} chương 🕒 ${publishedDate}`);
+            info.splice(0, 0, `${totalChapter} chương  🕒 ${publishedDate}`);
             if (id && !id.includes("blogtruyen")) items.push({id, title, cover, info: info.map(i => i.trim())})
         });
         return items;
@@ -147,13 +147,7 @@ export class Parser {
         const categoryTags = this.createTags($, categories, true);
 
         const properties: Property[] = [];
-        properties.push(
-            {
-                "id": "temp",
-                title: "Temp",
-                tags: []
-            }
-        )
+
         if (categories.length > 0) {
             properties.push({
                 id: "categories",
@@ -253,7 +247,7 @@ export class Parser {
         $('#list-chapters > p').each((_: any, element: any) => {
             const chapterId = $(element).find('a').attr('href') || ""
             const title = $(element).find('a').attr('title')?.trim() || ""
-            let number = Number(title.match(/(?:Chap|Chương) (\d+(\.\d+)?)/i)?.[1])
+            let number = Number(title.match(/(?:Chap|Chapter|Chương|Chuong) (\d+(\.\d+)?)/i)?.[1])
             const date = $(element).find('span.publishedDate').text().trim() || ""
 
             if (!number) {
