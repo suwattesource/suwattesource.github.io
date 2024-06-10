@@ -40,12 +40,12 @@ exports.HOME_PAGE_SECTIONS = [
     },
     {
         id: "top-hot",
-        title: "Hot",
+        title: "Truyện hot",
         style: daisuke_1.SectionStyle.GALLERY,
     },
     {
         id: "top-week",
-        title: "Top Week",
+        title: "Top lượt xem tuần",
         style: daisuke_1.SectionStyle.NAVIGATION_LIST,
     },
     {
@@ -697,7 +697,7 @@ class Parser {
             const id = $(element).find('span.ellipsis > a').attr('href') || "";
             const views = $(element).find('span.fl-r').text();
             let title = $(element).find('span.ellipsis > a').attr('title') || "";
-            title = `${title} [${views} views]`;
+            title = `${title} [${views} lượt xem]`;
             const cover = "";
             items.push({ id, title, cover });
         });
@@ -733,7 +733,7 @@ class Parser {
             const publishedDate = $(element).find('span.publishedDate').text();
             const categories = $(element).find("div.category > a").map((_, elem) => $(elem).text()).get().join(", ");
             const info = categories.match(/.{1,32}(,\s|$)|.{1,32}$/g) || [];
-            info.splice(0, 0, `${totalChapter} chương 🕒 ${publishedDate}`);
+            info.splice(0, 0, `${totalChapter} chương  🕒 ${publishedDate}`);
             if (id && !id.includes("blogtruyen"))
                 items.push({ id, title, cover, info: info.map(i => i.trim()) });
         });
@@ -766,11 +766,6 @@ class Parser {
         const uploader = $('p:contains("Đăng bởi:") > a').toArray();
         const categoryTags = this.createTags($, categories, true);
         const properties = [];
-        properties.push({
-            "id": "temp",
-            title: "Temp",
-            tags: []
-        });
         if (categories.length > 0) {
             properties.push({
                 id: "categories",
