@@ -6,7 +6,6 @@ const daisuke_1 = require("@suwatte/daisuke");
 exports.BAOTRANGTRUYEN_DOMAIN = "https://baotangtruyen13.com";
 exports.LIST_CHAPTER_BY_STORY_ID = "/Story/ListChapterByStoryID";
 exports.PREF_KEYS = {
-    cache_cover: "cover",
     request: "request",
     domain: "domain",
 };
