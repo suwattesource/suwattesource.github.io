@@ -42,7 +42,7 @@ exports.SEARCH_SORTERS = [
     { id: "LatestUpdate", title: "LatestUpdate" },
     { id: "Newest", title: "Newest" },
     { id: "MostPopular", title: "Most Popular" },
-    { id: "", title: "Alphabet" },
+    { id: "Alphabet", title: "Alphabet" },
 ];
 exports.STATUES = [
     {
@@ -268,7 +268,7 @@ exports.DEFAULT_FILTERS = [
     },
     {
         id: "status",
-        title: "status",
+        title: "Status",
         type: daisuke_1.FilterType.SELECT,
         options: exports.STATUES
     },
@@ -368,7 +368,17 @@ class Controller {
     }
     async getChapterData(chapterId) {
         const response = await this.client.get(`${constants_1.READCOMICONLINE_URL}${chapterId}`);
-        return this.parser.getChapterData(response.data);
+        const chapterData = this.parser.getChapterData(response.data);
+        void this.preload(chapterData);
+        return chapterData;
+    }
+    async preload(chapterData) {
+        const pages = chapterData.pages || [];
+        for (const page of pages) {
+            if (page.url != null) {
+                void this.client.get(page.url, { headers: { Referer: constants_1.READCOMICONLINE_URL + "/" } });
+            }
+        }
     }
     async fetchHTML(url, config) {
         try {
@@ -407,6 +417,11 @@ class Target {
         };
         this.controller = new controller_1.Controller();
     }
+    headers() {
+        return {
+            Referer: constants_1.READCOMICONLINE_URL + "/",
+        };
+    }
     async getContent(contentId) {
         return this.controller.getContent(contentId);
     }
@@ -437,6 +452,14 @@ class Target {
     }
     resolvePageSection(_link, _sectionKey) {
         throw new Error("already resolved");
+    }
+    async willRequestImage(url) {
+        return {
+            url,
+            headers: {
+                ...this.headers(),
+            },
+        };
     }
 }
 exports.Target = Target;
