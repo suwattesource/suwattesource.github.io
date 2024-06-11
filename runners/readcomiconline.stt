@@ -39,7 +39,7 @@ exports.HOME_PAGE_SECTIONS = [
     },
 ];
 exports.SEARCH_SORTERS = [
-    { id: "LatestUpdate", title: "LatestUpdate" },
+    { id: "LatestUpdate", title: "Latest Update" },
     { id: "Newest", title: "Newest" },
     { id: "MostPopular", title: "Most Popular" },
     { id: "Alphabet", title: "Alphabet" },
