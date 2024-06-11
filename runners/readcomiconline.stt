@@ -294,14 +294,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Controller = void 0;
-const daisuke_1 = require("@suwatte/daisuke");
 const constants_1 = require("./constants");
 const parser_1 = require("./parser");
 const memory_cache_1 = __importDefault(require("memory-cache"));
 const cheerio_1 = require("cheerio");
 class Controller {
     constructor() {
-        this.client = new daisuke_1.NetworkClientBuilder().setRateLimit(5, 30).build();
+        this.client = new NetworkClient();
         this.parser = new parser_1.Parser();
         this.cache = new memory_cache_1.default.Cache();
     }
@@ -397,7 +396,7 @@ class Controller {
 }
 exports.Controller = Controller;
 
-},{"./constants":1,"./parser":4,"@suwatte/daisuke":5,"cheerio":undefined,"memory-cache":72}],3:[function(require,module,exports){
+},{"./constants":1,"./parser":4,"cheerio":undefined,"memory-cache":72}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Target = void 0;
