@@ -357,8 +357,9 @@ class Controller {
     }
     // Content
     async getContent(contentId) {
-        const $ = await this.fetchHTML(`${constants_1.READCOMICONLINE_URL}${contentId}`);
-        return this.parser.getContent($);
+        const webUrl = `${constants_1.READCOMICONLINE_URL}${contentId}`;
+        const $ = await this.fetchHTML(webUrl);
+        return this.parser.getContent($, webUrl);
     }
     // Chapters
     async getChapters(contentId) {
@@ -495,7 +496,7 @@ class Parser {
         }
         return highlights;
     }
-    getContent($) {
+    getContent($, webUrl) {
         let status = daisuke_1.PublicationStatus.ONGOING;
         const title = $("div.content div.content_top div.heading")
             .first()
@@ -549,6 +550,7 @@ class Parser {
             properties,
             status,
             chapters,
+            webUrl,
             recommendedPanelMode: daisuke_1.ReadingMode.PAGED_COMIC,
         };
     }
