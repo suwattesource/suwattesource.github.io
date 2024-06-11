@@ -581,27 +581,27 @@ class Parser {
         };
     }
     getChapters($) {
-        const chapterList = $("ul.list li").toArray();
         const chapters = [];
-        let i = 0;
-        while (i < chapterList.length) {
-            const chapterId = $("div.col-1 a", chapterList[i]).attr("href");
-            if (chapterId === undefined)
-                throw `Failed to parse ${i} of ${$("div.content div.content_top div.heading")
-                    .text()
-                    .trim()}`;
-            const chapter = {
+        let index = 0;
+        $("ul.list li").each((_, element) => {
+            const chapterId = $("div.col-1 a", element).attr("href");
+            if (!chapterId) {
+                const headingText = $("div.content div.content_top div.heading").text().trim();
+                throw new Error(`Failed to parse ${index} of ${headingText}`);
+            }
+            const date = new Date($("div.col-2 span", element).text());
+            const title = $("div.col-1 span", element).text().trim();
+            const number = Number($("div.col-1", element).text()?.split("#")?.[1]) || index + 1;
+            chapters.push({
                 chapterId,
-                date: new Date($("div.col-2 span", chapterList[i]).text()),
-                title: $("div.col-1 span", chapterList[i]).text().trim(),
-                number: Number($("div.col-1", chapterList[i]).text()?.split("#")?.[1]) ||
-                    i + 1,
-                index: i,
+                date,
+                title,
+                number,
+                index,
                 language: "EN_US",
-            };
-            chapters.push(chapter);
-            i++;
-        }
+            });
+            index++;
+        });
         return chapters;
     }
 }
