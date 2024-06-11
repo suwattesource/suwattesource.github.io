@@ -11,7 +11,6 @@ export const LOAD_MANGA_CREATED = "/Account/AjaxLoadMangaCreated"
 export const LOAD_MANGA_BY_CATEGORY = "/ajax/Category/AjaxLoadMangaByCategory"
 
 export const PREF_KEYS = {
-    cache_cover: "cover",
     request: "request",
     domain: "domain",
 }

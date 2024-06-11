@@ -2,11 +2,6 @@ import {Option, PageSection, PublicationStatus, SectionStyle,} from "@suwatte/da
 
 
 export const DOCTRUYEN3Q_DOMAIN = "https://doctruyen3qvn.com";
-export const LIST_CHAPTER_BY_STORY_ID = "/Story/ListChapterByStoryID"
-export const LOAD_MANGA_BY_AUTHOR = "/ajax/Author/AjaxLoadMangaByAuthor"
-export const LOAD_MANGA_BY_TRANSLATE_TEAM = "/ajax/TranslateTeam/AjaxLoadMangaByTranslateTeam"
-export const LOAD_MANGA_CREATED = "/Account/AjaxLoadMangaCreated"
-export const LOAD_MANGA_BY_CATEGORY = "/ajax/Category/AjaxLoadMangaByCategory"
 
 export const PREF_KEYS = {
     cache_cover: "cover",

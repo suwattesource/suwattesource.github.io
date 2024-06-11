@@ -6,7 +6,6 @@ export const LIST_CHAPTER_BY_STORY_ID = "/Story/ListChapterByStoryID"
 
 
 export const PREF_KEYS = {
-    cache_cover: "cover",
     request: "request",
     domain: "domain",
 }
