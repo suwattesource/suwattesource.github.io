@@ -19,7 +19,7 @@ exports.HOME_PAGE_SECTIONS = [
         id: "new-comic",
         title: "New comic",
         style: daisuke_1.SectionStyle.INFO,
-        viewMoreLink: { request: { page: 1, sort: { id: "LatestUpdate" } } },
+        viewMoreLink: { request: { page: 1, sort: { id: "Newest" } } },
     },
     {
         id: "most-popular",
@@ -31,7 +31,7 @@ exports.HOME_PAGE_SECTIONS = [
         id: "latest",
         title: "Latest update",
         style: daisuke_1.SectionStyle.PADDED_LIST,
-        viewMoreLink: { request: { page: 1, sort: { id: "Newest" } } },
+        viewMoreLink: { request: { page: 1, sort: { id: "LatestUpdate" } } },
     },
 ];
 exports.SEARCH_SORTERS = [
@@ -309,7 +309,7 @@ class Parser {
             if (!cover.includes("https:")) {
                 cover = constants_1.READCOMICONLINE_URL + cover;
             }
-            items.push({ id, title, subtitle, cover });
+            items.push({ id, title, subtitle, cover, info: [subtitle] });
         });
         return items;
     }
@@ -323,7 +323,7 @@ class Parser {
             if (!cover.includes("https:")) {
                 cover = constants_1.READCOMICONLINE_URL + cover;
             }
-            items.push({ id, title, subtitle, cover });
+            items.push({ id, title, cover, info: [subtitle] });
         });
         return items;
     }
