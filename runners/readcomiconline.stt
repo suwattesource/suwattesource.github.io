@@ -150,8 +150,8 @@ class Controller {
             const comicName = filters.name || "";
             const status = filters.status || "";
             const year = filters.year || "";
-            const ig = encodeURIComponent(filters.genres?.included.join(",") ?? "");
-            const eg = encodeURIComponent(filters.genres?.excluded.join(",") ?? "");
+            const ig = filters.genres?.included.join("%2C");
+            const eg = filters.genres?.excluded.join("%2C");
             return `${url}?comicName=${encodeURI(comicName)}&ig=${ig}&eg=${eg}&status=${status}&pubDate=${year}&page=${page}`;
         }
         if (query) {
@@ -187,6 +187,10 @@ class Controller {
                 void this.client.get(page.url, { headers: { Referer: constants_1.READCOMICONLINE_URL + "/" } });
             }
         }
+    }
+    async getFilters() {
+        const $ = await this.fetchHTML(`${constants_1.READCOMICONLINE_URL}/AdvanceSearch`);
+        return this.parser.getFilters($);
     }
     async fetchHTML(url, config) {
         try {
@@ -245,7 +249,7 @@ class Target {
     }
     async getDirectoryConfig() {
         return {
-            filters: constants_1.DEFAULT_FILTERS,
+            filters: await this.controller.getFilters(),
             sort: {
                 options: constants_1.SEARCH_SORTERS,
                 canChangeOrder: false,
@@ -475,6 +479,22 @@ class Parser {
             index++;
         });
         return chapters;
+    }
+    getFilters($) {
+        const filters = constants_1.DEFAULT_FILTERS;
+        const genres = [];
+        $('#genres > li').each((_, cat) => {
+            const id = $(cat).find('select').attr('gid') || "";
+            const title = $(cat).find('label').text().trim();
+            genres.push({ id, title });
+        });
+        filters.push({
+            id: "genres",
+            title: "Genres",
+            options: genres,
+            type: daisuke_1.FilterType.EXCLUDABLE_MULTISELECT
+        });
+        return filters;
     }
     createTags($, elements) {
         const tags = [];
