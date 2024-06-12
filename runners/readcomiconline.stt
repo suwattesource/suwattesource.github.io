@@ -1,13 +1,14 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IMAGE_QUALITIES = exports.DEFAULT_FILTERS = exports.STATUES = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.STATUS_KEYS = exports.PREF_KEYS = exports.READCOMICONLINE_URL = void 0;
+exports.IMAGE_SERVER_DOMAIN = exports.SERVER_2 = exports.SERVER_1 = exports.IMAGE_SERVERS = exports.IMAGE_QUALITIES = exports.DEFAULT_FILTERS = exports.STATUES = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.STATUS_KEYS = exports.PREF_KEYS = exports.READCOMICONLINE_URL = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.READCOMICONLINE_URL = "https://readcomiconline.li";
 exports.PREF_KEYS = {
     cache_cover: "cover",
     request: "request",
     domain: "domain",
+    image_server: "image_server",
     image_quality: "image_quality"
 };
 exports.STATUS_KEYS = {
@@ -83,6 +84,22 @@ exports.IMAGE_QUALITIES = [
         title: "Low Quality",
     },
 ];
+exports.IMAGE_SERVERS = [
+    {
+        id: "server_1",
+        title: "Server 1",
+    },
+    {
+        id: "server_2",
+        title: "Server 2",
+    }
+];
+exports.SERVER_1 = "https://2.bp.blogspot.com";
+exports.SERVER_2 = "https://img2.whatsnew247.net/pic";
+exports.IMAGE_SERVER_DOMAIN = {
+    "server_1": exports.SERVER_1,
+    "server_2": exports.SERVER_2,
+};
 
 },{"@suwatte/daisuke":6}],2:[function(require,module,exports){
 "use strict";
@@ -176,7 +193,7 @@ class Controller {
     async getChapterData(chapterId) {
         const quality = await store_1.GlobalStore.getImageQuality();
         const $ = await this.fetchHTML(`${constants_1.READCOMICONLINE_URL}${chapterId}&quality=${quality}`);
-        const chapterData = this.parser.getChapterData($);
+        const chapterData = await this.parser.getChapterData($);
         void this.preload(chapterData);
         return chapterData;
     }
@@ -297,6 +314,13 @@ class Target {
                     header: "Image Options",
                     children: [
                         (0, daisuke_1.UIPicker)({
+                            id: constants_1.PREF_KEYS.image_server,
+                            title: `Image Server`,
+                            options: constants_1.IMAGE_SERVERS,
+                            value: await store_1.GlobalStore.getImageServer(),
+                            didChange: store_1.GlobalStore.setImageServer,
+                        }),
+                        (0, daisuke_1.UIPicker)({
                             id: constants_1.PREF_KEYS.image_quality,
                             title: `Quality`,
                             options: constants_1.IMAGE_QUALITIES,
@@ -318,6 +342,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Parser = void 0;
 const constants_1 = require("./constants");
 const daisuke_1 = require("@suwatte/daisuke");
+const store_1 = require("./store");
 class Parser {
     getSearchResults($) {
         const items = [];
@@ -373,7 +398,7 @@ class Parser {
         }
         return highlights;
     }
-    getContent($, webUrl) {
+    async getContent($, webUrl) {
         const title = $(".red > .heading > h3").text().trim();
         let cover = $(".cover > img").attr("src") || "";
         if (!cover.includes("https:")) {
@@ -428,7 +453,7 @@ class Parser {
             views,
             publishDate,
         ];
-        const chapters = this.getChapters($);
+        const chapters = await this.getChapters($);
         return {
             title,
             cover,
@@ -441,7 +466,8 @@ class Parser {
             info,
         };
     }
-    getChapterData($) {
+    async getChapterData($) {
+        const imageServerDomain = await store_1.GlobalStore.getImageServer();
         const pages = [];
         $('script').each((_, script) => {
             const scriptContent = $(script).html();
@@ -462,7 +488,7 @@ class Parser {
                             url = Buffer.from(url, 'base64').toString('utf-8');
                             url = url.slice(0, 13) + url.slice(17);
                             url = url.slice(0, -2) + (containsS0 ? '=s0' : '=s1600');
-                            pages.push({ url: `https://2.bp.blogspot.com/${url + sliced}` });
+                            pages.push({ url: `${imageServerDomain}/${url + sliced}` });
                         }
                     }
                 }
@@ -472,8 +498,15 @@ class Parser {
             pages
         };
     }
-    getChapters($) {
+    async getChapters($) {
         const chapters = [];
+        const imageServerId = await store_1.GlobalStore.getImageServerId() || "";
+        const providers = [
+            {
+                id: imageServerId,
+                name: Object.fromEntries(constants_1.IMAGE_SERVERS.map(e => [e.id, e.title]))[imageServerId] || ""
+            },
+        ];
         let index = 0;
         $("ul.list li").each((_, element) => {
             const chapterId = $("div.col-1 a", element).attr("href");
@@ -491,6 +524,7 @@ class Parser {
                 number,
                 index,
                 language: "EN_US",
+                providers,
             });
             index++;
         });
@@ -525,12 +559,26 @@ class Parser {
 exports.Parser = Parser;
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"./constants":1,"@suwatte/daisuke":6,"buffer":71}],5:[function(require,module,exports){
+},{"./constants":1,"./store":5,"@suwatte/daisuke":6,"buffer":71}],5:[function(require,module,exports){
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GlobalStore = exports.Store = void 0;
 const constants_1 = require("./constants");
+const lodash_1 = __importDefault(require("lodash"));
 class Store {
+    async getImageServer() {
+        return await ObjectStore.string(constants_1.PREF_KEYS.image_server) || constants_1.SERVER_1;
+    }
+    async getImageServerId() {
+        const server = await ObjectStore.string(constants_1.PREF_KEYS.image_server) || constants_1.SERVER_1;
+        return lodash_1.default.invert(constants_1.IMAGE_SERVER_DOMAIN)[server] || "";
+    }
+    async setImageServer(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.image_server, constants_1.IMAGE_SERVER_DOMAIN[v]);
+    }
     async getImageQuality() {
         const quality = await ObjectStore.string(constants_1.PREF_KEYS.image_quality);
         if (!quality)
@@ -544,7 +592,7 @@ class Store {
 exports.Store = Store;
 exports.GlobalStore = new Store();
 
-},{"./constants":1}],6:[function(require,module,exports){
+},{"./constants":1,"lodash":undefined}],6:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
