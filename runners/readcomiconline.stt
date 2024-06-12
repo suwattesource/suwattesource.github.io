@@ -301,7 +301,7 @@ const daisuke_1 = require("@suwatte/daisuke");
 class Parser {
     getSearchResults($) {
         const items = [];
-        $('div.item-list>div.group').each((index, element) => {
+        $('div.item-list>div.group').each((_, element) => {
             const id = $(element).find('.cover > a').attr('href') || "";
             const title = $(element).find('.info > p > a').text().trim();
             const subtitle = $(element).find('.info > p:nth-child(2)').text().trim();
@@ -315,7 +315,7 @@ class Parser {
     }
     getNewestComics($) {
         const items = [];
-        $('.content.content.space-top>div.item-list>div.group').slice(0, 10).each((index, element) => {
+        $('.content.content.space-top>div.item-list>div.group').slice(0, 10).each((_, element) => {
             const id = $(element).find('.cover > a').attr('href') || "";
             const title = $(element).find('.info > p > a').text().trim();
             const subtitle = $(element).find('.info > p:nth-child(2)').text().trim();
@@ -329,7 +329,7 @@ class Parser {
     }
     getMostPopularComics($) {
         const items = [];
-        $('.content.content.space-top>div.item-list>div.group').slice(10, 20).each((index, element) => {
+        $('.content.content.space-top>div.item-list>div.group').slice(10, 20).each((_, element) => {
             const id = $(element).find('.cover > a').attr('href') || "";
             const title = $(element).find('.info > p > a').text().trim();
             const subtitle = $(element).find('.info > p:nth-child(2)').text().trim();
@@ -423,7 +423,7 @@ class Parser {
     }
     getChapterData($) {
         const pages = [];
-        $('script').each((index, script) => {
+        $('script').each((_, script) => {
             const scriptContent = $(script).html();
             if (scriptContent) {
                 const imageMatches = scriptContent.matchAll(/lstImages\.push\(['"](.*)['"]\)/gi);
