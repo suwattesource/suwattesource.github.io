@@ -505,20 +505,14 @@ const constants_1 = require("./constants");
 const daisuke_1 = require("@suwatte/daisuke");
 class Parser {
     getSearchResults($) {
-        const entries = $("div.content div.section").toArray();
-        const highlights = [];
-        let i = 0;
-        while (i < entries.length) {
-            const title = $("div.info p", entries[i])
-                .text()
-                .replace(/^\s+|\s+$/g, "");
-            const cover = `${constants_1.READCOMICONLINE_URL}${$("img", entries[i]).attr("src")}`;
-            const id = $("a", entries[i]).attr("href");
-            if (title && cover && id)
-                highlights.push({ title, cover, id });
-            i++;
-        }
-        return highlights;
+        const items = [];
+        $('div.list-comic > div.item').each((index, element) => {
+            const id = $(element).find('a').first().attr('href') || "";
+            const title = $(element).attr('title')?.trim() || "";
+            const cover = $(element).find('a > img').attr('src') || "";
+            items.push({ id, title, cover });
+        });
+        return items;
     }
     getHomepageSection($, id) {
         const highlights = [];
