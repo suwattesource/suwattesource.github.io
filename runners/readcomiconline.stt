@@ -252,7 +252,7 @@ class Target {
                 id: "genres",
                 title: "Genres",
                 tags: genres?.options?.map(genre => ({
-                    id: "/" + genre.title.replace(" ", "-")
+                    id: "/Genre/" + genre.title.replace(" ", "-")
                         .replace(/[^\w\s]/gi, '')
                         .replace(/\s+/g, '-'),
                     title: genre.title
