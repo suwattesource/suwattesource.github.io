@@ -359,8 +359,8 @@ class Controller {
             const comicName = filters.name || "";
             const status = filters.status || "";
             const year = filters.year || "";
-            const ig = filters.genres?.included.join("%2C") ?? "";
-            const eg = filters.genres?.excluded.join("%2C") ?? "";
+            const ig = encodeURIComponent(filters.genres?.included.join(",") ?? "");
+            const eg = encodeURIComponent(filters.genres?.excluded.join(",") ?? "");
             return `${url}?comicName=${encodeURI(comicName)}&ig=${ig}&eg=${eg}&status=${status}&pubDate=${year}&page=${page}`;
         }
         if (query) {
