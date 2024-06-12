@@ -43,10 +43,6 @@ exports.SEARCH_SORTERS = [
 ];
 exports.STATUES = [
     {
-        title: "Any",
-        id: "",
-    },
-    {
         title: "Ongoing",
         id: "Ongoing",
     },
