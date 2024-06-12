@@ -384,8 +384,8 @@ class Controller {
     }
     async getChapterData(chapterId) {
         const quality = await store_1.GlobalStore.getImageQuality();
-        const response = await this.client.get(`${constants_1.READCOMICONLINE_URL}${chapterId}?quality=${quality}`);
-        const chapterData = this.parser.getChapterData(response.data);
+        const $ = await this.fetchHTML(`${constants_1.READCOMICONLINE_URL}${chapterId}?quality=${quality}`);
+        const chapterData = this.parser.getChapterData($);
         void this.preload(chapterData);
         return chapterData;
     }
@@ -592,30 +592,35 @@ class Parser {
             info,
         };
     }
-    getChapterData(data) {
+    getChapterData($) {
         const pages = [];
-        const imageMatches = data.matchAll(/lstImages\.push\(['"](.*)['"]\)/gi);
-        for (const match of imageMatches) {
-            if (!match[1])
-                continue;
-            let url = match[1].replace(/_x236/g, "d").replace(/_x945/g, "g");
-            if (url.startsWith("https")) {
-                pages.push({ url });
+        $('script').each((index, script) => {
+            const scriptContent = $(script).html();
+            if (scriptContent) {
+                const imageMatches = scriptContent.matchAll(/lstImages\.push\(['"](.*)['"]\)/gi);
+                for (const match of imageMatches) {
+                    if (match[1]) {
+                        let url = match[1].replace(/_x236/g, 'd').replace(/_x945/g, 'g');
+                        if (url.startsWith('https')) {
+                            pages.push({ url });
+                        }
+                        else {
+                            const sliced = url.slice(url.indexOf('?'));
+                            const containsS0 = url.includes('=s0');
+                            url = url.slice(0, containsS0 ? url.indexOf('=s0?') : url.indexOf('=s1600?'));
+                            url = url.slice(4, 22) + url.slice(25);
+                            url = url.slice(0, -6) + url.slice(-2);
+                            url = Buffer.from(url, 'base64').toString('utf-8');
+                            url = url.slice(0, 13) + url.slice(17);
+                            url = url.slice(0, -2) + (containsS0 ? '=s0' : '=s1600');
+                            pages.push({ url: `https://2.bp.blogspot.com/${url + sliced}` });
+                        }
+                    }
+                }
             }
-            else {
-                const sliced = url.slice(url.indexOf("?"));
-                const containsS0 = url.includes("=s0");
-                url = url.slice(0, containsS0 ? url.indexOf("=s0?") : url.indexOf("=s1600?"));
-                url = url.slice(4, 22) + url.slice(25);
-                url = url.slice(0, -6) + url.slice(-2);
-                url = Buffer.from(url, "base64").toString("utf-8");
-                url = url.slice(0, 13) + url.slice(17);
-                url = url.slice(0, -2) + (containsS0 ? "=s0" : "=s1600");
-                pages.push({ url: `https://2.bp.blogspot.com/${url + sliced}` });
-            }
-        }
+        });
         return {
-            pages: pages
+            pages
         };
     }
     getChapters($) {
