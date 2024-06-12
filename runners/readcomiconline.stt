@@ -1,7 +1,7 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IMAGE_QUALITIES = exports.DEFAULT_FILTERS = exports.GENRES = exports.STATUES = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.READCOMICONLINE_URL = void 0;
+exports.IMAGE_QUALITIES = exports.DEFAULT_FILTERS = exports.GENRES = exports.STATUES = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.STATUS_KEYS = exports.PREF_KEYS = exports.READCOMICONLINE_URL = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.READCOMICONLINE_URL = "https://readcomiconline.li";
 exports.PREF_KEYS = {
@@ -9,6 +9,10 @@ exports.PREF_KEYS = {
     request: "request",
     domain: "domain",
     image_quality: "image_quality"
+};
+exports.STATUS_KEYS = {
+    "Ongoing": daisuke_1.PublicationStatus.ONGOING,
+    "Completed": daisuke_1.PublicationStatus.COMPLETED,
 };
 exports.HOME_PAGE_SECTIONS = [
     {
@@ -506,11 +510,12 @@ const daisuke_1 = require("@suwatte/daisuke");
 class Parser {
     getSearchResults($) {
         const items = [];
-        $('div.list-comic > div.item').each((index, element) => {
-            const id = $(element).find('a').first().attr('href') || "";
-            const title = $(element).attr('title')?.trim() || "";
-            const cover = $(element).find('a > img').attr('src') || "";
-            items.push({ id, title, cover });
+        $('div.item-list>div.group').each((index, element) => {
+            const id = $(element).find('.cover > a').attr('href') || "";
+            const title = $(element).find('.info > p > a').text().trim();
+            const subtitle = $(element).find('.info > p:nth-child(2)').text().trim();
+            const cover = constants_1.READCOMICONLINE_URL + $(element).find('a > img').attr('src') || "";
+            items.push({ id, title, subtitle, cover });
         });
         return items;
     }
@@ -523,61 +528,68 @@ class Parser {
         return highlights;
     }
     getContent($, webUrl) {
-        let status = daisuke_1.PublicationStatus.ONGOING;
-        const title = $("div.content div.content_top div.heading")
-            .first()
+        const title = $(".red > .heading > h3").text().trim();
+        const cover = `${constants_1.READCOMICONLINE_URL}${$(".cover > img").attr("src")}`;
+        const summary = $(".section.group").eq(1).text().trim();
+        const genres = $('p:contains("Genres:") > a').toArray();
+        const publisher = $('p:contains("Publisher:") > a').toArray();
+        const writer = $('p:contains("Writer:") > a').toArray();
+        const artist = $('p:contains("Artist:") > a').toArray();
+        const properties = [];
+        if (genres.length > 0) {
+            properties.push({
+                id: "genres",
+                title: "Genres",
+                tags: this.createTags($, genres),
+            });
+        }
+        if (publisher.length > 0) {
+            properties.push({
+                id: "publisher",
+                title: "Publisher",
+                tags: this.createTags($, publisher),
+            });
+        }
+        if (writer.length > 0) {
+            properties.push({
+                id: "writer",
+                title: "Writer",
+                tags: this.createTags($, writer),
+            });
+        }
+        if (artist.length > 0) {
+            properties.push({
+                id: "artist",
+                title: "Artist",
+                tags: this.createTags($, artist),
+            });
+        }
+        const recommendedPanelMode = daisuke_1.ReadingMode.PAGED_COMIC;
+        const statusText = $('p:contains("Status:")')
+            .contents()
+            .filter(function () {
+            return this.type === 'text';
+        })
             .text()
             .trim();
-        const cover = `${constants_1.READCOMICONLINE_URL}${$("div.content div.section div.cover img").attr("src")}`;
+        const status = constants_1.STATUS_KEYS[statusText];
+        const views = $('p:contains("Views:")').text().trim();
+        const publishDate = $('p:contains("Publication date:")').text().trim();
+        const info = [
+            views,
+            publishDate,
+        ];
         const chapters = this.getChapters($);
-        const creators = [];
-        const properties = [];
-        for (const item of $("div.content div.section div.info p").toArray()) {
-            const contents = $("span", item).text().trim();
-            const tags = [];
-            if (contents.includes("Genre")) {
-                tags.push(...$("a", item)
-                    .toArray()
-                    .map((genre) => {
-                    const id = $(genre).attr('href') || "";
-                    const title = $(genre).text();
-                    return { id, title };
-                }));
-                if (tags.length > 0)
-                    properties.push({
-                        id: "genres",
-                        title: "Genres",
-                        tags,
-                    });
-            }
-            if (contents.includes("Status")) {
-                if ($(item).text().includes("Completed"))
-                    status = daisuke_1.PublicationStatus.COMPLETED;
-            }
-            if (contents.includes("Publisher") ||
-                contents.includes("Artist") ||
-                contents.includes("Writer")) {
-                creators.push($("a", item).text());
-            }
-        }
-        if (creators.length > 0)
-            properties.push({
-                id: "credits",
-                title: "Credits",
-                tags: creators.map((creator) => ({
-                    id: creator,
-                    title: creator,
-                    noninteractive: true,
-                })),
-            });
         return {
             title,
             cover,
-            properties,
+            summary,
             status,
+            properties,
             chapters,
             webUrl,
-            recommendedPanelMode: daisuke_1.ReadingMode.PAGED_COMIC,
+            recommendedPanelMode,
+            info,
         };
     }
     getChapterData(data) {
@@ -629,6 +641,15 @@ class Parser {
             index++;
         });
         return chapters;
+    }
+    createTags($, elements) {
+        const tags = [];
+        for (const element of elements) {
+            const id = $(element).attr('href') || "";
+            const title = $(element).text().trim();
+            tags.push({ id, title });
+        }
+        return tags;
     }
 }
 exports.Parser = Parser;
