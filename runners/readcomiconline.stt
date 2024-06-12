@@ -1,7 +1,7 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IMAGE_QUALITIES = exports.DEFAULT_FILTERS = exports.GENRES = exports.STATUES = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.STATUS_KEYS = exports.PREF_KEYS = exports.READCOMICONLINE_URL = void 0;
+exports.IMAGE_QUALITIES = exports.DEFAULT_FILTERS = exports.STATUES = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.STATUS_KEYS = exports.PREF_KEYS = exports.READCOMICONLINE_URL = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.READCOMICONLINE_URL = "https://readcomiconline.li";
 exports.PREF_KEYS = {
@@ -19,28 +19,19 @@ exports.HOME_PAGE_SECTIONS = [
         id: "new-comic",
         title: "New comic",
         style: daisuke_1.SectionStyle.INFO,
-        viewMoreLink: { request: { page: 1, sort: { id: "createdAt" } } },
+        viewMoreLink: { request: { page: 1, sort: { id: "LatestUpdate" } } },
     },
     {
-        id: "top-week",
-        title: "Top weak",
-        style: daisuke_1.SectionStyle.GALLERY,
-    },
-    {
-        id: "top-month",
-        title: "Top month",
-        style: daisuke_1.SectionStyle.GALLERY,
-    },
-    {
-        id: "top-all",
+        id: "most-popular",
         title: "Most popular",
         style: daisuke_1.SectionStyle.GALLERY,
+        viewMoreLink: { request: { page: 1, sort: { id: "MostPopular" } } },
     },
     {
         id: "latest",
         title: "Latest update",
         style: daisuke_1.SectionStyle.PADDED_LIST,
-        viewMoreLink: { request: { page: 1, sort: { id: "recentDate" } } },
+        viewMoreLink: { request: { page: 1, sort: { id: "Newest" } } },
     },
 ];
 exports.SEARCH_SORTERS = [
@@ -63,208 +54,6 @@ exports.STATUES = [
         id: "Completed",
     }
 ];
-exports.GENRES = [
-    {
-        title: "Action",
-        id: "0",
-    },
-    {
-        title: "Adventure",
-        id: "1",
-    },
-    {
-        title: "Anthology",
-        id: "2",
-    },
-    {
-        title: "Anthropomorphic",
-        id: "3",
-    },
-    {
-        title: "Biography",
-        id: "4",
-    },
-    {
-        title: "Children",
-        id: "5",
-    },
-    {
-        title: "Comedy",
-        id: "6",
-    },
-    {
-        title: "Crime",
-        id: "7",
-    },
-    {
-        title: "Drama",
-        id: "8",
-    },
-    {
-        title: "Family",
-        id: "9",
-    },
-    {
-        title: "Fantasy",
-        id: "10",
-    },
-    {
-        title: "Fighting",
-        id: "11",
-    },
-    {
-        title: "Graphic Novels",
-        id: "12",
-    },
-    {
-        title: "Historical",
-        id: "13",
-    },
-    {
-        title: "Horror",
-        id: "14",
-    },
-    {
-        title: "Leading Ladies",
-        id: "15",
-    },
-    {
-        title: "LGBTQ",
-        id: "16",
-    },
-    {
-        title: "Literature",
-        id: "17",
-    },
-    {
-        title: "Manga",
-        id: "18",
-    },
-    {
-        title: "Martial Arts",
-        id: "19",
-    },
-    {
-        title: "Mature",
-        id: "20",
-    },
-    {
-        title: "Military",
-        id: "21",
-    },
-    {
-        title: "Mini-Series",
-        id: "22",
-    },
-    {
-        title: "Movies & TV",
-        id: "23",
-    },
-    {
-        title: "Music",
-        id: "24",
-    },
-    {
-        title: "Mystery",
-        id: "25",
-    },
-    {
-        title: "Mythology",
-        id: "26",
-    },
-    {
-        title: "Personal",
-        id: "27",
-    },
-    {
-        title: "Political",
-        id: "28",
-    },
-    {
-        title: "Post-Apocalyptic",
-        id: "29",
-    },
-    {
-        title: "Psychological",
-        id: "30",
-    },
-    {
-        title: "Pulp",
-        id: "31",
-    },
-    {
-        title: "Religious",
-        id: "32",
-    },
-    {
-        title: "Robots",
-        id: "33",
-    },
-    {
-        title: "Romance",
-        id: "34",
-    },
-    {
-        title: "School Life",
-        id: "35",
-    },
-    {
-        title: "Sci-Fi",
-        id: "36",
-    },
-    {
-        title: "Slice of Life",
-        id: "37",
-    },
-    {
-        title: "Sport",
-        id: "38",
-    },
-    {
-        title: "Spy",
-        id: "39",
-    },
-    {
-        title: "Superhero",
-        id: "40",
-    },
-    {
-        title: "Supernatural",
-        id: "41",
-    },
-    {
-        title: "Suspense",
-        id: "42",
-    },
-    {
-        title: "Teen",
-        id: "43",
-    },
-    {
-        title: "Thriller",
-        id: "44",
-    },
-    {
-        title: "Vampires",
-        id: "45",
-    },
-    {
-        title: "Video Games",
-        id: "46",
-    },
-    {
-        title: "War",
-        id: "47",
-    },
-    {
-        title: "Western",
-        id: "48",
-    },
-    {
-        title: "Zombies",
-        id: "49",
-    },
-];
 exports.DEFAULT_FILTERS = [
     {
         id: "name",
@@ -282,13 +71,6 @@ exports.DEFAULT_FILTERS = [
         title: "Year",
         subtitle: "From 1970 - now",
         type: daisuke_1.FilterType.TEXT,
-        options: exports.GENRES
-    },
-    {
-        id: "genres",
-        title: "Genres",
-        type: daisuke_1.FilterType.EXCLUDABLE_MULTISELECT,
-        options: exports.GENRES
     },
 ];
 exports.IMAGE_QUALITIES = [
@@ -322,10 +104,19 @@ class Controller {
     }
     async buildHomePageSections() {
         const sections = [];
-        const $ = await this.fetchHTML(constants_1.READCOMICONLINE_URL);
+        const [homepage, lastComics] = await Promise.all([
+            this.fetchHTML(constants_1.READCOMICONLINE_URL),
+            this.fetchHTML(`${constants_1.READCOMICONLINE_URL}/ComicList/LatestUpdate`)
+        ]);
         for (const section of constants_1.HOME_PAGE_SECTIONS) {
-            const items = this.parser.getHomepageSection($, section.id);
-            sections.push({ ...section, items });
+            if (section.id == "latest") {
+                const items = this.parser.getHomepageSection(lastComics, section.id);
+                sections.push({ ...section, items });
+            }
+            else {
+                const items = this.parser.getHomepageSection(homepage, section.id);
+                sections.push({ ...section, items });
+            }
         }
         return sections.filter(a => a.items?.length);
     }
@@ -522,9 +313,41 @@ class Parser {
         });
         return items;
     }
+    getNewestComics($) {
+        const items = [];
+        $('.content.content.space-top>div.item-list>div.group').slice(0, 10).each((index, element) => {
+            const id = $(element).find('.cover > a').attr('href') || "";
+            const title = $(element).find('.info > p > a').text().trim();
+            const subtitle = $(element).find('.info > p:nth-child(2)').text().trim();
+            let cover = $(element).find('a > img').attr('src') || "";
+            if (!cover.includes("https:")) {
+                cover = constants_1.READCOMICONLINE_URL + cover;
+            }
+            items.push({ id, title, subtitle, cover });
+        });
+        return items;
+    }
+    getMostPopularComics($) {
+        const items = [];
+        $('.content.content.space-top>div.item-list>div.group').slice(10, 20).each((index, element) => {
+            const id = $(element).find('.cover > a').attr('href') || "";
+            const title = $(element).find('.info > p > a').text().trim();
+            const subtitle = $(element).find('.info > p:nth-child(2)').text().trim();
+            let cover = $(element).find('a > img').attr('src') || "";
+            if (!cover.includes("https:")) {
+                cover = constants_1.READCOMICONLINE_URL + cover;
+            }
+            items.push({ id, title, subtitle, cover });
+        });
+        return items;
+    }
     getHomepageSection($, id) {
         const highlights = [];
         switch (id) {
+            case "new-comic":
+                return this.getNewestComics($);
+            case "most-popular":
+                return this.getMostPopularComics($);
             case "latest":
                 return this.getSearchResults($);
         }
