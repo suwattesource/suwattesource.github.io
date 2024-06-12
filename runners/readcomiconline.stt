@@ -167,8 +167,8 @@ class Controller {
             const comicName = filters.name || "";
             const status = filters.status || "";
             const year = filters.year || "";
-            const ig = filters.genres?.included.join("%2C");
-            const eg = filters.genres?.excluded.join("%2C");
+            const ig = filters.genre?.included.join("%2C");
+            const eg = filters.genre?.excluded.join("%2C");
             return `${url}?comicName=${encodeURI(comicName)}&ig=${ig}&eg=${eg}&status=${status}&pubDate=${year}&page=${page}`;
         }
         if (query) {
@@ -234,6 +234,7 @@ const daisuke_1 = require("@suwatte/daisuke");
 const constants_1 = require("./constants");
 const controller_1 = require("./controller");
 const store_1 = require("./store");
+const lodash_1 = require("lodash");
 class Target {
     constructor() {
         this.info = {
@@ -263,18 +264,17 @@ class Target {
     }
     async getTags() {
         const filters = await this.controller.getFilters();
-        const genres = filters.pop();
-        return [
-            {
-                id: "genres",
-                title: "Genres",
-                tags: genres?.options?.map(genre => ({
-                    id: "/Genre/" + genre.title.replace(/[^\w\s]/gi, '')
-                        .replace(/\s+/g, '-'),
-                    title: genre.title
-                })) || []
-            }
-        ];
+        return filters
+            .filter(v => v.type != daisuke_1.FilterType.TEXT)
+            .map(({ id, title, options }) => ({
+            id,
+            title,
+            tags: (options ?? []).map((v) => ({
+                id: `/${(0, lodash_1.startCase)(id)}/` + v.title.replace(/[^\w\s]/gi, '')
+                    .replace(/\s+/g, '-'),
+                title: v.title,
+            })),
+        }));
     }
     async getDirectory(request) {
         return this.controller.getSearchResults(request);
@@ -334,7 +334,7 @@ class Target {
 }
 exports.Target = Target;
 
-},{"./constants":1,"./controller":2,"./store":5,"@suwatte/daisuke":6}],4:[function(require,module,exports){
+},{"./constants":1,"./controller":2,"./store":5,"@suwatte/daisuke":6,"lodash":undefined}],4:[function(require,module,exports){
 (function (Buffer){(function (){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -538,7 +538,7 @@ class Parser {
             genres.push({ id, title });
         });
         filters.push({
-            id: "genres",
+            id: "genre",
             title: "Genres",
             options: genres,
             type: daisuke_1.FilterType.EXCLUDABLE_MULTISELECT
