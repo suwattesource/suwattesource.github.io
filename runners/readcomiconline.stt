@@ -384,7 +384,7 @@ class Controller {
     }
     async getChapterData(chapterId) {
         const quality = await store_1.GlobalStore.getImageQuality();
-        const $ = await this.fetchHTML(`${constants_1.READCOMICONLINE_URL}${chapterId}?quality=${quality}`);
+        const $ = await this.fetchHTML(`${constants_1.READCOMICONLINE_URL}${chapterId}&quality=${quality}`);
         const chapterData = this.parser.getChapterData($);
         void this.preload(chapterData);
         return chapterData;
