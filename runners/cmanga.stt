@@ -31,7 +31,7 @@ class API {
         console.log(`Performing a request: ${JSON.stringify(request)}`);
         const response = await this.client.request(request);
         const setCookies = response.headers['set-cookie'];
-        console.log(setCookies);
+        console.log(response);
         const sessionCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNameSession) || "";
         const passwordCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNamePassword) || "";
         const userId = await this.getUserId(sessionCookie, passwordCookie);
@@ -66,6 +66,9 @@ class API {
     }
     async getSuggestGalleryList() {
         const userId = await SecureStore.string(constants_1.UserId);
+        if (!userId) {
+            return [];
+        }
         const domain = await store_1.GlobalStore.getDomain();
         const url = `${domain + constants_1.API_ALBUM_SUGGEST}?user=${userId}`;
         const galleries = await this.requestJSON({ url, method: "GET" });
@@ -332,7 +335,7 @@ class Controller {
             return section.id;
         });
         sections.sort((a, b) => sectionIdInOrder.indexOf(a.id) - sectionIdInOrder.indexOf(b.id));
-        return sections;
+        return sections.filter(a => a.items?.length);
     }
     async getSearchResults(request) {
         const results = await this.getGalleries(request);
