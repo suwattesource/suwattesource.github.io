@@ -21,7 +21,7 @@ import {GlobalStore} from "./store";
 export class Controller {
     private api = new API()
     private client = new NetworkClient()
-    private cache: CacheClass<string, DirectoryRequest | Option[]> = new memoryCache.Cache();
+    private cache: CacheClass<string, DirectoryRequest | Option[] | ChapterData> = new memoryCache.Cache();
     private parser = new Parser();
 
 
@@ -126,25 +126,33 @@ export class Controller {
             this.api.getGallery(contentId),
             this.api.getSimilarGalleries(contentId)
         ]);
-        return this.parser.getContent(gallery, similarGalleries, webUrl);
-    }
-
-    async getChapterData(contentId: string) {
-        const gallery = await this.api.getGallery(contentId)
         const chapterData = this.parser.getChapterData(gallery);
-        void this.preload(chapterData);
-        return chapterData;
+        this.cache.put(PREF_KEYS.cache_chapter_images, chapterData)
+        return this.parser.getContent(gallery, chapterData, similarGalleries, webUrl);
     }
 
-    async preload(chapterData: ChapterData) {
-        const pages = chapterData.pages || []
-        for (const page of pages) {
-            if (page.url != null) {
-                void this.client.get(page.url, {headers: {Referer: NHENTAI_DOMAIN + "/"}})
-            }
+    async getChapterData(chapterId: string) {
+        let chapterData = <ChapterData>this.cache.get(PREF_KEYS.cache_chapter_images)
+        const totalImages = chapterData.pages?.filter(v => v).map(v => String(v.url)) || []
+        const numberOfImages = await GlobalStore.getNumImages()
+        if (numberOfImages == 0) {
+            void this.preload(totalImages)
+            return chapterData
+        }
+        const getChapterImages = (images: string[], k: number, i: number) => images.slice(i * k, (i + 1) * k);
+        const images = getChapterImages(totalImages, numberOfImages, Number(chapterId) - 1);
+        void this.preload(images)
+        chapterData = {
+            pages: images.map(v => ({url: v}))
+        }
+        return chapterData
+    }
+
+    async preload(images: string[]) {
+        for (const image of images) {
+            void this.client.get(image, {headers: {Referer: NHENTAI_DOMAIN + "/"}})
         }
     }
-
 
     async getPopularTags(): Promise<Option[]> {
         const numPages = await GlobalStore.getNumPages()

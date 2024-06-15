@@ -1,7 +1,7 @@
 import {DEFAULT_EXCLUDED_TAGS, PREF_KEYS} from "./constants";
 
 export class Store {
-    async getExcludeTagIDs(): Promise<Number[]> {
+    async getExcludeTagIDs(): Promise<number[]> {
         const tagIDs = await this.getExcludeTags()
         return tagIDs.map(id => parseInt(id))
     }

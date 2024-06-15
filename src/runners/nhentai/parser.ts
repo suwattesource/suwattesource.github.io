@@ -68,7 +68,7 @@ export class Parser {
     }
 
 
-    async getContent(gallery: Gallery, similarGalleries: Gallery[], webUrl: string): Promise<Content> {
+    async getContent(gallery: Gallery, chapterData: ChapterData, similarGalleries: Gallery[], webUrl: string): Promise<Content> {
         const title = gallery.title.pretty
         const summary = `${gallery.num_pages} images`
         const isNSFW = true;
@@ -99,13 +99,13 @@ export class Parser {
 
         const properties = Array.from(propertyMap.values()).filter((property) => (property.id == "temp" || property.tags.length > 0))
 
-        let recommendedPanelMode = isWebtoon ? ReadingMode.WEBTOON : ReadingMode.PAGED_MANGA;
+        const recommendedPanelMode = isWebtoon ? ReadingMode.WEBTOON : ReadingMode.PAGED_MANGA;
 
         const info = [
             `♥️Favorite: ${gallery.num_favorites}`
         ]
 
-        const chapters = this.getChapters(gallery.upload_date, languageCode)
+        const chapters = await this.getChapters(chapterData, gallery.upload_date, languageCode)
 
         const collections: HighlightCollection[] = [];
         if (similarGalleries.length > 0) {
@@ -131,16 +131,33 @@ export class Parser {
         };
     }
 
-    getChapters(date: number, languageCode: string): Chapter[] {
+    async getChapters(chapterData: ChapterData, date: number, languageCode: string): Promise<Chapter[]> {
         const chapters: Chapter[] = [];
-        chapters.push({
-            chapterId: "",
-            number: 1,
-            title: "Images",
-            index: 1,
-            language: languageCode,
-            date: new Date(date * 1000),
-        });
+        const images = chapterData.pages?.filter(v => v).map(v => String(v.url)) || []
+        const numberOfImages = await GlobalStore.getNumImages()
+        if (numberOfImages == 0) {
+            chapters.push({
+                chapterId: "chapter",
+                number: 1,
+                title: "Images",
+                index: 1,
+                language: languageCode,
+                date: new Date(date * 1000),
+            });
+            return chapters;
+        }
+
+        const numberOfChapters = Math.ceil(images.length / numberOfImages);
+        for (let i = numberOfChapters; i >= 1; i--) {
+            chapters.push({
+                chapterId: i.toString(),
+                number: i,
+                title: `Image ${(i - 1) * numberOfImages + 1} - ${Math.min(i * numberOfImages, images.length)}`,
+                index: numberOfChapters - i,
+                language: languageCode,
+                date: new Date(date * 1000),
+            });
+        }
         return chapters;
     }
 

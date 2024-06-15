@@ -6,9 +6,11 @@ export const NHENTAI_DOMAIN = "https://nhentai.net";
 export const PREF_KEYS = {
     cache_tags: "tags",
     cache_request: "request",
+    cache_chapter_images: "chapter_images",
     exclude_tags: "exclude_tags",
     number_of_tag_pages: "number_of_tag_pages",
-    number_of_tag_pages_to_exclude: "number_of_tag_pages_to_exclude"
+    number_of_tag_pages_to_exclude: "number_of_tag_pages_to_exclude",
+    number_of_images_per_chapter: "number_of_images_per_chapter"
 };
 
 

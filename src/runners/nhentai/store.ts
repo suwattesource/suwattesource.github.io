@@ -30,6 +30,16 @@ export class Store {
     async setNumPagesToExclude(v: number) {
         return ObjectStore.set(PREF_KEYS.number_of_tag_pages_to_exclude, v);
     }
+
+    async getNumImages(): Promise<number> {
+        const numImages = await ObjectStore.number(PREF_KEYS.number_of_images_per_chapter)
+        if (!numImages) return 0;
+        return numImages
+    }
+
+    async setNumImages(v: number) {
+        return ObjectStore.set(PREF_KEYS.number_of_images_per_chapter, v);
+    }
 }
 
 
