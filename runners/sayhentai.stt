@@ -97,7 +97,11 @@ class Controller {
         return this.parser.getCategories($);
     }
     async createSearchURL(request, domain) {
-        let { query, tag, sort, page } = request;
+        // eslint-disable-next-line prefer-const
+        let { listId, query, tag, sort, page } = request;
+        if (listId) {
+            return `${domain}/${listId}?page=${page}`;
+        }
         if (!query && !tag && sort?.id) {
             request = this.cache.get(constants_1.PREF_KEYS.request) ?? request;
             query = request.query;
@@ -191,6 +195,12 @@ class Target {
                     ascending: false,
                 },
             },
+            lists: [
+                {
+                    id: "completed",
+                    title: "Truyện Full"
+                }
+            ],
         };
     }
     // Page Links
@@ -362,6 +372,11 @@ class Parser {
         const summary = $(".description-summary").text().trim();
         const genres = $('.genres-content>a').toArray();
         const translators = $('.post-content_item>a').toArray();
+        const additionalTitles = [];
+        const additionalTitle = $('.post-content_item:nth-child(4)>.summary-content').text().trim();
+        if (additionalTitle || additionalTitle != "Updating") {
+            additionalTitles.push(additionalTitle);
+        }
         const genreTags = this.createTags($, genres);
         let recommendedPanelMode = daisuke_1.ReadingMode.WEBTOON;
         genreTags.forEach((genre) => {
@@ -394,7 +409,7 @@ class Parser {
             });
         }
         const info = [];
-        const views = $('.post-content_item:nth-child(6)>.summary-content').text().trim(); // Get the text next to 'Tình Trạng:'
+        const views = $('.post-content_item:nth-child(6)>.summary-content').text().trim();
         if (views) {
             info.push(`👁 Lượt xem: ${(0, utils_1.numberWithDot)(views)}`);
         }
@@ -410,6 +425,7 @@ class Parser {
         const chapters = await this.getChapters($);
         return {
             title,
+            additionalTitles,
             cover,
             summary,
             webUrl,
