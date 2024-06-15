@@ -23,7 +23,7 @@ class API {
             },
             body: {
                 action: "login",
-                email: username,
+                username: username,
                 password: password,
             },
             method: "POST"
@@ -31,21 +31,18 @@ class API {
         const setCookies = response.headers['set-cookie'];
         const sessionCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNameSession) || "";
         const passwordCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNamePassword) || "";
-        const resp = await this.fetchHTML(await store_1.GlobalStore.getDomain(), {
-            cookies: [
-                {
-                    name: constants_1.CookieNameSession,
-                    value: sessionCookie
-                },
-                {
-                    name: constants_1.CookieNamePassword,
-                    value: passwordCookie
-                },
-            ]
-        });
-        console.log(resp);
+        const userId = await this.getUserId(sessionCookie, passwordCookie);
+        const userData = await this.getUserData(userId);
+        await SecureStore.set(constants_1.UserId, userId);
+        await SecureStore.set(constants_1.UserName, userData.name);
+        await SecureStore.set(constants_1.Avatar, userData.avatar);
         await SecureStore.set(constants_1.CookieNameSession, sessionCookie);
         await SecureStore.set(constants_1.CookieNamePassword, passwordCookie);
+    }
+    async getUserData(userId) {
+        const domain = await store_1.GlobalStore.getDomain();
+        const url = `${domain}${constants_1.API_GET_USER_DATA}?data=info&user=${userId}`;
+        return this.requestJSON({ url, method: "GET" });
     }
     async getGalleryInfo(galleryId) {
         const domain = await store_1.GlobalStore.getDomain();
@@ -101,6 +98,33 @@ class API {
         const url = domain + constants_1.API_GET_TAGS;
         return this.requestJSON({ url, method: "GET" });
     }
+    async getUserId(sessionCookie, passwordCookie) {
+        const $ = await this.fetchHTML(await store_1.GlobalStore.getDomain(), {
+            cookies: [
+                {
+                    name: constants_1.CookieNameSession,
+                    value: sessionCookie
+                },
+                {
+                    name: constants_1.CookieNamePassword,
+                    value: passwordCookie
+                },
+            ]
+        });
+        const scriptTag = $('script:contains("token_user")');
+        let userId = '';
+        if (scriptTag.length > 0) {
+            const scriptContent = scriptTag.html();
+            if (scriptContent) {
+                // Extract the value of token_user using regex
+                const match = scriptContent.match(/token_user\s*=\s*(\d+);/);
+                if (match && match.length > 1) {
+                    userId = match[1] || "";
+                }
+            }
+        }
+        return userId;
+    }
     async fetchHTML(url, config) {
         console.log(`Requesting to the url: ${url}${config ? ", config: " + JSON.stringify(config) : ""}`);
         const response = await this.client.get(url, config);
@@ -139,16 +163,20 @@ async function getGalleryFromCheerio($) {
 },{"./constants":2,"./store":6,"./utils":7,"@suwatte/daisuke":9,"cheerio":undefined}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.BATCH_SIZE_GET_CHAPTER_LIST = exports.CookieNamePassword = exports.CookieNameSession = exports.API_GET_TAGS = exports.API_SEARCH = exports.API_CHAPTER_IMAGE = exports.API_CHAPTER_LIST = exports.API_HOME_ALBUM_TOP = exports.API_HOME_ALBUM_LIST = exports.API_LOGIN = exports.CMANGA_DOMAIN = void 0;
+exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.BATCH_SIZE_GET_CHAPTER_LIST = exports.CookieNamePassword = exports.CookieNameSession = exports.Avatar = exports.UserName = exports.UserId = exports.API_GET_TAGS = exports.API_SEARCH = exports.API_CHAPTER_IMAGE = exports.API_CHAPTER_LIST = exports.API_HOME_ALBUM_TOP = exports.API_HOME_ALBUM_LIST = exports.API_GET_USER_DATA = exports.API_LOGIN = exports.CMANGA_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.CMANGA_DOMAIN = "https://cmangaog.com";
 exports.API_LOGIN = "/assets/ajax/user.php";
+exports.API_GET_USER_DATA = "/api/user_data";
 exports.API_HOME_ALBUM_LIST = "/api/home_album_list";
 exports.API_HOME_ALBUM_TOP = "/api/home_album_top";
 exports.API_CHAPTER_LIST = "/api/chapter_list";
 exports.API_CHAPTER_IMAGE = "/api/chapter_image";
 exports.API_SEARCH = "/api/search";
 exports.API_GET_TAGS = "/api/data?data=album_tags";
+exports.UserId = "user_id";
+exports.UserName = "user_name";
+exports.Avatar = "avatar";
 exports.CookieNameSession = "PHPSESSID";
 exports.CookieNamePassword = "login_password";
 exports.BATCH_SIZE_GET_CHAPTER_LIST = 500;
@@ -352,18 +380,21 @@ class Controller {
         return this.parser.getChapterData(chapterImages);
     }
     async handleAuth(username, password) {
-        void this.api.handleAuth(username, password);
+        await this.api.handleAuth(username, password);
     }
     async handleSignOut() {
-        await SecureStore.remove("session");
+        await SecureStore.remove(constants_1.UserId);
+        await SecureStore.remove(constants_1.CookieNameSession);
+        await SecureStore.remove(constants_1.CookieNamePassword);
     }
     async getAuthUser() {
-        const session = await SecureStore.get("session");
-        if (!session) {
+        const domain = await store_1.GlobalStore.getDomain();
+        const userId = await SecureStore.get(constants_1.UserId);
+        if (!userId) {
             return null;
         }
-        const name = await SecureStore.string("session") || "";
-        const avatar = await SecureStore.string("session") || "";
+        const name = await SecureStore.string(constants_1.UserName) || "";
+        const avatar = `${domain}/assets/tmp/avatar/${await SecureStore.string(constants_1.Avatar) || ""}`;
         const user = {
             handle: name,
             avatar: avatar
@@ -443,7 +474,7 @@ class Target {
         };
     }
     async handleBasicAuth(username, password) {
-        void this.controller.handleAuth(username, password);
+        await this.controller.handleAuth(username, password);
     }
     async handleUserSignOut() {
         return this.controller.handleSignOut();
