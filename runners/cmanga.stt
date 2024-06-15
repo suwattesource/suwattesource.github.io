@@ -28,6 +28,7 @@ class API {
             },
             method: "POST"
         };
+        console.log(`Performing a request: ${JSON.stringify(request)}`);
         const response = await this.client.request(request);
         console.log(`Performing a request: ${JSON.stringify(request)}`);
         const setCookies = response.headers['set-cookie'];
