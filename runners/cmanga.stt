@@ -77,7 +77,7 @@ class API {
         const domain = await store_1.GlobalStore.getDomain();
         const url = `${domain + constants_1.API_ALBUM_SUGGEST}?user=${userId}`;
         const galleries = await this.requestJSON({ url, method: "GET" });
-        return (0, utils_1.parseGalleries)(galleries);
+        return (0, utils_1.parseGalleries)(galleries.data);
     }
     async getTopGalleryList(type) {
         const domain = await store_1.GlobalStore.getDomain();
