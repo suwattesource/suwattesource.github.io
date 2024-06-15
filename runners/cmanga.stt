@@ -61,6 +61,13 @@ class API {
         });
         return (0, utils_1.parseGalleries)(json.data);
     }
+    async getSuggestGalleryList() {
+        const userId = await SecureStore.string(constants_1.UserId);
+        const domain = await store_1.GlobalStore.getDomain();
+        const url = `${domain + constants_1.API_ALBUM_SUGGEST}?user=${userId}`;
+        const galleries = await this.requestJSON({ url, method: "GET" });
+        return (0, utils_1.parseGalleries)(galleries);
+    }
     async getTopGalleryList(type) {
         const domain = await store_1.GlobalStore.getDomain();
         const url = `${domain + constants_1.API_HOME_ALBUM_TOP}?type=${type}&limit=10`;
@@ -163,11 +170,12 @@ async function getGalleryFromCheerio($) {
 },{"./constants":2,"./store":6,"./utils":7,"@suwatte/daisuke":9,"cheerio":undefined}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.BATCH_SIZE_GET_CHAPTER_LIST = exports.CookieNamePassword = exports.CookieNameSession = exports.Avatar = exports.UserName = exports.UserId = exports.API_GET_TAGS = exports.API_SEARCH = exports.API_CHAPTER_IMAGE = exports.API_CHAPTER_LIST = exports.API_HOME_ALBUM_TOP = exports.API_HOME_ALBUM_LIST = exports.API_GET_USER_DATA = exports.API_LOGIN = exports.CMANGA_DOMAIN = void 0;
+exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.BATCH_SIZE_GET_CHAPTER_LIST = exports.CookieNamePassword = exports.CookieNameSession = exports.Avatar = exports.UserName = exports.UserId = exports.API_GET_TAGS = exports.API_SEARCH = exports.API_CHAPTER_IMAGE = exports.API_CHAPTER_LIST = exports.API_HOME_ALBUM_TOP = exports.API_HOME_ALBUM_LIST = exports.API_ALBUM_SUGGEST = exports.API_GET_USER_DATA = exports.API_LOGIN = exports.CMANGA_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.CMANGA_DOMAIN = "https://cmangaog.com";
 exports.API_LOGIN = "/assets/ajax/user.php";
 exports.API_GET_USER_DATA = "/api/user_data";
+exports.API_ALBUM_SUGGEST = "/api/user_album_suggest";
 exports.API_HOME_ALBUM_LIST = "/api/home_album_list";
 exports.API_HOME_ALBUM_TOP = "/api/home_album_top";
 exports.API_CHAPTER_LIST = "/api/chapter_list";
@@ -190,6 +198,11 @@ exports.PREF_KEYS = {
     domain: "domain",
 };
 exports.HOME_PAGE_SECTIONS = [
+    {
+        id: "suggest",
+        title: "Gợi Ý Thông Minh",
+        style: daisuke_1.SectionStyle.GALLERY,
+    },
     {
         id: "day",
         title: "Top Ngày",
@@ -279,26 +292,36 @@ class Controller {
         const promises = [];
         const sections = [];
         for (const section of constants_1.HOME_PAGE_SECTIONS) {
-            if (section.id != "update") {
-                promises.push(this.api.getTopGalleryList(section.id).then(async (galleries) => {
-                    const items = await this.parser.getSearchResults(galleries);
-                    sections.push({ ...section, items });
-                }));
-            }
-            else {
-                promises.push(this.api.getGalleryList({
-                    num_chapter: 0,
-                    sort: section.id,
-                    hot: 0,
-                    tag: "all",
-                    limit: 20,
-                    page: 1,
-                    user: 0,
-                    child_protect: "off"
-                }).then(async (galleries) => {
-                    const items = await this.parser.getSearchResults(galleries);
-                    sections.push({ ...section, items });
-                }));
+            switch (section.id) {
+                case "suggest":
+                    promises.push(this.api.getSuggestGalleryList().then(async (galleries) => {
+                        const items = await this.parser.getSearchResults(galleries);
+                        sections.push({ ...section, items });
+                    }));
+                    break;
+                case "update":
+                    promises.push(this.api.getGalleryList({
+                        num_chapter: 0,
+                        sort: section.id,
+                        hot: 0,
+                        tag: "all",
+                        limit: 20,
+                        page: 1,
+                        user: 0,
+                        child_protect: "off"
+                    }).then(async (galleries) => {
+                        const items = await this.parser.getSearchResults(galleries);
+                        sections.push({ ...section, items });
+                    }));
+                    break;
+                case "day":
+                case "month":
+                case "total":
+                    promises.push(this.api.getTopGalleryList(section.id).then(async (galleries) => {
+                        const items = await this.parser.getSearchResults(galleries);
+                        sections.push({ ...section, items });
+                    }));
+                    break;
             }
         }
         await Promise.all(promises);
