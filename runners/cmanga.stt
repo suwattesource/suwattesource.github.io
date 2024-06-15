@@ -30,8 +30,8 @@ class API {
         };
         console.log(`Performing a request: ${JSON.stringify(request)}`);
         const response = await this.client.request(request);
-        console.log(`Performing a request: ${JSON.stringify(request)}`);
         const setCookies = response.headers['set-cookie'];
+        console.log(setCookies);
         const sessionCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNameSession) || "";
         const passwordCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNamePassword) || "";
         const userId = await this.getUserId(sessionCookie, passwordCookie);
