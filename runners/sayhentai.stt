@@ -42,7 +42,7 @@ exports.HOME_PAGE_SECTIONS = [
     {
         id: "new-manga",
         title: "Truyện Mới",
-        style: daisuke_1.SectionStyle.DEFAULT,
+        style: daisuke_1.SectionStyle.INFO,
     },
     {
         id: "new-update",
@@ -354,18 +354,6 @@ class Parser {
                 items.push(item);
             }
         });
-        return items;
-    }
-    getNewUpdateMangas($) {
-        const items = [];
-        for (const obj of $('li.search-li').toArray()) {
-            const cover = $('img', obj).attr('src') ?? '';
-            const title = $('b', $('div.search-des', obj)).text().trim() ?? '';
-            const id = $('a', $('div.search-des', obj)).attr('href')?.split('/').pop() ?? '';
-            if (!id || !title)
-                continue;
-            items.push({ id, title, cover });
-        }
         return items;
     }
     async getContent($, webUrl) {
