@@ -41,8 +41,12 @@ export class Controller {
     }
 
     async createSearchURL(request: DirectoryRequest, domain: string): Promise<string> {
-        let {query, tag, sort, page} = request;
+        // eslint-disable-next-line prefer-const
+        let {listId, query, tag, sort, page} = request;
 
+        if (listId) {
+            return `${domain}/${listId}?page=${page}`
+        }
         if (!query && !tag && sort?.id) {
             request = this.cache.get(PREF_KEYS.request) ?? request
             query = request.query

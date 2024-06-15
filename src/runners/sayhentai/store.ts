@@ -1,16 +1,6 @@
-import {DEFAULT_EXCLUDED_TAGS, PREF_KEYS, SAYHENTAI_DOMAIN} from "./constants";
+import {PREF_KEYS, SAYHENTAI_DOMAIN} from "./constants";
 
 export class Store {
-
-    async getExcludeCategories(): Promise<string[]> {
-        const tags = await ObjectStore.stringArray(PREF_KEYS.exclude_categories);
-        if (!tags) return DEFAULT_EXCLUDED_TAGS;
-        return tags;
-    }
-
-    async setExcludeCategories(v: string[]) {
-        return ObjectStore.set(PREF_KEYS.exclude_categories, v);
-    }
 
     async getDomain() {
         const value = await ObjectStore.string(PREF_KEYS.domain);

@@ -101,21 +101,6 @@ export class Parser {
         return items;
     }
 
-    getNewUpdateMangas($: CheerioAPI): Highlight[] {
-        const items: Highlight[] = [];
-
-        for (const obj of $('li.search-li').toArray()) {
-            const cover: string = $('img', obj).attr('src') ?? '';
-            const title: string = $('b', $('div.search-des', obj)).text().trim() ?? '';
-            const id = $('a', $('div.search-des', obj)).attr('href')?.split('/').pop() ?? '';
-
-            if (!id || !title) continue;
-
-            items.push({id, title, cover});
-        }
-        return items;
-    }
-
     async getContent($: CheerioAPI, webUrl: string): Promise<Content> {
         const title = $("div.post-title").text().trim()
         const cover = $(".summary_image>a>img").attr('src') || "";
@@ -123,6 +108,13 @@ export class Parser {
 
         const genres = $('.genres-content>a').toArray()
         const translators = $('.post-content_item>a').toArray();
+
+
+        const additionalTitles: string[] = []
+        const additionalTitle = $('.post-content_item:nth-child(4)>.summary-content').text().trim();
+        if (additionalTitle || additionalTitle != "Updating") {
+            additionalTitles.push(additionalTitle)
+        }
 
 
         const genreTags = this.createTags($, genres)
@@ -159,7 +151,7 @@ export class Parser {
         }
 
         const info: string[] = []
-        const views = $('.post-content_item:nth-child(6)>.summary-content').text().trim(); // Get the text next to 'Tình Trạng:'
+        const views = $('.post-content_item:nth-child(6)>.summary-content').text().trim();
         if (views) {
             info.push(`👁 Lượt xem: ${numberWithDot(views)}`)
         }
@@ -176,6 +168,7 @@ export class Parser {
         const chapters = await this.getChapters($)
         return {
             title,
+            additionalTitles,
             cover,
             summary,
             webUrl,

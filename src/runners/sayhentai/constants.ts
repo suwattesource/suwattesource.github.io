@@ -45,7 +45,7 @@ export const HOME_PAGE_SECTIONS: PageSection[] = [
     {
         id: "new-manga",
         title: "Truyện Mới",
-        style: SectionStyle.DEFAULT,
+        style: SectionStyle.INFO,
     },
     {
         id: "new-update",
@@ -54,5 +54,3 @@ export const HOME_PAGE_SECTIONS: PageSection[] = [
         viewMoreLink: {request: {page: 1, sort: {id: ""}}},
     },
 ];
-
-export const DEFAULT_EXCLUDED_TAGS = ["/the-loai-55-guro.html", "/the-loai-134-scat.html", "/the-loai-96-yaoi.html"]

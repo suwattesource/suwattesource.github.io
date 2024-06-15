@@ -17,7 +17,6 @@ import {
     ResolvedPageSection,
     RunnerInfo,
     RunnerPreferenceProvider,
-    UIMultiPicker,
     UITextField,
 } from "@suwatte/daisuke";
 import {PREF_KEYS, SAYHENTAI_DOMAIN, SEARCH_SORTERS} from "./constants";
@@ -81,6 +80,12 @@ export class Target
                     ascending: false,
                 },
             },
+            lists: [
+                {
+                    id: "completed",
+                    title: "Truyện Full"
+                }
+            ],
         };
     }
 
@@ -111,18 +116,6 @@ export class Target
     async getPreferenceMenu(): Promise<Form> {
         return {
             sections: [
-                {
-                    header: "Excluded Content",
-                    children: [
-                        UIMultiPicker({
-                            id: PREF_KEYS.exclude_categories,
-                            title: `Excluded Categories`,
-                            options: await this.controller.getCategories(),
-                            value: await GlobalStore.getExcludeCategories(),
-                            didChange: GlobalStore.setExcludeCategories,
-                        }),
-                    ],
-                },
                 {
                     header: "SayHentai Domain",
                     children: [
