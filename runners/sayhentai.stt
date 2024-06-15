@@ -1,7 +1,7 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_EXCLUDED_TAGS = exports.HOME_PAGE_SECTIONS = exports.SEARCH_SORTERS = exports.MANGA_TYPES = exports.PREF_KEYS = exports.SAYHENTAI_DOMAIN = void 0;
+exports.HOME_PAGE_SECTIONS = exports.SEARCH_SORTERS = exports.MANGA_TYPES = exports.PREF_KEYS = exports.SAYHENTAI_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.SAYHENTAI_DOMAIN = "https://sayhentai.co";
 exports.PREF_KEYS = {
@@ -51,7 +51,6 @@ exports.HOME_PAGE_SECTIONS = [
         viewMoreLink: { request: { page: 1, sort: { id: "" } } },
     },
 ];
-exports.DEFAULT_EXCLUDED_TAGS = ["/the-loai-55-guro.html", "/the-loai-134-scat.html", "/the-loai-96-yaoi.html"];
 
 },{"@suwatte/daisuke":7}],2:[function(require,module,exports){
 "use strict";
@@ -222,18 +221,6 @@ class Target {
     async getPreferenceMenu() {
         return {
             sections: [
-                {
-                    header: "Excluded Content",
-                    children: [
-                        (0, daisuke_1.UIMultiPicker)({
-                            id: constants_1.PREF_KEYS.exclude_categories,
-                            title: `Excluded Categories`,
-                            options: await this.controller.getCategories(),
-                            value: await store_1.GlobalStore.getExcludeCategories(),
-                            didChange: store_1.GlobalStore.setExcludeCategories,
-                        }),
-                    ],
-                },
                 {
                     header: "SayHentai Domain",
                     children: [
@@ -506,15 +493,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GlobalStore = exports.Store = void 0;
 const constants_1 = require("./constants");
 class Store {
-    async getExcludeCategories() {
-        const tags = await ObjectStore.stringArray(constants_1.PREF_KEYS.exclude_categories);
-        if (!tags)
-            return constants_1.DEFAULT_EXCLUDED_TAGS;
-        return tags;
-    }
-    async setExcludeCategories(v) {
-        return ObjectStore.set(constants_1.PREF_KEYS.exclude_categories, v);
-    }
     async getDomain() {
         const value = await ObjectStore.string(constants_1.PREF_KEYS.domain);
         if (!value) {
