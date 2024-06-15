@@ -2,13 +2,50 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.API = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
 const constants_1 = require("./constants");
 const cheerio_1 = require("cheerio");
 const utils_1 = require("./utils");
 const store_1 = require("./store");
 class API {
     constructor() {
-        this.client = new NetworkClient();
+        this.client = new daisuke_1.NetworkClientBuilder()
+            .addRequestInterceptor(utils_1.AuthInterceptor)
+            .build();
+    }
+    async handleAuth(username, password) {
+        const domain = await store_1.GlobalStore.getDomain();
+        const response = await this.client.request({
+            url: domain + constants_1.API_LOGIN,
+            headers: {
+                "content-type": "application/x-www-form-urlencoded",
+                "x-requested-with": "XMLHttpRequest"
+            },
+            body: {
+                action: "login",
+                email: username,
+                password: password,
+            },
+            method: "POST"
+        });
+        const setCookies = response.headers['set-cookie'];
+        const sessionCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNameSession) || "";
+        const passwordCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNamePassword) || "";
+        const resp = await this.fetchHTML(await store_1.GlobalStore.getDomain(), {
+            cookies: [
+                {
+                    name: constants_1.CookieNameSession,
+                    value: sessionCookie
+                },
+                {
+                    name: constants_1.CookieNamePassword,
+                    value: passwordCookie
+                },
+            ]
+        });
+        console.log(resp);
+        await SecureStore.set(constants_1.CookieNameSession, sessionCookie);
+        await SecureStore.set(constants_1.CookieNamePassword, passwordCookie);
     }
     async getGalleryInfo(galleryId) {
         const domain = await store_1.GlobalStore.getDomain();
@@ -49,7 +86,15 @@ class API {
     async getChapterImages(chapterId) {
         const domain = await store_1.GlobalStore.getDomain();
         const url = `${domain + constants_1.API_CHAPTER_IMAGE}?chapter=${chapterId}&v=0`;
-        return this.requestJSON({ url, method: "GET" });
+        const images = await this.requestJSON({ url, method: "GET" });
+        void this.preload(images);
+        return images;
+    }
+    async preload(chapterImages) {
+        const domain = await store_1.GlobalStore.getDomain();
+        for (const url of chapterImages) {
+            void this.client.get(url, { headers: { Referer: domain + "/" } });
+        }
     }
     async getGenres() {
         const domain = await store_1.GlobalStore.getDomain();
@@ -91,18 +136,21 @@ async function getGalleryFromCheerio($) {
     return { title, cover, status, tags, views, follows, description, last_update };
 }
 
-},{"./constants":2,"./store":6,"./utils":7,"cheerio":undefined}],2:[function(require,module,exports){
+},{"./constants":2,"./store":6,"./utils":7,"@suwatte/daisuke":9,"cheerio":undefined}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.BATCH_SIZE_GET_CHAPTER_LIST = exports.API_GET_TAGS = exports.API_SEARCH = exports.API_CHAPTER_IMAGE = exports.API_CHAPTER_LIST = exports.API_HOME_ALBUM_TOP = exports.API_HOME_ALBUM_LIST = exports.CMANGA_DOMAIN = void 0;
+exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.BATCH_SIZE_GET_CHAPTER_LIST = exports.CookieNamePassword = exports.CookieNameSession = exports.API_GET_TAGS = exports.API_SEARCH = exports.API_CHAPTER_IMAGE = exports.API_CHAPTER_LIST = exports.API_HOME_ALBUM_TOP = exports.API_HOME_ALBUM_LIST = exports.API_LOGIN = exports.CMANGA_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.CMANGA_DOMAIN = "https://cmangaog.com";
+exports.API_LOGIN = "/assets/ajax/user.php";
 exports.API_HOME_ALBUM_LIST = "/api/home_album_list";
 exports.API_HOME_ALBUM_TOP = "/api/home_album_top";
 exports.API_CHAPTER_LIST = "/api/chapter_list";
 exports.API_CHAPTER_IMAGE = "/api/chapter_image";
 exports.API_SEARCH = "/api/search";
 exports.API_GET_TAGS = "/api/data?data=album_tags";
+exports.CookieNameSession = "PHPSESSID";
+exports.CookieNamePassword = "login_password";
 exports.BATCH_SIZE_GET_CHAPTER_LIST = 500;
 exports.STATUS_KEYS = {
     "Đang Cập Nhật": daisuke_1.PublicationStatus.ONGOING,
@@ -183,10 +231,21 @@ const memory_cache_1 = __importDefault(require("memory-cache"));
 const store_1 = require("./store");
 class Controller {
     constructor() {
-        this.client = new NetworkClient();
         this.api = new api_1.API();
         this.cache = new memory_cache_1.default.Cache();
         this.parser = new parser_1.Parser();
+        // async followManga(_: string): Promise<void> {
+        //     const comicId = await ObjectStore.get(PREF_KEYS.comicId)
+        //     const comicToken = await ObjectStore.get(PREF_KEYS.comicToken)
+        //     const getFollowTokenApiUrl = `${await getAPIUrl(GET_FOLLOW_TOKEN)}?comicId=${comicId}&token=${comicToken}`
+        //     console.log(getFollowTokenApiUrl)
+        //     let resp = await this.client.get(getFollowTokenApiUrl)
+        //     const data = JSON.parse(resp.data)
+        //     console.log(data)
+        //     const followApiUrl = `${await getAPIUrl(FOLLOW)}?comicId=${comicId}&token=${data.data}`
+        //     resp = await this.client.get(followApiUrl)
+        //     console.log(JSON.parse(resp.data))
+        // }
     }
     async buildHomePageSections() {
         const promises = [];
@@ -290,14 +349,26 @@ class Controller {
     }
     async getChapterData(chapterId) {
         const chapterImages = await this.api.getChapterImages(chapterId);
-        void this.preload(chapterImages);
         return this.parser.getChapterData(chapterImages);
     }
-    async preload(chapterImages) {
-        const domain = await store_1.GlobalStore.getDomain();
-        for (const url of chapterImages) {
-            void this.client.get(url, { headers: { Referer: domain + "/" } });
+    async handleAuth(username, password) {
+        void this.api.handleAuth(username, password);
+    }
+    async handleSignOut() {
+        await SecureStore.remove("session");
+    }
+    async getAuthUser() {
+        const session = await SecureStore.get("session");
+        if (!session) {
+            return null;
         }
+        const name = await SecureStore.string("session") || "";
+        const avatar = await SecureStore.string("session") || "";
+        const user = {
+            handle: name,
+            avatar: avatar
+        };
+        return user;
     }
 }
 exports.Controller = Controller;
@@ -315,13 +386,14 @@ class Target {
         this.info = {
             id: "cmanga",
             website: constants_1.CMANGA_DOMAIN,
-            version: 0.1,
+            version: 0.2,
             name: "CManga",
             supportedLanguages: ["vi-vn"],
             thumbnail: "cmanga.png",
             minSupportedAppVersion: "6.0",
             rating: daisuke_1.CatalogRating.MIXED,
         };
+        this.BasicAuthUIIdentifier = daisuke_1.BasicAuthenticationUIIdentifier.USERNAME;
         this.controller = new controller_1.Controller();
     }
     async headers() {
@@ -369,6 +441,15 @@ class Target {
                 ...await this.headers(),
             },
         };
+    }
+    async handleBasicAuth(username, password) {
+        void this.controller.handleAuth(username, password);
+    }
+    async handleUserSignOut() {
+        return this.controller.handleSignOut();
+    }
+    async getAuthenticatedUser() {
+        return this.controller.getAuthUser();
     }
     async getPreferenceMenu() {
         return {
@@ -520,7 +601,9 @@ exports.GlobalStore = new Store();
 },{"./constants":2}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseChapters = exports.parseGalleries = void 0;
+exports.getCookieValue = exports.AuthInterceptor = exports.parseChapters = exports.parseGalleries = void 0;
+const store_1 = require("./store");
+const constants_1 = require("./constants");
 function parseGalleries(galleries) {
     return galleries.map((gallery) => ({
         ...gallery,
@@ -532,8 +615,43 @@ function parseChapters(chapters) {
     return chapters.map((chapter) => JSON.parse(String(chapter.info)));
 }
 exports.parseChapters = parseChapters;
+async function AuthInterceptor(request) {
+    const sessionCookie = await SecureStore.string(constants_1.CookieNameSession);
+    const passwordCookie = await SecureStore.string(constants_1.CookieNamePassword);
+    if (!sessionCookie || !passwordCookie)
+        return request;
+    request.headers = {
+        ...request.headers,
+        referer: await store_1.GlobalStore.getDomain(),
+    };
+    request.cookies = [
+        {
+            name: constants_1.CookieNameSession,
+            value: sessionCookie
+        },
+        {
+            name: constants_1.CookieNamePassword,
+            value: passwordCookie
+        },
+    ];
+    return request;
+}
+exports.AuthInterceptor = AuthInterceptor;
+const getCookieValue = (cookieArray, cookieName) => {
+    const cookieString = cookieArray.find(cookie => cookie.trim().startsWith(`${cookieName}=`));
+    if (!cookieString) {
+        return null;
+    }
+    const firstPart = cookieString.split(';')[0];
+    const keyValue = firstPart?.split('=');
+    if (!keyValue) {
+        return null;
+    }
+    return keyValue.length > 1 ? keyValue.slice(1).join('=') : null;
+};
+exports.getCookieValue = getCookieValue;
 
-},{}],8:[function(require,module,exports){
+},{"./constants":2,"./store":6}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startCase = exports.numberWithDot = exports.isNumber = void 0;
