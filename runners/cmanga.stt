@@ -15,7 +15,7 @@ class API {
     }
     async handleAuth(username, password) {
         const domain = await store_1.GlobalStore.getDomain();
-        const response = await this.client.request({
+        const request = {
             url: domain + constants_1.API_LOGIN,
             headers: {
                 "content-type": "application/x-www-form-urlencoded",
@@ -27,7 +27,9 @@ class API {
                 password: password,
             },
             method: "POST"
-        });
+        };
+        const response = await this.client.request(request);
+        console.log(`Performing a request: ${JSON.stringify(request)}`);
         const setCookies = response.headers['set-cookie'];
         const sessionCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNameSession) || "";
         const passwordCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNamePassword) || "";
