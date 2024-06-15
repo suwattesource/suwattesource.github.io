@@ -30,8 +30,13 @@ class API {
         };
         console.log(`Performing a request: ${JSON.stringify(request)}`);
         const response = await this.client.request(request);
-        const setCookies = response.headers['set-cookie'];
         console.log(response);
+        // const setCookies = response.headers['set-cookie']
+        const setCookies = [
+            'PHPSESSID=n5inubvsp99d21gm9ban18nqvu; path=/',
+            'login_email=token_login; expires=Sun, 15-Jun-2025 02:06:41 GMT; Max-Age=31536000; path=/',
+            'login_password=%7B%22ciphertext%22%3A%22acGIpqRAxQK%5C%2FxlN8bfPX3mZfydrfYWoWPqA1vWZ9d%5C%2FBr5uce394Xeai3ZJYHLUenP1CJkH4UsAj6qIj31i9PXCEW8mZUXKsd0lDtiyIX5wJOVsoJYxAPXLBepGDxYqxnJpINb%2BWbZu48fQQQ1Z1HqSkhRyn7XO7oZh3RY1MYHQs%3D%22%2C%22iv%22%3A%221ed45026c482efb6fadc50b009b64aa2%22%2C%22salt%22%3A%2282be7bea340bf0caff92c1faf0158f232245ae3f504d1c41259e3e9150812171d453148bb97c62a4aa08fd7e3fecb99ddc4a52fa114ab5e6d6ddc53f761d85a131a73862bf2613d9422d7758c3c985b16cc6c4ec4e64c2d8f647ecd335048f38cdabe1b63b331d9a4aea381c74d223e9c0dc0185ee76b89c55b870961c46d5ee7e157cd20e9b2fdff81377ac294e4b8fcfcaf15c538eadb3ae8499f4413df2bd8213cb1305aa7b24404ed223050fb3093bbae61d1ca7b9fc5bb6b37f7c08b732738d2dbbf575e04231bbddf5c538925466776cd6676252ea1e350c2101070bc383d33a7b96bdc1dc583e56273e1eb779266a474f6ae996b36259a019f8fdba9c%22%7D; expires=Sun, 15-Jun-2025 02:06:41 GMT; Max-Age=31536000; path=/'
+        ];
         const sessionCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNameSession) || "";
         const passwordCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNamePassword) || "";
         const userId = await this.getUserId(sessionCookie, passwordCookie);
