@@ -83,3 +83,9 @@ export interface Genre {
     string: string;
 }
 
+export interface UserData {
+    country: string;
+    language: string;
+    avatar: string;
+    name: string
+}

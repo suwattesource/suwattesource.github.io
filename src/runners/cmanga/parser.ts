@@ -10,7 +10,7 @@ export class Parser {
         const domain = await GlobalStore.getDomain()
         const items: Highlight[] = [];
         for (const gallery of galleries) {
-            const id = `${gallery.info.url}-${gallery.id_album}`
+            const id = `${gallery.info.url}-${gallery.info.id}`
             const title = startCase(gallery.info.name)
             const cover = `${domain}/assets/tmp/album/${gallery.info.avatar}`
             const info = [`Chương ${gallery.info.chapter.last} • ${gallery.last_update}`]

@@ -1,8 +1,12 @@
 import {
+    BasicAuthenticatable,
+    BasicAuthenticationUIIdentifier,
     CatalogRating,
     Chapter,
     ChapterData,
+    ChapterEventHandler,
     Content,
+    ContentEventHandler,
     ContentSource,
     DirectoryConfig,
     DirectoryRequest,
@@ -19,23 +23,34 @@ import {
     RunnerPreferenceProvider,
     UITextField,
 } from "@suwatte/daisuke";
-import {CMANGA_DOMAIN, PREF_KEYS, SEARCH_SORTERS} from "./constants";
+import {CMANGA_DOMAIN, PREF_KEYS, SEARCH_SORTERS, USER_LIST} from "./constants";
 import {Controller} from "./controller";
 import {GlobalStore} from "./store";
+import {isLoggedIn} from "./utils";
+import {ReadingFlag} from "@suwatte/daisuke/dist/types";
 
 
 export class Target
-    implements ContentSource, PageLinkResolver, ImageRequestHandler, RunnerPreferenceProvider {
+    implements ContentSource,
+        PageLinkResolver,
+        ChapterEventHandler,
+        ContentEventHandler,
+        ImageRequestHandler,
+        BasicAuthenticatable,
+        RunnerPreferenceProvider {
     info: RunnerInfo = {
         id: "cmanga",
         website: CMANGA_DOMAIN,
-        version: 0.1,
+        version: 0.2,
         name: "CManga",
         supportedLanguages: ["vi-vn"],
         thumbnail: "cmanga.png",
         minSupportedAppVersion: "6.0",
         rating: CatalogRating.MIXED,
     };
+
+    BasicAuthUIIdentifier = BasicAuthenticationUIIdentifier.USERNAME
+
     private controller = new Controller();
 
     async headers(): Promise<Record<string, string>> {
@@ -73,6 +88,7 @@ export class Target
     async getDirectoryConfig(): Promise<DirectoryConfig> {
         return {
             filters: await this.controller.getFilters(),
+            lists: USER_LIST,
             sort: {
                 options: SEARCH_SORTERS,
                 default: {id: ""}
@@ -99,6 +115,46 @@ export class Target
                 ...await this.headers(),
             },
         };
+    }
+
+    async handleBasicAuth(username: string, password: string): Promise<void> {
+        await this.controller.handleAuth(username, password)
+    }
+
+    async handleUserSignOut() {
+        return this.controller.handleSignOut()
+    }
+
+    async getAuthenticatedUser() {
+        return this.controller.getAuthUser()
+    }
+
+    async onChapterRead(_: string, chapterId: string): Promise<void> {
+        const loggedIn = await isLoggedIn();
+        if (!loggedIn) return;
+        return this.controller.markChapterAsRead(chapterId);
+    }
+
+    async onContentsAddedToLibrary(ids: string[]): Promise<void> {
+        const loggedIn = await isLoggedIn();
+        if (!loggedIn) return;
+        for (const id of ids) {
+            await this.controller.followManga(id);
+        }
+        return
+    }
+
+
+    async onChaptersMarked(_contentId: string, _chapterIds: string[], _completed: boolean): Promise<void> {
+        return
+    }
+
+    async onContentsRemovedFromLibrary(_ids: string[]): Promise<void> {
+        return
+    }
+
+    async onContentsReadingFlagChanged(_ids: string[], _flag: ReadingFlag): Promise<void> {
+        return
     }
 
     async getPreferenceMenu(): Promise<Form> {

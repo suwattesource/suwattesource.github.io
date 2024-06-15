@@ -14,10 +14,7 @@ describe("CManga Tests", () => {
 
     test("Query", async () => {
         const filters: DirectoryRequest = {
-            tag: {
-                tagId: "/theloai/comedy",
-                propertyId: "genres"
-            },
+          listId: "album_history",
             page: 1
         }
         const data = await source.getDirectory(filters)
@@ -42,6 +39,10 @@ describe("CManga Tests", () => {
     test("Tag", async () => {
         const data = await source.getTags();
         expect(ChapterDataSchema.parse(data)).toEqual(expect.any(Object));
+    });
+    test("Auth", async () => {
+        const data = await source.handleBasicAuth("nhant1809", "Nhadaica123@");
+        console.log(data)
     });
 
 });

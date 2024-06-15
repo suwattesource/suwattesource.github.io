@@ -72,6 +72,12 @@ export class Target
 
     async getDirectoryConfig(): Promise<DirectoryConfig> {
         return {
+            lists: [
+                {
+                    id: "completed",
+                    title: "Truyện Full"
+                }
+            ],
             sort: {
                 options: SEARCH_SORTERS,
                 canChangeOrder: false,
@@ -80,12 +86,6 @@ export class Target
                     ascending: false,
                 },
             },
-            lists: [
-                {
-                    id: "completed",
-                    title: "Truyện Full"
-                }
-            ],
         };
     }
 

@@ -6,9 +6,19 @@ import {
     Highlight,
     Option,
     PagedResult,
-    PageSection
+    PageSection,
+    User
 } from "@suwatte/daisuke";
-import {DEFAULT_FILTERS, HOME_PAGE_SECTIONS, PREF_KEYS} from "./constants";
+import {
+    Avatar,
+    CookieNamePassword,
+    CookieNameSession,
+    DEFAULT_FILTERS,
+    HOME_PAGE_SECTIONS,
+    PREF_KEYS,
+    UserId,
+    UserName
+} from "./constants";
 import {Parser} from "./parser";
 import {API} from "./api";
 import memoryCache, {CacheClass} from "memory-cache";
@@ -16,7 +26,6 @@ import {GlobalStore} from "./store";
 import {ChapterInfo, GalleryInfo, GetGalleryListRequest} from "./type";
 
 export class Controller {
-    private client = new NetworkClient()
     private api = new API()
     private cache: CacheClass<string, DirectoryRequest | Option[]> = new memoryCache.Cache();
     private parser = new Parser();
@@ -27,39 +36,51 @@ export class Controller {
         const sections: PageSection[] = [];
 
         for (const section of HOME_PAGE_SECTIONS) {
-            if (section.id != "update") {
-                promises.push(
-                    this.api.getTopGalleryList(section.id).then(async (galleries) => {
-                        const items = await this.parser.getSearchResults(galleries)
-                        sections.push({...section, items})
-                    })
-                )
-            } else {
-                promises.push(this.api.getGalleryList(
-                        {
-                            num_chapter: 0,
-                            sort: section.id,
-                            hot: 0,
-                            tag: "all",
-                            limit: 20,
-                            page: 1,
-                            user: 0,
-                            child_protect: "off"
-                        }
-                    ).then(async (galleries) => {
-                        const items = await this.parser.getSearchResults(galleries)
-                        sections.push({...section, items})
-                    })
-                )
+            switch (section.id) {
+                case "suggest":
+                    promises.push(
+                        this.api.getSuggestGalleryList().then(async (galleries) => {
+                            const items = await this.parser.getSearchResults(galleries)
+                            sections.push({...section, items})
+                        })
+                    )
+                    break;
+                case "update":
+                    promises.push(this.api.getGalleryList(
+                            {
+                                num_chapter: 0,
+                                sort: section.id,
+                                hot: 0,
+                                tag: "all",
+                                limit: 20,
+                                page: 1,
+                                user: 0,
+                                child_protect: "off"
+                            }
+                        ).then(async (galleries) => {
+                            const items = await this.parser.getSearchResults(galleries)
+                            sections.push({...section, items})
+                        })
+                    )
+                    break;
+                case "day":
+                case "month":
+                case "total":
+                    promises.push(
+                        this.api.getTopGalleryList(section.id).then(async (galleries) => {
+                            const items = await this.parser.getSearchResults(galleries)
+                            sections.push({...section, items})
+                        })
+                    )
+                    break;
             }
-
         }
         await Promise.all(promises)
         const sectionIdInOrder = HOME_PAGE_SECTIONS.map((section) => {
             return section.id
         })
         sections.sort((a, b) => sectionIdInOrder.indexOf(a.id) - sectionIdInOrder.indexOf(b.id));
-        return sections;
+        return sections.filter(a => a.items?.length);
     }
 
     async getSearchResults(request: DirectoryRequest): Promise<PagedResult> {
@@ -73,7 +94,12 @@ export class Controller {
 
     async getGalleries(request: DirectoryRequest): Promise<Highlight[]> {
         // eslint-disable-next-line prefer-const
-        let {filters, query, tag, sort, page} = request
+        let {listId, filters, query, tag, sort, page} = request
+
+        if (listId) {
+            const galleries = await this.api.getUserGalleryList(listId, page)
+            return this.parser.getSearchResults(galleries, true)
+        }
 
         const getGalleryList: GetGalleryListRequest = {user: 0, hot: "off", child_protect: "off", limit: 20, page: page}
 
@@ -142,14 +168,42 @@ export class Controller {
 
     async getChapterData(chapterId: string) {
         const chapterImages = await this.api.getChapterImages(chapterId)
-        void this.preload(chapterImages)
         return this.parser.getChapterData(chapterImages);
     }
 
-    async preload(chapterImages: string[]) {
+    async handleAuth(username: string, password: string) {
+        await this.api.handleAuth(username, password)
+    }
+
+    async handleSignOut() {
+        await SecureStore.remove(UserId)
+        await SecureStore.remove(CookieNameSession);
+        await SecureStore.remove(CookieNamePassword);
+    }
+
+    async getAuthUser() {
         const domain = await GlobalStore.getDomain()
-        for (const url of chapterImages) {
-            void this.client.get(url, {headers: {Referer: domain + "/"}})
+        const userId = await SecureStore.get(UserId);
+        if (!userId) {
+            return null;
         }
+
+        const name = await SecureStore.string(UserName) || "";
+        const avatar = `${domain}/assets/tmp/avatar/${await SecureStore.string(Avatar) || ""}`
+
+        const user: User = {
+            handle: name,
+            avatar: avatar
+        };
+
+        return user;
+    }
+
+    async markChapterAsRead(chapterId: string) {
+        return this.api.markChapterAsRead(chapterId)
+    }
+
+    async followManga(contentId: string) {
+        return this.api.followManga(contentId)
     }
 }
