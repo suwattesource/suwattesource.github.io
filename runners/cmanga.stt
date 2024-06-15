@@ -79,6 +79,16 @@ class API {
         const galleries = await this.requestJSON({ url, method: "GET" });
         return (0, utils_1.parseGalleries)(galleries.data);
     }
+    async getUserGalleryList(type, page) {
+        const userId = await SecureStore.string(constants_1.UserId);
+        if (!userId) {
+            return [];
+        }
+        const domain = await store_1.GlobalStore.getDomain();
+        const url = `${domain + constants_1.API_GET_USER_LIST}?type=${type}&limit=20&user=${userId}&page=${page}`;
+        const galleries = await this.requestJSON({ url, method: "GET" });
+        return (0, utils_1.parseGalleries)(galleries.data);
+    }
     async getTopGalleryList(type) {
         const domain = await store_1.GlobalStore.getDomain();
         const url = `${domain + constants_1.API_HOME_ALBUM_TOP}?type=${type}&limit=10`;
@@ -218,12 +228,13 @@ async function getGalleryFromCheerio($) {
 },{"./constants":2,"./store":6,"./utils":7,"@suwatte/daisuke":9,"cheerio":undefined}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.BATCH_SIZE_GET_CHAPTER_LIST = exports.CookieNamePassword = exports.CookieNameSession = exports.Avatar = exports.UserName = exports.UserId = exports.API_GET_TAGS = exports.API_SEARCH = exports.API_CHAPTER_IMAGE = exports.API_CHAPTER_LIST = exports.API_HOME_ALBUM_TOP = exports.API_HOME_ALBUM_LIST = exports.API_ALBUM_SUGGEST = exports.API_USER_OPERATION = exports.API_GET_USER_DATA = exports.API_LOGIN = exports.CMANGA_DOMAIN = void 0;
+exports.USER_LIST = exports.DEFAULT_FILTERS = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.VERTICAL_TYPES = exports.STATUS_KEYS = exports.BATCH_SIZE_GET_CHAPTER_LIST = exports.CookieNamePassword = exports.CookieNameSession = exports.Avatar = exports.UserName = exports.UserId = exports.API_GET_TAGS = exports.API_SEARCH = exports.API_CHAPTER_IMAGE = exports.API_CHAPTER_LIST = exports.API_HOME_ALBUM_TOP = exports.API_HOME_ALBUM_LIST = exports.API_ALBUM_SUGGEST = exports.API_GET_USER_LIST = exports.API_USER_OPERATION = exports.API_GET_USER_DATA = exports.API_LOGIN = exports.CMANGA_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.CMANGA_DOMAIN = "https://cmangaog.com";
 exports.API_LOGIN = "/assets/ajax/user.php";
 exports.API_GET_USER_DATA = "/api/user_data";
 exports.API_USER_OPERATION = "/assets/ajax/user.php";
+exports.API_GET_USER_LIST = "/api/user_list";
 exports.API_ALBUM_SUGGEST = "/api/user_album_suggest";
 exports.API_HOME_ALBUM_LIST = "/api/home_album_list";
 exports.API_HOME_ALBUM_TOP = "/api/home_album_top";
@@ -305,6 +316,16 @@ exports.DEFAULT_FILTERS = [
         type: daisuke_1.FilterType.TOGGLE,
     },
 ];
+exports.USER_LIST = [
+    {
+        "id": "album_follow",
+        "title": "Truyện theo dõi"
+    },
+    {
+        "id": "album_history",
+        "title": "Truyện đã đọc"
+    }
+];
 
 },{"@suwatte/daisuke":9}],3:[function(require,module,exports){
 "use strict";
@@ -324,18 +345,6 @@ class Controller {
         this.api = new api_1.API();
         this.cache = new memory_cache_1.default.Cache();
         this.parser = new parser_1.Parser();
-        // async followManga(_: string): Promise<void> {
-        //     const comicId = await ObjectStore.get(PREF_KEYS.comicId)
-        //     const comicToken = await ObjectStore.get(PREF_KEYS.comicToken)
-        //     const getFollowTokenApiUrl = `${await getAPIUrl(GET_FOLLOW_TOKEN)}?comicId=${comicId}&token=${comicToken}`
-        //     console.log(getFollowTokenApiUrl)
-        //     let resp = await this.client.get(getFollowTokenApiUrl)
-        //     const data = JSON.parse(resp.data)
-        //     console.log(data)
-        //     const followApiUrl = `${await getAPIUrl(FOLLOW)}?comicId=${comicId}&token=${data.data}`
-        //     resp = await this.client.get(followApiUrl)
-        //     console.log(JSON.parse(resp.data))
-        // }
     }
     async buildHomePageSections() {
         const promises = [];
@@ -389,7 +398,11 @@ class Controller {
     }
     async getGalleries(request) {
         // eslint-disable-next-line prefer-const
-        let { filters, query, tag, sort, page } = request;
+        let { listId, filters, query, tag, sort, page } = request;
+        if (listId) {
+            const galleries = await this.api.getUserGalleryList(listId, page);
+            return this.parser.getSearchResults(galleries, true);
+        }
         const getGalleryList = { user: 0, hot: "off", child_protect: "off", limit: 20, page: page };
         if (!filters && !query && !tag && sort && sort.id) {
             request = this.cache.get(constants_1.PREF_KEYS.cache_request) ?? request;
@@ -532,6 +545,7 @@ class Target {
     async getDirectoryConfig() {
         return {
             filters: await this.controller.getFilters(),
+            lists: constants_1.USER_LIST,
             sort: {
                 options: constants_1.SEARCH_SORTERS,
                 default: { id: "" }

@@ -186,6 +186,12 @@ class Target {
     }
     async getDirectoryConfig() {
         return {
+            lists: [
+                {
+                    id: "completed",
+                    title: "Truyện Full"
+                }
+            ],
             sort: {
                 options: constants_1.SEARCH_SORTERS,
                 canChangeOrder: false,
@@ -194,12 +200,6 @@ class Target {
                     ascending: false,
                 },
             },
-            lists: [
-                {
-                    id: "completed",
-                    title: "Truyện Full"
-                }
-            ],
         };
     }
     // Page Links
