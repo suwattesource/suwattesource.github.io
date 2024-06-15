@@ -632,7 +632,7 @@ class Parser {
         const domain = await store_1.GlobalStore.getDomain();
         const items = [];
         for (const gallery of galleries) {
-            const id = `${gallery.info.url}-${gallery.id_album}`;
+            const id = `${gallery.info.url}-${gallery.info.id}`;
             const title = (0, utils_1.startCase)(gallery.info.name);
             const cover = `${domain}/assets/tmp/album/${gallery.info.avatar}`;
             const info = [`Chương ${gallery.info.chapter.last} • ${gallery.last_update}`];
