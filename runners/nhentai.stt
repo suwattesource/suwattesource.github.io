@@ -88,9 +88,11 @@ exports.NHENTAI_DOMAIN = "https://nhentai.net";
 exports.PREF_KEYS = {
     cache_tags: "tags",
     cache_request: "request",
+    cache_chapter_images: "chapter_images",
     exclude_tags: "exclude_tags",
     number_of_tag_pages: "number_of_tag_pages",
-    number_of_tag_pages_to_exclude: "number_of_tag_pages_to_exclude"
+    number_of_tag_pages_to_exclude: "number_of_tag_pages_to_exclude",
+    number_of_images_per_chapter: "number_of_images_per_chapter"
 };
 exports.LANGUAGES = [
     {
@@ -376,20 +378,29 @@ class Controller {
             this.api.getGallery(contentId),
             this.api.getSimilarGalleries(contentId)
         ]);
-        return this.parser.getContent(gallery, similarGalleries, webUrl);
-    }
-    async getChapterData(contentId) {
-        const gallery = await this.api.getGallery(contentId);
         const chapterData = this.parser.getChapterData(gallery);
-        void this.preload(chapterData);
+        this.cache.put(constants_1.PREF_KEYS.cache_chapter_images, chapterData);
+        return this.parser.getContent(gallery, chapterData, similarGalleries, webUrl);
+    }
+    async getChapterData(chapterId) {
+        let chapterData = this.cache.get(constants_1.PREF_KEYS.cache_chapter_images);
+        const totalImages = chapterData.pages?.filter(v => v).map(v => String(v.url)) || [];
+        const numberOfImages = await store_1.GlobalStore.getNumImages();
+        if (numberOfImages == 0) {
+            void this.preload(totalImages);
+            return chapterData;
+        }
+        const getChapterImages = (images, k, i) => images.slice(i * k, (i + 1) * k);
+        const images = getChapterImages(totalImages, numberOfImages, Number(chapterId) - 1);
+        void this.preload(images);
+        chapterData = {
+            pages: images.map(v => ({ url: v }))
+        };
         return chapterData;
     }
-    async preload(chapterData) {
-        const pages = chapterData.pages || [];
-        for (const page of pages) {
-            if (page.url != null) {
-                void this.client.get(page.url, { headers: { Referer: constants_1.NHENTAI_DOMAIN + "/" } });
-            }
+    async preload(images) {
+        for (const image of images) {
+            void this.client.get(image, { headers: { Referer: constants_1.NHENTAI_DOMAIN + "/" } });
         }
     }
     async getPopularTags() {
@@ -474,8 +485,8 @@ class Target {
     async getChapters(_) {
         return [];
     }
-    async getChapterData(contentId, _) {
-        return this.controller.getChapterData(contentId);
+    async getChapterData(_, chapterId) {
+        return this.controller.getChapterData(chapterId);
     }
     async getTags() {
         const properties = [];
@@ -549,6 +560,20 @@ class Target {
                         }),
                     ],
                 },
+                {
+                    header: "Chapter Split",
+                    children: [
+                        (0, daisuke_1.UIStepper)({
+                            id: constants_1.PREF_KEYS.number_of_images_per_chapter,
+                            title: `Max images per chapter`,
+                            lowerBound: 0,
+                            upperBound: 1000,
+                            step: 10,
+                            value: await store_1.GlobalStore.getNumImages(),
+                            didChange: store_1.GlobalStore.setNumImages,
+                        }),
+                    ],
+                },
             ],
         };
     }
@@ -606,7 +631,7 @@ class Parser {
         });
         return items;
     }
-    async getContent(gallery, similarGalleries, webUrl) {
+    async getContent(gallery, chapterData, similarGalleries, webUrl) {
         const title = gallery.title.pretty;
         const summary = `${gallery.num_pages} images`;
         const isNSFW = true;
@@ -630,11 +655,11 @@ class Parser {
             property?.tags.push({ id: tag.id.toString(), title: (0, lodash_1.startCase)(tag.name) });
         }
         const properties = Array.from(propertyMap.values()).filter((property) => (property.id == "temp" || property.tags.length > 0));
-        let recommendedPanelMode = isWebtoon ? daisuke_1.ReadingMode.WEBTOON : daisuke_1.ReadingMode.PAGED_MANGA;
+        const recommendedPanelMode = isWebtoon ? daisuke_1.ReadingMode.WEBTOON : daisuke_1.ReadingMode.PAGED_MANGA;
         const info = [
             `♥️Favorite: ${gallery.num_favorites}`
         ];
-        const chapters = this.getChapters(gallery.upload_date, languageCode);
+        const chapters = await this.getChapters(chapterData, gallery.upload_date, languageCode);
         const collections = [];
         if (similarGalleries.length > 0) {
             collections.push({
@@ -657,16 +682,32 @@ class Parser {
             collections
         };
     }
-    getChapters(date, languageCode) {
+    async getChapters(chapterData, date, languageCode) {
         const chapters = [];
-        chapters.push({
-            chapterId: "",
-            number: 1,
-            title: "Images",
-            index: 1,
-            language: languageCode,
-            date: new Date(date * 1000),
-        });
+        const images = chapterData.pages?.filter(v => v).map(v => String(v.url)) || [];
+        const numberOfImages = await store_1.GlobalStore.getNumImages();
+        if (numberOfImages == 0) {
+            chapters.push({
+                chapterId: "chapter",
+                number: 1,
+                title: "Images",
+                index: 1,
+                language: languageCode,
+                date: new Date(date * 1000),
+            });
+            return chapters;
+        }
+        const numberOfChapters = Math.ceil(images.length / numberOfImages);
+        for (let i = numberOfChapters; i >= 1; i--) {
+            chapters.push({
+                chapterId: i.toString(),
+                number: i,
+                title: `Image ${(i - 1) * numberOfImages + 1} - ${Math.min(i * numberOfImages, images.length)}`,
+                index: numberOfChapters - i,
+                language: languageCode,
+                date: new Date(date * 1000),
+            });
+        }
         return chapters;
     }
     getChapterData(gallery) {
@@ -753,6 +794,15 @@ class Store {
     }
     async setNumPagesToExclude(v) {
         return ObjectStore.set(constants_1.PREF_KEYS.number_of_tag_pages_to_exclude, v);
+    }
+    async getNumImages() {
+        const numImages = await ObjectStore.number(constants_1.PREF_KEYS.number_of_images_per_chapter);
+        if (!numImages)
+            return 0;
+        return numImages;
+    }
+    async setNumImages(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.number_of_images_per_chapter, v);
     }
 }
 exports.Store = Store;
