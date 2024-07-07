@@ -124,7 +124,7 @@ export class Controller {
 
         if (query) {
             return {
-                url: `${domain}/timkiem/nangcao/1/0/-1/-1?txt=${query}&p=${page}`
+                url: `${domain}/timkiem/nangcao/1/0/-1/-1?txt=${encodeURI(query)}&p=${page}`
             }
         }
 
