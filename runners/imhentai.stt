@@ -944,7 +944,7 @@ class Parser {
         for (const key in images) {
             if (Object.prototype.hasOwnProperty.call(images, key)) {
                 const iext = images[key]?.replace(/"/g, "").split(",")[0];
-                const iextPr = (iext === "p") ? "png" : (iext === "b") ? "bmp" : (iext === "g") ? "gif" : "jpg";
+                const iextPr = (iext === "p") ? "png" : (iext === "b") ? "bmp" : (iext === "g") ? "gif" : (iext === "w") ? "webp" : "jpg";
                 const imageUrl = `https://${imageServer}/${imageDir}/${galleryId}/${key}.${iextPr}`;
                 pages.push(imageUrl);
             }
