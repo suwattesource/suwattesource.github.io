@@ -39,42 +39,42 @@ exports.TOPLIST_PAGES = [
 ];
 exports.LANGUAGES = [
     {
-        label: "Chinese",
+        label: "chinese",
         languageCode: "zh",
         regionCode: "cn",
     },
     {
-        label: "English",
+        label: "english",
         languageCode: "en",
         regionCode: "gb",
     },
     {
-        label: "Japanese",
+        label: "japanese",
         languageCode: "ja",
         regionCode: "jp",
     },
     {
-        label: "Spanish",
+        label: "spanish",
         languageCode: "es",
         regionCode: "es",
     },
     {
-        label: "French",
+        label: "french",
         languageCode: "fr",
         regionCode: "fr",
     },
     {
-        label: "Korean",
+        label: "korean",
         languageCode: "ko",
         regionCode: "kr",
     },
     {
-        label: "German",
+        label: "german",
         languageCode: "de",
         regionCode: "de",
     },
     {
-        label: "Russian",
+        label: "russian",
         languageCode: "ru",
         regionCode: "ru",
     }
@@ -1851,7 +1851,7 @@ class Parser {
     }
     async parsePage($) {
         const pages = [];
-        const pageDivArr = $('div.gdtm').toArray();
+        const pageDivArr = $('div.gt200 > a').toArray();
         for (const page of pageDivArr) {
             pages.push(this.getImage($('a', page).attr('href') ?? ''));
         }

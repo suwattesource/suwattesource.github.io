@@ -535,7 +535,7 @@ class Parser {
             const info = categories.match(/.{1,32}(,\s|$)|.{1,32}$/g) || [];
             const chapterNumber = $(element).find('div.last_chapter a').text();
             const timeAgo = $(element).find('div.top-notice span.time-ago').text();
-            const lastChapterInfo = `${chapterNumber}  🕒 ${timeAgo}`;
+            const lastChapterInfo = `${chapterNumber} • ${timeAgo}`;
             info.splice(0, 0, lastChapterInfo);
             item.info = info.map(i => i.trim());
             if (!excludeSubtitle) {

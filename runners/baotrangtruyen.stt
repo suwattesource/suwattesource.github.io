@@ -112,13 +112,14 @@ class Controller {
         };
     }
     async createSearchURL(request, domain) {
+        // eslint-disable-next-line prefer-const
         let { query, tag, sort, page } = request;
         if (!query && !tag && sort?.id) {
             request = this.cache.get(constants_1.PREF_KEYS.request) ?? request;
             query = request.query;
             tag = request.tag;
         }
-        let sort_id = sort?.id || "0";
+        const sort_id = sort?.id || "0";
         if (!query && !tag) {
             this.cache.del(constants_1.PREF_KEYS.request);
         }
