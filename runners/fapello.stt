@@ -191,6 +191,7 @@ exports.Target = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 const constants_1 = require("./constants");
 const controller_1 = require("./controller");
+const store_1 = require("./store");
 class Target {
     constructor() {
         this.info = {
@@ -251,10 +252,30 @@ class Target {
             },
         };
     }
+    async getPreferenceMenu() {
+        return {
+            sections: [
+                {
+                    header: "Chapter Split",
+                    children: [
+                        (0, daisuke_1.UIStepper)({
+                            id: constants_1.PREF_KEYS.number_of_images_per_chapter,
+                            title: `Max images per chapter`,
+                            lowerBound: 0,
+                            upperBound: 1000,
+                            step: 10,
+                            value: await store_1.GlobalStore.getNumImages(),
+                            didChange: store_1.GlobalStore.setNumImages,
+                        }),
+                    ],
+                },
+            ],
+        };
+    }
 }
 exports.Target = Target;
 
-},{"./constants":1,"./controller":2,"@suwatte/daisuke":6}],4:[function(require,module,exports){
+},{"./constants":1,"./controller":2,"./store":5,"@suwatte/daisuke":6}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Parser = void 0;
