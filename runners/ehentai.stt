@@ -1853,7 +1853,7 @@ class Parser {
         const pages = [];
         const pageDivArr = $('div.gt200 > a').toArray();
         for (const page of pageDivArr) {
-            pages.push(this.getImage($('a', page).attr('href') ?? ''));
+            pages.push(this.getImage($(page).attr('href') ?? ''));
         }
         return Promise.all(pages);
     }
