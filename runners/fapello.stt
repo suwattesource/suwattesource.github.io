@@ -134,7 +134,7 @@ class Controller {
     }
     // Content
     async getContent(contentId) {
-        const webUrl = `${constants_1.FAPELLO_DOMAIN}/${contentId}`;
+        const webUrl = `${constants_1.FAPELLO_DOMAIN}/${contentId}/`;
         const $ = await this.fetchHTML(webUrl);
         return this.parser.getContent($, webUrl);
     }
