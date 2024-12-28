@@ -41,44 +41,54 @@ exports.TOPLIST_PAGES = [
 ];
 exports.LANGUAGES = [
     {
-        label: "chinese",
+        label: "Chinese",
         languageCode: "zh",
         regionCode: "cn",
     },
     {
-        label: "english",
+        label: "Chinese TR",
+        languageCode: "zh",
+        regionCode: "tw",
+    },
+    {
+        label: "English",
         languageCode: "en",
         regionCode: "gb",
     },
     {
-        label: "japanese",
+        label: "Japanese",
         languageCode: "ja",
         regionCode: "jp",
     },
     {
-        label: "spanish",
+        label: "Spanish",
         languageCode: "es",
         regionCode: "es",
     },
     {
-        label: "french",
+        label: "French",
         languageCode: "fr",
         regionCode: "fr",
     },
     {
-        label: "korean",
+        label: "Korean",
         languageCode: "ko",
         regionCode: "kr",
     },
     {
-        label: "german",
+        label: "German",
         languageCode: "de",
         regionCode: "de",
     },
     {
-        label: "russian",
+        label: "Russian",
         languageCode: "ru",
         regionCode: "ru",
+    },
+    {
+        label: "Vietnamese",
+        languageCode: "vi",
+        regionCode: "vn",
     }
 ];
 exports.CATEGORIES = [
@@ -1811,6 +1821,9 @@ class Parser {
             title: "Uploader",
             tags: [{ id: gallery.uploader, title: (0, lodash_1.startCase)(gallery.uploader) }]
         });
+        const language_title = $('td.gdt1:contains("Language:")').next('.gdt2').text().trim().replace(/\u00a0/g, '');
+        const language = constants_1.LANGUAGES.find(lang => lang.label == language_title);
+        languageCode = language ? `${language.languageCode}-${language.regionCode}` : languageCode;
         propertyMap.set("category", {
             id: "category",
             title: "Category",
@@ -1820,16 +1833,16 @@ class Parser {
         if (constants_1.MANGA_READING_TYPES.includes(gallery.category.toLowerCase())) {
             recommendedPanelMode = daisuke_1.ReadingMode.PAGED_MANGA;
         }
+        let artistTag = "";
         for (const tag of gallery.tags) {
             const parts = tag.split(":");
             const id = parts[0];
             const title = parts[1];
+            if (title == "artist") {
+                artistTag = tag;
+            }
             if (constants_1.VERTICAL_READING_TYPES.includes(title)) {
                 recommendedPanelMode = daisuke_1.ReadingMode.WEBTOON;
-            }
-            if (id == "language" && title != "translated") {
-                const language = constants_1.LANGUAGES.find(lang => lang.label == title);
-                languageCode = language ? `${language.languageCode}-${language.regionCode}` : languageCode;
             }
             if (!propertyMap.has(id)) {
                 propertyMap.set(id, { id: id, title: (0, lodash_1.startCase)(id), tags: [] });
@@ -1841,7 +1854,7 @@ class Parser {
         // Related Content
         const collections = [];
         if (await store_1.GlobalStore.getRelatedGalleriesToggle()) {
-            const relatedGalleries = await this.getRelatedGalleries(gallery.uploader);
+            const relatedGalleries = await this.getRelatedGalleries(gallery.uploader, artistTag);
             if (relatedGalleries.length > 0) {
                 collections.push({
                     id: "related_galleries",
@@ -1883,11 +1896,17 @@ class Parser {
         }
         return chapters;
     }
-    async getRelatedGalleries(uploader) {
-        const response = await this.client.get(`${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}`);
-        const $ = (0, cheerio_1.load)(response.data);
-        const galleries = await this.getSearchResults($);
-        return galleries.slice(0, await store_1.GlobalStore.getNumGalleries());
+    async getRelatedGalleries(uploader, artistTag) {
+        const [uploaderResponse, artistResponse] = await Promise.all([
+            this.client.get(`${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}`),
+            this.client.get(`${constants_1.EHENTAI_DOMAIN}/tag/${encodeURI(artistTag)}`)
+        ]);
+        const uploaderGalleries = await this.getSearchResults((0, cheerio_1.load)(uploaderResponse.data));
+        const artistGalleries = await this.getSearchResults((0, cheerio_1.load)(artistResponse.data));
+        if (artistGalleries.length > 0) {
+            return artistGalleries.slice(0, await store_1.GlobalStore.getNumGalleries());
+        }
+        return uploaderGalleries.slice(0, await store_1.GlobalStore.getNumGalleries());
     }
     async getImage(url) {
         const response = await this.client.get(url);
