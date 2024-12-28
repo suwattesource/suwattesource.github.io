@@ -144,7 +144,7 @@ class Controller {
     async getChapterData(contentId, chapterId) {
         let chapterData = this.cache.get(constants_1.PREF_KEYS.cache_chapter_images);
         if (!chapterData) {
-            const $ = await this.fetchHTML(`${constants_1.FAPELLO_DOMAIN}/${contentId}`);
+            const $ = await this.fetchHTML(`${constants_1.FAPELLO_DOMAIN}/${contentId}/`);
             chapterData = this.parser.getChapterData($, contentId);
         }
         const totalImages = chapterData.pages?.filter(v => v).map(v => String(v.url)) || [];
@@ -247,7 +247,7 @@ class Target {
         return {
             url,
             headers: {
-                ...await this.headers(),
+                ...this.headers(),
             },
         };
     }
