@@ -94,7 +94,7 @@ export class Controller {
         const gallery = this.api.getGalleryInfo(contentId)
         const webUrl = `${domain}/truyen/${gallery?.nameEn}`
         const chapterInfos = await this.api.getChapterList(contentId)
-        return this.parser.getContent(domain, gallery, chapterInfos, webUrl);
+        return this.parser.getContent(gallery, chapterInfos, webUrl);
     }
 
     // Chapters
