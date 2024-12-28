@@ -24,7 +24,7 @@ export class Controller {
                         value: section.id,
                     }
                 ).then(async (galleries) => {
-                    const items = this.parser.getSearchResults(galleries)
+                    const items = await this.parser.getSearchResults(galleries)
                     sections.push({...section, items})
                 })
             )
@@ -40,7 +40,7 @@ export class Controller {
     async getSearchResults(request: DirectoryRequest): Promise<PagedResult> {
         const searchRequest = await this.createSearchRequest(request)
         const galleries = await this.api.searchGalleries(searchRequest)
-        const results = this.parser.getSearchResults(galleries, true)
+        const results = await this.parser.getSearchResults(galleries, true)
         return {
             results,
             isLastPage: false
@@ -94,7 +94,7 @@ export class Controller {
         const gallery = this.api.getGalleryInfo(contentId)
         const webUrl = `${domain}/truyen/${gallery?.nameEn}`
         const chapterInfos = await this.api.getChapterList(contentId)
-        return this.parser.getContent(gallery, chapterInfos, webUrl);
+        return this.parser.getContent(domain, gallery, chapterInfos, webUrl);
     }
 
     // Chapters

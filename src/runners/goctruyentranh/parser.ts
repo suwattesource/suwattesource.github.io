@@ -11,14 +11,16 @@ import {
 } from "@suwatte/daisuke";
 import {DEFAULT_FILTERS, STATUS_KEYS, VERTICAL_TYPES} from "./constants";
 import {Category, ChapterInfo, Gallery} from "./type";
+import {GlobalStore} from "./store";
 
 export class Parser {
-    getSearchResults(galleries: Gallery[], includeSubtitle?: boolean): Highlight[] {
+    async getSearchResults(galleries: Gallery[], includeSubtitle?: boolean): Promise<Highlight[]> {
+        const domain = await GlobalStore.getDomain()
         const items: Highlight[] = [];
         for (const gallery of galleries) {
             const id = gallery.id
             const title = gallery.name
-            const cover = gallery.photo
+            const cover = domain + gallery.photo
             const info = [`Chương ${gallery.chapterLatest[0]} • ${gallery.chapterLatestDate[0]}`]
             const categories = gallery.category?.join(", ").match(/.{1,32}(,\s|$)|.{1,32}$/g) || []
             info.push(...categories)
@@ -34,7 +36,7 @@ export class Parser {
         return items
     }
 
-    async getContent(gallery: Gallery | null, chapterInfos: ChapterInfo[], webUrl: string): Promise<Content> {
+    async getContent(domain: string, gallery: Gallery | null, chapterInfos: ChapterInfo[], webUrl: string): Promise<Content> {
         if (!gallery) {
             return {
                 title: "",
@@ -43,7 +45,7 @@ export class Parser {
         }
         const title = gallery.name
         const additionalTitles = gallery.otherName.split(',').map(v => v.trim())
-        const cover = gallery.photo
+        const cover = domain + gallery.photo
         const summary = gallery.description
         const categories: Tag[] = [];
         for (let i = 0; i < gallery.category.length; i++) {

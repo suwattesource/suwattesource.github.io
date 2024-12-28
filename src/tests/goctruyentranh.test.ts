@@ -25,7 +25,7 @@ describe("GocTruyenTranh Tests", () => {
     });
 
     test("Profile", async () => {
-        const content = await source.getContent("https://doctruyen3qvn.com/truyen-tranh/trong-sinh-1000-lan-ta-vo-dich/9305");
+        const content = await source.getContent("https://goctruyentranhvui6.com/truyen/lang-tien-ky-dam");
         expect(ContentSchema.parse(content)).toEqual(expect.any(Object));
     });
 
