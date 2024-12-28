@@ -1,39 +1,30 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.VERTICAL_TYPES = exports.ADULT_TAGS = exports.STATUS_KEYS = exports.PREF_KEYS = exports.LIST_CHAPTER_BY_STORY_ID = exports.FAPELLO_DOMAIN = void 0;
+exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.FAPELLO_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.FAPELLO_DOMAIN = "https://fapello.com";
-exports.LIST_CHAPTER_BY_STORY_ID = "/Story/ListChapterByStoryID";
 exports.PREF_KEYS = {
     request: "request",
     domain: "domain",
     cache_chapter_images: "chapter_images",
     number_of_images_per_chapter: "number_of_images_per_chapter",
 };
-exports.STATUS_KEYS = {
-    "Đang tiến hành": daisuke_1.PublicationStatus.ONGOING,
-    "Đã hoàn thành": daisuke_1.PublicationStatus.COMPLETED,
-    "Tạm ngưng": daisuke_1.PublicationStatus.HIATUS,
-};
-exports.ADULT_TAGS = ["Mature", "Adult", "Smut"];
-exports.VERTICAL_TYPES = ["Manhwa", "Manhua", "Truyện Màu", "Webtoon"];
 exports.HOME_PAGE_SECTIONS = [
     {
-        id: "new-manga",
-        title: "Truyện Mới",
-        style: daisuke_1.SectionStyle.INFO,
-    },
-    {
-        id: "top-month",
-        title: "Top tháng",
+        id: "top-likes",
+        title: "Top Like",
         style: daisuke_1.SectionStyle.GALLERY,
     },
     {
-        id: "update-manga",
-        title: "Truyện Mới Cập Nhật",
-        style: daisuke_1.SectionStyle.PADDED_LIST,
-        viewMoreLink: { request: { page: 1, sort: { id: "" } } },
+        id: "top-followers",
+        title: "Top Followers",
+        style: daisuke_1.SectionStyle.GALLERY,
+    },
+    {
+        id: "trending",
+        title: "Trending",
+        style: daisuke_1.SectionStyle.GALLERY,
     },
 ];
 exports.SEARCH_SORTERS = [
@@ -262,55 +253,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Parser = void 0;
 const store_1 = require("./store");
 class Parser {
-    constructor() {
-        this.getTopMonthMangas = ($) => {
-            const items = [];
-            $('#topMonth ul li').each((_, manga) => {
-                const title = $('h3', manga).text().trim();
-                const id = $('a', manga).first().attr('href') || "";
-                const cover = $('img', manga).attr('src') || "";
-                const viewsInMonth = $('p.chapter.top span', manga).text().trim();
-                const latestChapter = $('p.chapter.top > a', manga).text().trim();
-                const info = [
-                    `Lượt xem tháng: ${viewsInMonth}`,
-                    latestChapter
-                ];
-                items.push({ id, title, info, cover });
-            });
-            return items;
-        };
-    }
     getSearchResults($) {
         const items = [];
-        $('div.row > div.item').each((index, element) => {
-            const id = $(element).find('a').first().attr('href') || "";
-            const title = $(element).find('a').first().attr('title')?.trim() || "";
-            const cover = $(element).find('a>img').attr('src') || "";
-            items.push({ id, title, cover });
-        });
-        return items;
-    }
-    getNewMangas($) {
-        const items = [];
-        $('.items-slide.items-slide1>.owl-carousel.clearfix.owl-theme>div.item').each((_, element) => {
-            const id = $(element).find('a').first().attr('href') || "";
-            const title = $(element).find('a').first().attr('title')?.trim() || "";
-            const cover = $(element).find('a>img').attr('src') || "";
-            items.push({ id, title, cover });
+        $('div.grid > div').each((_index, element) => {
+            const idElement = $(element).find('a[href]').attr('href');
+            const cover = $(element).find('img').eq(1).attr('src') || "";
+            const title = $(element).find('div > a[href]').last().text().trim();
+            if (idElement && cover && title) {
+                // Extract the mangaId from the href attribute
+                const id = idElement.match(/\/\/[^/]+\/([^/]+)\//)?.[1] || "";
+                // Push the extracted data to the items array
+                items.push({
+                    id: id,
+                    cover: cover,
+                    title: title,
+                });
+            }
         });
         return items;
     }
     getHomepageSection($, id) {
-        const highlights = [];
-        switch (id) {
-            case "update-manga":
-                return this.getSearchResults($);
-            case "new-manga":
-                return this.getNewMangas($);
-            case "top-month":
-                return this.getTopMonthMangas($);
-        }
-        return highlights;
+        return this.getSearchResults($);
     }
     async getContent($, webUrl) {
         const title = $('h2.font-semibold').text().trim();
