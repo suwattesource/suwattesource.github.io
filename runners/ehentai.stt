@@ -289,8 +289,12 @@ class Controller {
     }
     // Content
     async getContent(contentId) {
-        const gallery = await this.getGalleryData([contentId]);
-        return this.parser.getContent(gallery, contentId);
+        const [gallery, response] = await Promise.all([
+            this.getGalleryData([contentId]),
+            this.client.get(`https://e-hentai.org/g/${contentId}`)
+        ]);
+        const $ = (0, cheerio_1.load)(response.data);
+        return this.parser.getContent(gallery, $, contentId);
     }
     async getChapterData(contentId, chapterId) {
         const response = await this.client.get(`https://e-hentai.org/g/${contentId}/?p=${Number(chapterId) - 1}`);
@@ -1771,7 +1775,7 @@ class Parser {
         });
         return items;
     }
-    async getContent(gallery, contentId) {
+    async getContent(gallery, $, contentId) {
         const title = gallery.title;
         const summary = `${gallery.filecount} images`;
         const isNSFW = true;
@@ -1811,7 +1815,7 @@ class Parser {
             const property = propertyMap.get(id);
             property?.tags.push({ id: tag, title: (0, lodash_1.startCase)(title) });
         }
-        const chapters = this.getChapters(gallery.filecount, gallery.posted, languageCode);
+        const chapters = this.getChapters($, gallery.filecount, gallery.posted, languageCode);
         const info = [
             `⭐️ Rating: ${Number(gallery.rating).toFixed(2)} / 5`,
         ];
@@ -1829,9 +1833,9 @@ class Parser {
             info,
         };
     }
-    getChapters(fileCount, date, languageCode) {
+    getChapters($, fileCount, date, languageCode) {
         const chapters = [];
-        const totalPages = Math.ceil(fileCount / 20);
+        const totalPages = Math.ceil(fileCount / ($('div.gdtm').toArray().length == 0 ? 20 : 40));
         for (let i = totalPages; i >= 1; i--) {
             chapters.push({
                 chapterId: i.toString(),
@@ -1850,11 +1854,15 @@ class Parser {
         return $('#img').attr('src') ?? '';
     }
     async parsePage($) {
-        const pages = [];
-        const pageDivArr = $('div.gt200 > a').toArray();
-        for (const page of pageDivArr) {
-            pages.push(this.getImage($(page).attr('href') ?? ''));
-        }
+        const pageDivArr = $('div.gt200 > a').toArray().length > 0
+            ? $('div.gt200 > a').toArray()
+            : $('div.gdtm').toArray();
+        const pages = pageDivArr.map(page => {
+            const href = $(page).is('a')
+                ? $(page).attr('href')
+                : $(page).find('a').attr('href');
+            return this.getImage(href ?? '');
+        });
         return Promise.all(pages);
     }
     getTags($) {
