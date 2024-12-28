@@ -111,7 +111,8 @@ class API {
     async getChapterImages(chapterId) {
         const domain = await store_1.GlobalStore.getDomain();
         const url = `${domain + constants_1.API_CHAPTER_IMAGE}?chapter=${chapterId}&v=0`;
-        const images = await this.requestJSON({ url, method: "GET" });
+        const chapterImage = await this.requestJSON({ url, method: "GET" });
+        const images = (0, utils_1.parseChapterImages)(chapterImage);
         void this.preload(images);
         return images;
     }
@@ -749,7 +750,7 @@ exports.GlobalStore = new Store();
 },{"./constants":2}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isLoggedIn = exports.getCookieValue = exports.AuthInterceptor = exports.parseChapters = exports.parseGalleries = void 0;
+exports.isLoggedIn = exports.getCookieValue = exports.AuthInterceptor = exports.parseChapterImages = exports.parseChapters = exports.parseGalleries = void 0;
 const store_1 = require("./store");
 const constants_1 = require("./constants");
 function parseGalleries(galleries) {
@@ -763,6 +764,10 @@ function parseChapters(chapters) {
     return chapters.map((chapter) => JSON.parse(String(chapter.info)));
 }
 exports.parseChapters = parseChapters;
+function parseChapterImages(chapterImage) {
+    return chapterImage.image;
+}
+exports.parseChapterImages = parseChapterImages;
 async function AuthInterceptor(request) {
     const sessionCookie = await SecureStore.string(constants_1.CookieNameSession);
     const passwordCookie = await SecureStore.string(constants_1.CookieNamePassword);
