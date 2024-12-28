@@ -301,11 +301,10 @@ class Controller {
     }
     // Content
     async getContent(contentId) {
-        const [gallery, response] = await Promise.all([
+        const [gallery, $] = await Promise.all([
             this.getGalleryData([contentId]),
-            this.client.get(`https://e-hentai.org/g/${contentId}`)
+            this.fetchHTML(`https://e-hentai.org/g/${contentId}`)
         ]);
-        const $ = (0, cheerio_1.load)(response.data);
         return this.parser.getContent(gallery, $, contentId);
     }
     async getChapterData(contentId, chapterId) {
@@ -1897,6 +1896,8 @@ class Parser {
         return chapters;
     }
     async getRelatedGalleries(uploader, artistTag) {
+        console.log(`Requesting to the url: ${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}}`);
+        console.log(`Requesting to the url: ${constants_1.EHENTAI_DOMAIN}/tag/${encodeURI(artistTag)}`);
         const [uploaderResponse, artistResponse] = await Promise.all([
             this.client.get(`${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}`, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] }),
             this.client.get(`${constants_1.EHENTAI_DOMAIN}/tag/${encodeURI(artistTag)}`, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] })
@@ -1904,8 +1905,10 @@ class Parser {
         const uploaderGalleries = await this.getSearchResults((0, cheerio_1.load)(uploaderResponse.data));
         const artistGalleries = await this.getSearchResults((0, cheerio_1.load)(artistResponse.data));
         if (artistGalleries.length > 0) {
+            console.log(`Found ${artistGalleries.length} related galleries for ${artistTag}`);
             return artistGalleries.slice(0, await store_1.GlobalStore.getNumGalleries());
         }
+        console.log(`Found ${uploaderGalleries.length} related galleries for ${uploader}`);
         return uploaderGalleries.slice(0, await store_1.GlobalStore.getNumGalleries());
     }
     async getImage(url) {
