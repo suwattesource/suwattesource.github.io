@@ -10,6 +10,8 @@ exports.PREF_KEYS = {
     cache_request_url: "request_url",
     cache_tags: "tags_",
     exclude_tags: "exclude_tags",
+    related_galleries: "related_galleries",
+    number_of_galleries: "number_of_galleries",
 };
 exports.VERTICAL_READING_TYPES = ["webtoon"];
 exports.MANGA_READING_TYPES = ["manga", "doujinshi"];
@@ -1674,6 +1676,26 @@ class Target {
                         }),
                     ],
                 },
+                {
+                    header: "Related Galleries",
+                    children: [
+                        (0, daisuke_1.UIToggle)({
+                            id: constants_1.PREF_KEYS.related_galleries,
+                            title: "Enable Related Galleries",
+                            value: await store_1.GlobalStore.getRelatedGalleriesToggle(),
+                            didChange: store_1.GlobalStore.setRelatedGalleriesToggle,
+                        }),
+                        (0, daisuke_1.UIStepper)({
+                            id: constants_1.PREF_KEYS.number_of_galleries,
+                            title: `Maximum number of galleries`,
+                            lowerBound: 1,
+                            upperBound: 10,
+                            step: 1,
+                            value: await store_1.GlobalStore.getNumGalleries(),
+                            didChange: store_1.GlobalStore.setNumGalleries,
+                        }),
+                    ],
+                },
             ],
         };
     }
@@ -1816,6 +1838,18 @@ class Parser {
             property?.tags.push({ id: tag, title: (0, lodash_1.startCase)(title) });
         }
         const chapters = this.getChapters($, gallery.filecount, gallery.posted, languageCode);
+        // Related Content
+        const collections = [];
+        if (await store_1.GlobalStore.getRelatedGalleriesToggle()) {
+            const relatedGalleries = await this.getRelatedGalleries(gallery.uploader);
+            if (relatedGalleries.length > 0) {
+                collections.push({
+                    id: "related_galleries",
+                    title: "Related Galleries",
+                    highlights: relatedGalleries,
+                });
+            }
+        }
         const info = [
             `⭐️ Rating: ${Number(gallery.rating).toFixed(2)} / 5`,
         ];
@@ -1831,6 +1865,7 @@ class Parser {
             chapters,
             properties: Array.from(propertyMap.values()),
             info,
+            collections,
         };
     }
     getChapters($, fileCount, date, languageCode) {
@@ -1847,6 +1882,12 @@ class Parser {
             });
         }
         return chapters;
+    }
+    async getRelatedGalleries(uploader) {
+        const response = await this.client.get(`${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}`);
+        const $ = (0, cheerio_1.load)(response.data);
+        const galleries = await this.getSearchResults($);
+        return galleries.slice(0, await store_1.GlobalStore.getNumGalleries());
     }
     async getImage(url) {
         const response = await this.client.get(url);
@@ -1888,6 +1929,22 @@ class Store {
     }
     async setExcludeTags(v) {
         return ObjectStore.set(constants_1.PREF_KEYS.exclude_tags, v);
+    }
+    async getRelatedGalleriesToggle() {
+        const value = await ObjectStore.boolean(constants_1.PREF_KEYS.related_galleries);
+        return !!value;
+    }
+    async setRelatedGalleriesToggle(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.related_galleries, v);
+    }
+    async getNumGalleries() {
+        const getNumGalleries = await ObjectStore.number(constants_1.PREF_KEYS.number_of_galleries);
+        if (!getNumGalleries)
+            return 5;
+        return getNumGalleries;
+    }
+    async setNumGalleries(v) {
+        return ObjectStore.set(constants_1.PREF_KEYS.number_of_galleries, v);
     }
 }
 exports.Store = Store;
