@@ -19,7 +19,7 @@ describe("E-Hentai Tests", () => {
     });
 
     test("Profile", async () => {
-        const data = await source.getTags()
+        const data = await source.getContent("2948592/056115b81a")
         expect(PagedResultSchema.parse(data)).toEqual(expect.any(Object));
     });
 
@@ -30,7 +30,7 @@ describe("E-Hentai Tests", () => {
     });
 
     test("Reader", async () => {
-        const data = await source.getChapterData("84565", "2176683");
+        const data = await source.getChapterData("3173277/bb4dcbc2ef", "1");
         expect(ChapterDataSchema.parse(data)).toEqual(expect.any(Object));
     });
 });

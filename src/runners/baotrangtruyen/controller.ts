@@ -33,6 +33,7 @@ export class Controller {
     }
 
     async createSearchURL(request: DirectoryRequest, domain: string): Promise<string> {
+        // eslint-disable-next-line prefer-const
         let {query, tag, sort, page} = request;
 
         if (!query && !tag && sort?.id) {
@@ -42,7 +43,7 @@ export class Controller {
         }
 
 
-        let sort_id = sort?.id || "0"
+        const sort_id = sort?.id || "0"
 
         if (!query && !tag) {
             this.cache.del(PREF_KEYS.request)

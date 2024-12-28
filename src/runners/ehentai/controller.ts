@@ -164,12 +164,17 @@ export class Controller {
 
     // Content
     async getContent(contentId: string): Promise<Content> {
-        const gallery = await this.getGalleryData([contentId])
-        return this.parser.getContent(gallery, contentId);
+        const [gallery, $] = await Promise.all(
+            [
+                this.getGalleryData([contentId]),
+                this.fetchHTML(`https://e-hentai.org/g/${contentId}`)
+            ]
+        );
+        return this.parser.getContent(gallery, $, contentId);
     }
 
     async getChapterData(contentId: string, chapterId: string) {
-        const response = await this.client.get(`https://e-hentai.org/g/${contentId}/?p=${Number(chapterId)-1}`);
+        const response = await this.client.get(`https://e-hentai.org/g/${contentId}/?p=${Number(chapterId) - 1}`);
         const $ = load(response.data);
         const pages = await this.parser.parsePage($)
         void this.preload(pages)

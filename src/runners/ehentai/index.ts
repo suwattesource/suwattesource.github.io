@@ -18,6 +18,8 @@ import {
     RunnerInfo,
     RunnerPreferenceProvider,
     UIMultiPicker,
+    UIStepper,
+    UIToggle,
 } from "@suwatte/daisuke";
 import {EHENTAI_DOMAIN, LANGUAGES, PREF_KEYS, SEARCH_SORTERS, TOPLIST_PAGES} from "./constants";
 import {Controller} from "./controller";
@@ -121,6 +123,27 @@ export class Target
                         }),
                     ],
                 },
+                {
+                    header: "Related Galleries",
+                    children: [
+                        UIToggle({
+                            id: PREF_KEYS.related_galleries,
+                            title: "Enable Related Galleries",
+                            value: await GlobalStore.getRelatedGalleriesToggle(),
+                            didChange: GlobalStore.setRelatedGalleriesToggle,
+                        }),
+                        UIStepper({
+                            id: PREF_KEYS.number_of_galleries,
+                            title: `Maximum number of galleries`,
+                            lowerBound: 1,
+                            upperBound: 10,
+                            step: 1,
+                            value: await GlobalStore.getNumGalleries(),
+                            didChange: GlobalStore.setNumGalleries,
+                        }),
+                    ],
+                },
+
             ],
         };
     }

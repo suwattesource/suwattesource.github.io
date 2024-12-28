@@ -8,6 +8,8 @@ export const PREF_KEYS = {
     cache_request_url: "request_url",
     cache_tags: "tags_",
     exclude_tags: "exclude_tags",
+    related_galleries: "related_galleries",
+    number_of_galleries: "number_of_galleries",
 };
 
 export const VERTICAL_READING_TYPES = ["webtoon"];
@@ -48,6 +50,11 @@ export const LANGUAGES = [
         regionCode: "cn",
     },
     {
+        label: "Chinese TR",
+        languageCode: "zh",
+        regionCode: "tw",
+    },
+    {
         label: "English",
         languageCode: "en",
         regionCode: "gb",
@@ -81,6 +88,11 @@ export const LANGUAGES = [
         label: "Russian",
         languageCode: "ru",
         regionCode: "ru",
+    },
+    {
+        label: "Vietnamese",
+        languageCode: "vi",
+        regionCode: "vn",
     }
 ]
 

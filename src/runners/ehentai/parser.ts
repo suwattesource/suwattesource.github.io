@@ -1,6 +1,22 @@
-import {Chapter, Content, Highlight, Option, Property, PublicationStatus, ReadingMode,} from "@suwatte/daisuke";
+import {
+    Chapter,
+    Content,
+    Highlight,
+    HighlightCollection,
+    Option,
+    Property,
+    PublicationStatus,
+    ReadingMode,
+} from "@suwatte/daisuke";
 import {CheerioAPI, load} from "cheerio";
-import {EHENTAI_DOMAIN, LANGUAGES, MANGA_READING_TYPES, PREF_KEYS, VERTICAL_READING_TYPES} from "./constants";
+import {
+    EHENTAI_DOMAIN,
+    EXTENDED_DISPLAY_COOKIE,
+    LANGUAGES,
+    MANGA_READING_TYPES,
+    PREF_KEYS,
+    VERTICAL_READING_TYPES
+} from "./constants";
 import {GlobalStore} from "./store";
 import {startCase} from "lodash";
 
@@ -93,7 +109,7 @@ export class Parser {
         return items;
     }
 
-    async getContent(gallery: any, contentId: string): Promise<Content> {
+    async getContent(gallery: any, $: CheerioAPI, contentId: string): Promise<Content> {
         const title = gallery.title;
         const summary = `${gallery.filecount} images`;
         const isNSFW = true;
@@ -109,6 +125,10 @@ export class Parser {
             tags: [{id: gallery.uploader, title: startCase(gallery.uploader)}]
         })
 
+        const language_title = $('td.gdt1:contains("Language:")').next('.gdt2').text().trim().replace(/\u00a0/g, '');
+        const language = LANGUAGES.find(lang => lang.label == language_title);
+        languageCode = language ? `${language.languageCode}-${language.regionCode}` : languageCode;
+
         propertyMap.set("category", {
             id: "category",
             title: "Category",
@@ -119,16 +139,16 @@ export class Parser {
         if (MANGA_READING_TYPES.includes(gallery.category.toLowerCase())) {
             recommendedPanelMode = ReadingMode.PAGED_MANGA;
         }
+        let artistTag = "";
         for (const tag of gallery.tags) {
             const parts = tag.split(":");
             const id = parts[0];
             const title = parts[1];
+            if (id == "artist") {
+                artistTag = tag;
+            }
             if (VERTICAL_READING_TYPES.includes(title)) {
                 recommendedPanelMode = ReadingMode.WEBTOON;
-            }
-            if (id == "language" && title != "translated") {
-                const language = LANGUAGES.find(lang => lang.label == title);
-                languageCode = language ? `${language.languageCode}-${language.regionCode}` : languageCode;
             }
             if (!propertyMap.has(id)) {
                 propertyMap.set(id, {id: id, title: startCase(id), tags: []});
@@ -138,7 +158,20 @@ export class Parser {
         }
 
 
-        const chapters = this.getChapters(gallery.filecount, gallery.posted, languageCode)
+        const chapters = this.getChapters($, gallery.filecount, gallery.posted, languageCode)
+
+        // Related Content
+        const collections: HighlightCollection[] = [];
+        if (await GlobalStore.getRelatedGalleriesToggle()) {
+            const relatedGalleries = await this.getRelatedGalleries(contentId, gallery.uploader, artistTag);
+            if (relatedGalleries.length > 0) {
+                collections.push({
+                    id: "related_galleries",
+                    title: "Related Galleries",
+                    highlights: relatedGalleries,
+                });
+            }
+        }
 
         const info = [
             `⭐️ Rating: ${Number(gallery.rating).toFixed(2)} / 5`,
@@ -157,12 +190,13 @@ export class Parser {
             chapters,
             properties: Array.from(propertyMap.values()),
             info,
+            collections,
         };
     }
 
-    getChapters(fileCount: number, date: string, languageCode: string): Chapter[] {
+    getChapters($: CheerioAPI, fileCount: number, date: string, languageCode: string): Chapter[] {
         const chapters: Chapter[] = [];
-        const totalPages = Math.ceil(fileCount / 40);
+        const totalPages = Math.ceil(fileCount / ($('div.gt100 > a').toArray().length == 0 ? 20 : 40));
         for (let i = totalPages; i >= 1; i--) {
             chapters.push({
                 chapterId: i.toString(),
@@ -176,6 +210,20 @@ export class Parser {
         return chapters;
     }
 
+    async getRelatedGalleries(contentId: string, uploader: string, artistTag: string): Promise<Highlight[]> {
+        const [uploaderResponse, artistResponse] = await Promise.all([
+            this.client.get(`${EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}`, {cookies: [EXTENDED_DISPLAY_COOKIE]}),
+            this.client.get(`${EHENTAI_DOMAIN}/tag/${encodeURI(artistTag)}`, {cookies: [EXTENDED_DISPLAY_COOKIE]})
+        ])
+        const uploaderGalleries = await this.getSearchResults(load(uploaderResponse.data));
+        const artistGalleries = await this.getSearchResults(load(artistResponse.data));
+        if (artistTag) {
+            return artistGalleries.filter((gallery) => gallery.id != contentId).slice(0, await GlobalStore.getNumGalleries());
+        }
+        return uploaderGalleries.filter((gallery) => gallery.id != contentId).slice(0, await GlobalStore.getNumGalleries());
+    }
+
+
     async getImage(url: string): Promise<string> {
         const response = await this.client.get(url);
         const $ = load(response.data);
@@ -183,13 +231,15 @@ export class Parser {
     }
 
     async parsePage($: CheerioAPI): Promise<string[]> {
-        const pages: Promise<string>[] = []
-        const pageDivArr = $('div.gdtm').toArray()
-        for (const page of pageDivArr) {
-            pages.push(this.getImage($('a', page).attr('href') ?? ''))
-        }
+        const pageDivArr = $('div.gt200 > a').toArray().length > 0
+            ? $('div.gt200 > a').toArray()
+            : $('div.gt100 > a').toArray();
 
-        return Promise.all(pages)
+        const pages = pageDivArr.map(page => {
+            return this.getImage($(page).attr('href') ?? '');
+        });
+
+        return Promise.all(pages);
     }
 
     getNextId = async ($: CheerioAPI): Promise<string> => {
