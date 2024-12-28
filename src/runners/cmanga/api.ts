@@ -19,9 +19,9 @@ import {
     UserName
 } from "./constants";
 import {CheerioAPI, load} from "cheerio";
-import {AuthInterceptor, getCookieValue, parseChapters, parseGalleries} from "./utils";
+import {AuthInterceptor, getCookieValue, parseChapterImages, parseChapters, parseGalleries} from "./utils";
 import {GlobalStore} from "./store";
-import {ChapterInfo, Gallery, GalleryInfo, Genre, GetGalleryListRequest, UserData} from "./type";
+import {ChapterImage, ChapterInfo, Gallery, GalleryInfo, Genre, GetGalleryListRequest, UserData} from "./type";
 
 export class API {
     private client = new NetworkClientBuilder()
@@ -139,7 +139,8 @@ export class API {
     async getChapterImages(chapterId: string): Promise<string[]> {
         const domain = await GlobalStore.getDomain()
         const url = `${domain + API_CHAPTER_IMAGE}?chapter=${chapterId}&v=0`
-        const images: string[] = await this.requestJSON({url, method: "GET"});
+        const chapterImage: ChapterImage = await this.requestJSON({url, method: "GET"});
+        const images = parseChapterImages(chapterImage)
         void this.preload(images)
         return images
     }

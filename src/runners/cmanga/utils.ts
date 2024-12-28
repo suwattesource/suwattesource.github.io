@@ -1,4 +1,4 @@
-import {Chapter, ChapterInfo, Gallery, Info} from "./type";
+import {Chapter, ChapterImage, ChapterInfo, Gallery, Info} from "./type";
 import {NetworkRequest} from "@suwatte/daisuke";
 import {GlobalStore} from "./store";
 import {CookieNamePassword, CookieNameSession, UserId} from "./constants";
@@ -12,6 +12,10 @@ export function parseGalleries(galleries: Gallery[]): Gallery[] {
 
 export function parseChapters(chapters: Chapter[]): ChapterInfo[] {
     return chapters.map((chapter: Chapter) => (JSON.parse(String(chapter.info)) as ChapterInfo));
+}
+
+export function parseChapterImages(chapterImage: ChapterImage): string[] {
+    return chapterImage.image
 }
 
 export async function AuthInterceptor(request: NetworkRequest) {

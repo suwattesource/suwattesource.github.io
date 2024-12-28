@@ -74,6 +74,11 @@ export interface Chapter {
     id?: string;
 }
 
+export interface ChapterImage {
+    image: string[];
+}
+
+
 
 export interface Genre {
     name: string;
