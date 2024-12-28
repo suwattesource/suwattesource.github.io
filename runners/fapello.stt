@@ -13,7 +13,7 @@ exports.PREF_KEYS = {
 exports.HOME_PAGE_SECTIONS = [
     {
         id: "top-likes",
-        title: "Top Like",
+        title: "Top Likes",
         style: daisuke_1.SectionStyle.GALLERY,
     },
     {
@@ -88,7 +88,7 @@ class Controller {
         const promises = [];
         const sections = [];
         for (const section of constants_1.HOME_PAGE_SECTIONS) {
-            promises.push(this.fetchHTML(`${constants_1.FAPELLO_DOMAIN}/${section.id}/`).then(async ($) => {
+            promises.push(this.fetchHTML(`${constants_1.FAPELLO_DOMAIN}/ajax/${section.id}/page-1/`).then(async ($) => {
                 const items = this.parser.getSearchResults($);
                 sections.push({ ...section, items });
             }));
