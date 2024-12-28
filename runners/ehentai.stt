@@ -1831,7 +1831,7 @@ class Parser {
     }
     getChapters(fileCount, date, languageCode) {
         const chapters = [];
-        const totalPages = Math.ceil(fileCount / 40);
+        const totalPages = Math.ceil(fileCount / 20);
         for (let i = totalPages; i >= 1; i--) {
             chapters.push({
                 chapterId: i.toString(),
