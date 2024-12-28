@@ -293,7 +293,7 @@ class Controller {
         const gallery = this.api.getGalleryInfo(contentId);
         const webUrl = `${domain}/truyen/${gallery?.nameEn}`;
         const chapterInfos = await this.api.getChapterList(contentId);
-        return this.parser.getContent(gallery, chapterInfos, webUrl);
+        return this.parser.getContent(domain, gallery, chapterInfos, webUrl);
     }
     // Chapters
     async getChapters(contentId) {
@@ -477,7 +477,7 @@ class Parser {
         }
         return items;
     }
-    async getContent(gallery, chapterInfos, webUrl) {
+    async getContent(domain, gallery, chapterInfos, webUrl) {
         if (!gallery) {
             return {
                 title: "",
@@ -486,7 +486,7 @@ class Parser {
         }
         const title = gallery.name;
         const additionalTitles = gallery.otherName.split(',').map(v => v.trim());
-        const cover = gallery.photo;
+        const cover = domain + gallery.photo;
         const summary = gallery.description;
         const categories = [];
         for (let i = 0; i < gallery.category.length; i++) {

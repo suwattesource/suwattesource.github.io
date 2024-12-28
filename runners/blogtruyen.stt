@@ -549,7 +549,7 @@ const store_1 = require("./store");
 class Target {
     constructor() {
         this.info = {
-            id: "blogtruyen",
+            id: "blogtruyen (Unavailable)",
             website: constants_1.BLOGTRUYEN_DOMAIN,
             version: 1.1,
             name: "BlogTruyen",
