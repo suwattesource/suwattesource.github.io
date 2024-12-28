@@ -1838,7 +1838,7 @@ class Parser {
             const parts = tag.split(":");
             const id = parts[0];
             const title = parts[1];
-            if (title == "artist") {
+            if (id == "artist") {
                 artistTag = tag;
             }
             if (constants_1.VERTICAL_READING_TYPES.includes(title)) {
@@ -1898,8 +1898,8 @@ class Parser {
     }
     async getRelatedGalleries(uploader, artistTag) {
         const [uploaderResponse, artistResponse] = await Promise.all([
-            this.client.get(`${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}`),
-            this.client.get(`${constants_1.EHENTAI_DOMAIN}/tag/${encodeURI(artistTag)}`)
+            this.client.get(`${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}`, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] }),
+            this.client.get(`${constants_1.EHENTAI_DOMAIN}/tag/${encodeURI(artistTag)}`, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] })
         ]);
         const uploaderGalleries = await this.getSearchResults((0, cheerio_1.load)(uploaderResponse.data));
         const artistGalleries = await this.getSearchResults((0, cheerio_1.load)(artistResponse.data));
