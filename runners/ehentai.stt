@@ -1896,19 +1896,15 @@ class Parser {
         return chapters;
     }
     async getRelatedGalleries(uploader, artistTag) {
-        console.log(`Requesting to the url: ${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}}`);
-        console.log(`Requesting to the url: ${constants_1.EHENTAI_DOMAIN}/tag/${encodeURI(artistTag)}`);
         const [uploaderResponse, artistResponse] = await Promise.all([
             this.client.get(`${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}`, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] }),
             this.client.get(`${constants_1.EHENTAI_DOMAIN}/tag/${encodeURI(artistTag)}`, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] })
         ]);
         const uploaderGalleries = await this.getSearchResults((0, cheerio_1.load)(uploaderResponse.data));
         const artistGalleries = await this.getSearchResults((0, cheerio_1.load)(artistResponse.data));
-        if (artistGalleries.length > 0) {
-            console.log(`Found ${artistGalleries.length} related galleries for ${artistTag}`);
+        if (!artistTag || artistGalleries.length == 0) {
             return artistGalleries.slice(0, await store_1.GlobalStore.getNumGalleries());
         }
-        console.log(`Found ${uploaderGalleries.length} related galleries for ${uploader}`);
         return uploaderGalleries.slice(0, await store_1.GlobalStore.getNumGalleries());
     }
     async getImage(url) {
