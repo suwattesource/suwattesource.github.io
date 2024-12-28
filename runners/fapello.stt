@@ -85,12 +85,19 @@ class Controller {
         this.cache = new memory_cache_1.default.Cache();
     }
     async buildHomePageSections() {
+        const promises = [];
         const sections = [];
-        const $ = await this.fetchHTML(constants_1.FAPELLO_DOMAIN);
         for (const section of constants_1.HOME_PAGE_SECTIONS) {
-            const items = this.parser.getHomepageSection($, section.id);
-            sections.push({ ...section, items });
+            promises.push(this.fetchHTML(`${constants_1.FAPELLO_DOMAIN}/${section.id}/`).then(async ($) => {
+                const items = this.parser.getSearchResults($);
+                sections.push({ ...section, items });
+            }));
         }
+        await Promise.all(promises);
+        const sectionIdInOrder = constants_1.HOME_PAGE_SECTIONS.map((section) => {
+            return section.id;
+        });
+        sections.sort((a, b) => sectionIdInOrder.indexOf(a.id) - sectionIdInOrder.indexOf(b.id));
         return sections.filter(a => a.items?.length);
     }
     async getSearchResults(request) {
@@ -271,9 +278,6 @@ class Parser {
             }
         });
         return items;
-    }
-    getHomepageSection($, id) {
-        return this.getSearchResults($);
     }
     async getContent($, webUrl) {
         const title = $('h2.font-semibold').text().trim();
