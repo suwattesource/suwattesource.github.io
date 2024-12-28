@@ -1835,7 +1835,7 @@ class Parser {
     }
     getChapters($, fileCount, date, languageCode) {
         const chapters = [];
-        const totalPages = Math.ceil(fileCount / ($('div.gdtm').toArray().length == 0 ? 20 : 40));
+        const totalPages = Math.ceil(fileCount / ($('div.gt100 > a').toArray().length == 0 ? 20 : 40));
         for (let i = totalPages; i >= 1; i--) {
             chapters.push({
                 chapterId: i.toString(),
@@ -1856,12 +1856,9 @@ class Parser {
     async parsePage($) {
         const pageDivArr = $('div.gt200 > a').toArray().length > 0
             ? $('div.gt200 > a').toArray()
-            : $('div.gdtm').toArray();
+            : $('div.gt100 > a').toArray();
         const pages = pageDivArr.map(page => {
-            const href = $(page).is('a')
-                ? $(page).attr('href')
-                : $(page).find('a').attr('href');
-            return this.getImage(href ?? '');
+            return this.getImage($(page).attr('href') ?? '');
         });
         return Promise.all(pages);
     }
