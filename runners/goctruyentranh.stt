@@ -293,7 +293,7 @@ class Controller {
         const gallery = this.api.getGalleryInfo(contentId);
         const webUrl = `${domain}/truyen/${gallery?.nameEn}`;
         const chapterInfos = await this.api.getChapterList(contentId);
-        return this.parser.getContent(domain, gallery, chapterInfos, webUrl);
+        return this.parser.getContent(gallery, chapterInfos, webUrl);
     }
     // Chapters
     async getChapters(contentId) {
@@ -459,12 +459,11 @@ class Parser {
         };
     }
     async getSearchResults(galleries, includeSubtitle) {
-        const domain = await store_1.GlobalStore.getDomain();
         const items = [];
         for (const gallery of galleries) {
             const id = gallery.id;
             const title = gallery.name;
-            const cover = domain + gallery.photo;
+            const cover = await this.getImage(gallery.photo);
             const info = [`Chương ${gallery.chapterLatest[0]} • ${gallery.chapterLatestDate[0]}`];
             const categories = gallery.category?.join(", ").match(/.{1,32}(,\s|$)|.{1,32}$/g) || [];
             info.push(...categories);
@@ -479,7 +478,7 @@ class Parser {
         }
         return items;
     }
-    async getContent(domain, gallery, chapterInfos, webUrl) {
+    async getContent(gallery, chapterInfos, webUrl) {
         if (!gallery) {
             return {
                 title: "",
@@ -488,7 +487,7 @@ class Parser {
         }
         const title = gallery.name;
         const additionalTitles = gallery.otherName.split(',').map(v => v.trim());
-        const cover = domain + gallery.photo;
+        const cover = await this.getImage(gallery.photo);
         const summary = gallery.description;
         const categories = [];
         for (let i = 0; i < gallery.category.length; i++) {
@@ -568,6 +567,10 @@ class Parser {
             })),
         });
         return filters;
+    }
+    async getImage(url) {
+        const domain = await store_1.GlobalStore.getDomain();
+        return url.includes("goctruyentranh") ? url : domain + url;
     }
 }
 exports.Parser = Parser;
