@@ -549,10 +549,12 @@ class Parser {
         }
         return chapters;
     }
-    getChapterData(urls) {
-        return {
-            pages: urls.map((url) => ({ url })),
-        };
+    async getChapterData(urls) {
+        const pages = await Promise.all(urls.map(async (url) => {
+            const imageUrl = await this.getImage(url);
+            return { url: imageUrl };
+        }));
+        return { pages };
     }
     getFilters(categories) {
         const filters = constants_1.DEFAULT_FILTERS;
