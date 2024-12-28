@@ -1853,7 +1853,7 @@ class Parser {
         // Related Content
         const collections = [];
         if (await store_1.GlobalStore.getRelatedGalleriesToggle()) {
-            const relatedGalleries = await this.getRelatedGalleries(gallery.uploader, artistTag);
+            const relatedGalleries = await this.getRelatedGalleries(contentId, gallery.uploader, artistTag);
             if (relatedGalleries.length > 0) {
                 collections.push({
                     id: "related_galleries",
@@ -1895,17 +1895,17 @@ class Parser {
         }
         return chapters;
     }
-    async getRelatedGalleries(uploader, artistTag) {
+    async getRelatedGalleries(contentId, uploader, artistTag) {
         const [uploaderResponse, artistResponse] = await Promise.all([
             this.client.get(`${constants_1.EHENTAI_DOMAIN}/uploader/${encodeURI(uploader)}`, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] }),
             this.client.get(`${constants_1.EHENTAI_DOMAIN}/tag/${encodeURI(artistTag)}`, { cookies: [constants_1.EXTENDED_DISPLAY_COOKIE] })
         ]);
         const uploaderGalleries = await this.getSearchResults((0, cheerio_1.load)(uploaderResponse.data));
         const artistGalleries = await this.getSearchResults((0, cheerio_1.load)(artistResponse.data));
-        if (!artistTag || artistGalleries.length == 0) {
-            return artistGalleries.slice(0, await store_1.GlobalStore.getNumGalleries());
+        if (artistTag) {
+            return artistGalleries.filter((gallery) => gallery.id != contentId).slice(0, await store_1.GlobalStore.getNumGalleries());
         }
-        return uploaderGalleries.slice(0, await store_1.GlobalStore.getNumGalleries());
+        return uploaderGalleries.filter((gallery) => gallery.id != contentId).slice(0, await store_1.GlobalStore.getNumGalleries());
     }
     async getImage(url) {
         const response = await this.client.get(url);
