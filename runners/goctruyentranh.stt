@@ -235,7 +235,7 @@ class Controller {
                 p: 0,
                 value: section.id,
             }).then(async (galleries) => {
-                const items = this.parser.getSearchResults(galleries);
+                const items = await this.parser.getSearchResults(galleries);
                 sections.push({ ...section, items });
             }));
         }
@@ -249,7 +249,7 @@ class Controller {
     async getSearchResults(request) {
         const searchRequest = await this.createSearchRequest(request);
         const galleries = await this.api.searchGalleries(searchRequest);
-        const results = this.parser.getSearchResults(galleries, true);
+        const results = await this.parser.getSearchResults(galleries, true);
         return {
             results,
             isLastPage: false
@@ -425,6 +425,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Parser = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 const constants_1 = require("./constants");
+const store_1 = require("./store");
 class Parser {
     constructor() {
         this.convertTime = (timeAgo) => {
@@ -457,12 +458,13 @@ class Parser {
             }
         };
     }
-    getSearchResults(galleries, includeSubtitle) {
+    async getSearchResults(galleries, includeSubtitle) {
+        const domain = await store_1.GlobalStore.getDomain();
         const items = [];
         for (const gallery of galleries) {
             const id = gallery.id;
             const title = gallery.name;
-            const cover = gallery.photo;
+            const cover = domain + gallery.photo;
             const info = [`Chương ${gallery.chapterLatest[0]} • ${gallery.chapterLatestDate[0]}`];
             const categories = gallery.category?.join(", ").match(/.{1,32}(,\s|$)|.{1,32}$/g) || [];
             info.push(...categories);
@@ -570,7 +572,7 @@ class Parser {
 }
 exports.Parser = Parser;
 
-},{"./constants":2,"@suwatte/daisuke":8}],6:[function(require,module,exports){
+},{"./constants":2,"./store":6,"@suwatte/daisuke":8}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GlobalStore = exports.Store = void 0;
