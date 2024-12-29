@@ -408,9 +408,9 @@ class Parser {
     getFilters($) {
         const filters = constants_1.DEFAULT_FILTERS;
         const genres = [];
-        $('div.Arial, Helvetica, sans-serif a').each((_, element) => {
-            const id = $(element).attr('href') || ""; // Get the href attribute
-            const title = $(element).text().trim(); // Get the text content
+        $('[class="Arial, Helvetica, sans-serif"] > a').each((_, element) => {
+            const id = $(element).attr('href') || "";
+            const title = $(element).text().trim();
             genres.push({ id, title });
         });
         filters.push({
