@@ -1,7 +1,7 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.STTPackage = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_FILTERS = exports.STATUSES = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.ALLPORNCOMIC_DOMAIN = void 0;
+exports.DEFAULT_FILTERS = exports.ADULT_CONTENTS = exports.STATUSES = exports.SEARCH_SORTERS = exports.HOME_PAGE_SECTIONS = exports.PREF_KEYS = exports.ALLPORNCOMIC_DOMAIN = void 0;
 const daisuke_1 = require("@suwatte/daisuke");
 exports.ALLPORNCOMIC_DOMAIN = "https://allporncomic.com";
 exports.PREF_KEYS = {
@@ -76,11 +76,26 @@ exports.STATUSES = [
         title: "Upcoming",
     },
 ];
+exports.ADULT_CONTENTS = [
+    {
+        id: "non-adult",
+        title: "Non Adult Content",
+    },
+    {
+        id: "adult-only",
+        title: "Only Adult Content",
+    }
+];
 exports.DEFAULT_FILTERS = [
     {
-        id: "search",
-        title: "Search here...",
+        id: "title",
+        title: "Title",
         type: daisuke_1.FilterType.TEXT,
+    },
+    {
+        id: "condition",
+        title: "Is AND genres condition",
+        type: daisuke_1.FilterType.TOGGLE,
     },
     {
         id: "author",
@@ -93,16 +108,22 @@ exports.DEFAULT_FILTERS = [
         type: daisuke_1.FilterType.TEXT,
     },
     {
-        id: "yearofrelease",
+        id: "year",
         title: "Year of Release",
         type: daisuke_1.FilterType.TEXT,
     },
     {
+        id: "adult",
+        title: "Adult content",
+        type: daisuke_1.FilterType.SELECT,
+        options: exports.ADULT_CONTENTS,
+    },
+    {
         id: "status",
-        title: "Search here...",
+        title: "Status",
         type: daisuke_1.FilterType.MULTISELECT,
         options: exports.STATUSES,
-    },
+    }
 ];
 
 },{"@suwatte/daisuke":6}],2:[function(require,module,exports){
@@ -168,13 +189,27 @@ class Controller {
             this.cache.put(constants_1.PREF_KEYS.request, request);
         }
         if (filters) {
-            const includeCategories = filters.categories?.included ?? [];
-            const excludeCategories = filters.categories?.excluded ?? [];
-            const categories = includeCategories.join(",");
-            const exCategories = excludeCategories.join(",");
-            const status = filters.status ?? "0";
+            const search = {
+                genres: '',
+                op: "",
+                author: "",
+                artist: "",
+                release: "",
+                adult: "",
+                status: "",
+            };
+            const title = filters.title ?? "";
+            const includeGenres = filters.genres ?? [];
+            const includeStatus = filters.status ?? [];
+            search.genres = includeGenres.map((genre) => `genre[]=${encodeURIComponent(genre)}`).join("&");
+            search.status = includeStatus.map((status) => `genre[]=${encodeURIComponent(status)}`).join("&");
+            search.op = filters.hot ? "1" : "0";
+            search.author = filters.author ?? "";
+            search.artist = filters.artist ?? "";
+            search.release = filters.release ?? "";
+            const params = `${search.genres}&op=${search.op}&author=${search.author}&artist=${search.artist}&release=${search.release}&${search.status}&m_orderby=${sort_id}`;
             return {
-                url: `${constants_1.ALLPORNCOMIC_DOMAIN}/timkiem/nangcao/1/${status}/${categories}/${exCategories}?p=${page}`,
+                url: `${constants_1.ALLPORNCOMIC_DOMAIN}/page/${page}/?s=${encodeURI(title)}&post_type=wp-manga&${params}`,
             };
         }
         if (query) {
