@@ -179,11 +179,11 @@ class Controller {
         }
         if (query) {
             return {
-                url: `${constants_1.ALLPORNCOMIC_DOMAIN}/timkiem/nangcao/1/0/-1/-1?txt=${encodeURI(query)}&p=${page}`,
+                url: `${constants_1.ALLPORNCOMIC_DOMAIN}?s=${encodeURI(query)}&post_type=wp-manga`,
             };
         }
         if (tag) {
-            return { url: `${constants_1.ALLPORNCOMIC_DOMAIN}?key=tatca&orderBy=${sort_id}&p=${page}` };
+            return { url: `${tag.tagId}/page/${page}/?m_orderby=${sort_id}` };
         }
         return { url: `${constants_1.ALLPORNCOMIC_DOMAIN}/porncomic/page/${page}/?m_orderby=${sort_id}` };
     }
