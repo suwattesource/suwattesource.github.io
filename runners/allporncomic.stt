@@ -139,14 +139,18 @@ class Controller {
     async getChapters(_) {
         return [];
     }
-    async getChapterData(contentId, chapterId) {
-        return {
-            pages: []
-        };
+    async getChapterData(chapterId) {
+        const $ = await this.fetchHTML(chapterId);
+        const chapterData = this.parser.getChapterData($);
+        void this.preload(chapterData);
+        return chapterData;
     }
-    async preload(images) {
-        for (const image of images) {
-            void this.client.get(image, { headers: { Referer: constants_1.ALLPORNCOMIC_DOMAIN + "/" } });
+    async preload(chapterData) {
+        const pages = chapterData.pages || [];
+        for (const page of pages) {
+            if (page.url != null) {
+                void this.client.get(page.url, { headers: { Referer: constants_1.ALLPORNCOMIC_DOMAIN + "/" } });
+            }
         }
     }
     async fetchHTML(url, config) {
@@ -201,8 +205,8 @@ class Target {
     async getChapters(contentId) {
         return this.controller.getChapters(contentId);
     }
-    async getChapterData(contentId, chapterId) {
-        return this.controller.getChapterData(contentId, chapterId);
+    async getChapterData(_, chapterId) {
+        return this.controller.getChapterData(chapterId);
     }
     // Directory
     async getDirectory(request) {
@@ -304,8 +308,12 @@ class Parser {
         const bookmarks = parseInt($(".add-bookmark .action_detail span").text().replace(/[^\d]/g, "")) || 0;
         // Extract genres as tags
         const genreTags = this.createTags($, genres);
-        // Properties (e.g., artists, genres)
         const properties = [];
+        properties.push({
+            "id": "temp",
+            title: "Temp",
+            tags: []
+        });
         if (genres.length > 0) {
             properties.push({
                 id: "genres",
@@ -326,7 +334,7 @@ class Parser {
             `⭐ Average Rating: ${averageRating} / 5`,
             `👥 Votes: ${ratingCount}`,
             `📊 Rank: ${rank}`,
-            `📖 Total Views: ${totalViews}`,
+            `📖 Monthly Views: ${totalViews}`,
             `💬 Comments: ${comments}`,
             `🔖 Bookmarks: ${bookmarks}`,
         ];
@@ -344,16 +352,6 @@ class Parser {
             chapters,
         };
     }
-    createTags($, elements) {
-        const tags = [];
-        for (const element of elements) {
-            tags.push({
-                title: $(element).text().trim(),
-                id: $(element).attr('href') || "",
-            });
-        }
-        return tags;
-    }
     getChapters($) {
         const chapters = [];
         let index = 0;
@@ -368,27 +366,34 @@ class Parser {
                 number,
                 title,
                 index,
-                language: "en",
+                language: "en-us",
                 date: time ? new Date(time) : new Date(), // Fallback to current date
             });
             index++;
         });
         return chapters;
     }
-    getChapterData($, contentId) {
-        const pages = [];
-        const avatarImgURL = $('div.bg-gradient-to-tr a img').attr('src') || "";
-        const baseImgURL = avatarImgURL.match(/^(.+?)\/\d+\/.+$/)?.[1];
-        const mediaAndLikes = $('div.divide-gray-300.divide-transparent.divide-x.grid.grid-cols-2.lg\\:text-left.lg\\:text-lg.mt-3.text-center.w-full.dark\\:text-gray-100').text().trim();
-        const lastImageSrc = $('#content img').first().attr('src') || "";
-        const lastImageIndex = parseInt(lastImageSrc.match(/(\d+)(?=_[^_]*\.jpg$)/)?.[1] || '', 10);
-        const [images, _] = mediaAndLikes.split(/\s+/);
-        for (let i = 0; i <= Number(images); i++) {
-            pages.push(`${baseImgURL}/${(Math.floor((lastImageIndex - i) / 1000) + 1) * 1000}/${contentId}_${String(lastImageIndex - i).padStart(4, '0')}.jpg`);
-        }
+    getChapterData($) {
+        const urls = [];
+        $('div.page-break img').each((_, element) => {
+            const url = $(element).attr('data-src') || $(element).attr('src') || "";
+            if (url) {
+                urls.push(url.trim());
+            }
+        });
         return {
-            pages: pages.map((url) => ({ url })),
+            pages: urls.map((url) => ({ url })),
         };
+    }
+    createTags($, elements) {
+        const tags = [];
+        for (const element of elements) {
+            tags.push({
+                title: $(element).text().trim(),
+                id: $(element).attr('href') || "",
+            });
+        }
+        return tags;
     }
 }
 exports.Parser = Parser;
