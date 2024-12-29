@@ -29,41 +29,29 @@ exports.HOME_PAGE_SECTIONS = [
 ];
 exports.SEARCH_SORTERS = [
     {
-        id: "0",
-        title: "Ngày cập nhật",
+        id: "latest",
+        title: "Latest",
     },
     {
-        id: "15",
-        title: "Truyện mới",
+        id: "alphabet",
+        title: "A-Z",
     },
     {
-        id: "10",
-        title: "Xem nhiều nhất",
+        id: "rating",
+        title: "Rating",
     },
     {
-        id: "11",
-        title: "Xem nhiều nhất tháng",
+        id: "trending",
+        title: "Trending",
     },
     {
-        id: "12",
-        title: "Xem nhiều nhất tuần",
+        id: "views",
+        title: "Most Views",
     },
     {
-        id: "13",
-        title: "Xem nhiều nhất hôm nay",
-    },
-    {
-        id: "20",
-        title: "Theo dõi nhiều nhất",
-    },
-    {
-        id: "25",
-        title: "Bình luận nhiều nhất",
-    },
-    {
-        id: "30",
-        title: "Số chapter nhiều nhất",
-    },
+        id: "new-manga",
+        title: "New Manga",
+    }
 ];
 exports.DEFAULT_FILTERS = [
     {
