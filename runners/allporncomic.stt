@@ -190,7 +190,7 @@ class Controller {
         }
         if (filters) {
             const search = {
-                genres: '',
+                genres: "",
                 op: "",
                 author: "",
                 artist: "",
@@ -203,12 +203,9 @@ class Controller {
                 const parts = url.split('/');
                 return parts[parts.length - 2] || "";
             });
-            const includeStatus = filters.status ?? [].map((url) => {
-                const parts = url.split('/');
-                return parts[parts.length - 2] || "";
-            });
-            search.genres = includeGenres.map((genre) => `genre[]=${encodeURIComponent(genre)}`).join("&");
-            search.status = includeStatus.map((status) => `genre[]=${encodeURIComponent(status)}`).join("&");
+            const includeStatus = filters.status ?? [];
+            search.genres = includeGenres.map((genre) => `genre%5B%5D=${encodeURIComponent(genre)}`).join("&");
+            search.status = includeStatus.map((status) => `status%5B%5D=${encodeURIComponent(status)}`).join("&");
             search.op = filters.hot ? "1" : "0";
             search.author = filters.author ?? "";
             search.artist = filters.artist ?? "";
