@@ -5,6 +5,7 @@ import {
     Content,
     ContentSource,
     DirectoryConfig,
+    DirectoryFilter,
     DirectoryRequest,
     Form,
     ImageRequestHandler,
@@ -17,9 +18,9 @@ import {
     ResolvedPageSection,
     RunnerInfo,
     RunnerPreferenceProvider,
-    UITextField,
+    UIStepper,
 } from "@suwatte/daisuke";
-import {GOCTRUYENTRANH_DOMAIN, PREF_KEYS, SEARCH_SORTERS} from "./constants";
+import {ALLPORNCOMIC_DOMAIN, PREF_KEYS, SEARCH_SORTERS} from "./constants";
 import {Controller} from "./controller";
 import {GlobalStore} from "./store";
 
@@ -28,20 +29,20 @@ export class Target implements ContentSource,
     ImageRequestHandler,
     RunnerPreferenceProvider {
     info: RunnerInfo = {
-        id: "goctruyentranh",
-        website: GOCTRUYENTRANH_DOMAIN,
-        version: 0.3,
-        name: "GocTruyenTranh",
-        supportedLanguages: ["vi-vn"],
-        thumbnail: "goctruyentranh.png",
+        id: "allporncomic",
+        website: ALLPORNCOMIC_DOMAIN,
+        version: 0.1,
+        name: "AllPornComic",
+        supportedLanguages: ["en-us"],
+        thumbnail: "allporncomic.png",
         minSupportedAppVersion: "6.0",
-        rating: CatalogRating.SAFE,
+        rating: CatalogRating.NSFW,
     };
     private controller = new Controller();
 
-    async headers(): Promise<Record<string, string>> {
+    headers(): Record<string, string> {
         return {
-            Referer: await GlobalStore.getDomain() + "/",
+            Referer: ALLPORNCOMIC_DOMAIN + "/",
         };
     }
 
@@ -55,23 +56,20 @@ export class Target implements ContentSource,
     }
 
     async getChapterData(
-        comicId: string,
+        _: string,
         chapterId: string
     ): Promise<ChapterData> {
-        return this.controller.getChapterData(comicId, chapterId);
+        return this.controller.getChapterData(chapterId);
     }
 
     async getTags(): Promise<Property[]> {
         const filters = await this.controller.getFilters();
-        return filters.filter(f => f.id == "categories")
-            .map(({id, title, options}) => ({
-                id,
-                title,
-                tags: (options ?? []).map((v) => ({
-                    id: v.id,
-                    title: v.title,
-                })),
-            }))
+        const genres: DirectoryFilter | undefined = filters.pop()
+        return [{
+            id: "genres",
+            title: "Genres",
+            tags: genres?.options?.map(genre => ({id: genre.id, title: genre.title})) || []
+        }]
     }
 
     // Directory
@@ -89,7 +87,7 @@ export class Target implements ContentSource,
                     ascending: false,
                 },
             },
-            filters: await this.controller.getFilters()
+            filters: await this.controller.getFilters(),
         };
     }
 
@@ -110,7 +108,7 @@ export class Target implements ContentSource,
         return {
             url,
             headers: {
-                ...await this.headers(),
+                ...this.headers(),
             },
         }
     }
@@ -119,13 +117,16 @@ export class Target implements ContentSource,
         return {
             sections: [
                 {
-                    header: "GocTruyenTranh Domain",
+                    header: "Chapter Split",
                     children: [
-                        UITextField({
-                            id: PREF_KEYS.domain,
-                            title: "Domain name",
-                            value: await GlobalStore.getDomain(),
-                            didChange: GlobalStore.setDomain.bind(GlobalStore)
+                        UIStepper({
+                            id: PREF_KEYS.number_of_images_per_chapter,
+                            title: `Max images per chapter`,
+                            lowerBound: 0,
+                            upperBound: 1000,
+                            step: 10,
+                            value: await GlobalStore.getNumImages(),
+                            didChange: GlobalStore.setNumImages,
                         }),
                     ],
                 },

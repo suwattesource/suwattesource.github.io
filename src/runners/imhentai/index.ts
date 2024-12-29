@@ -29,7 +29,7 @@ export class Target
     info: RunnerInfo = {
         id: "imhentai",
         website: IMHENTAI_DOMAIN,
-        version: 1.1,
+        version: 1.2,
         name: "IMHentai",
         supportedLanguages: LANGUAGES.map((v) => v.languageCode + "-" + v.regionCode),
         thumbnail: "imhentai.png",

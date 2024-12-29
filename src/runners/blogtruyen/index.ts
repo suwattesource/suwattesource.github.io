@@ -31,7 +31,7 @@ export class Target implements ContentSource,
     info: RunnerInfo = {
         id: "blogtruyen",
         website: BLOGTRUYEN_DOMAIN,
-        version: 1.1,
+        version: 1.2,
         name: "BlogTruyen (Unavailable)",
         supportedLanguages: ["vi-vn"],
         thumbnail: "blogtruyen.png",

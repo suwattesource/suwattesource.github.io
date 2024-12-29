@@ -30,7 +30,7 @@ export class Target
     info: RunnerInfo = {
         id: "ehentai",
         website: EHENTAI_DOMAIN,
-        version: 1.0,
+        version: 1.1,
         name: "E-Hentai",
         supportedLanguages: LANGUAGES.map((v) => v.languageCode + "-" + v.regionCode),
         thumbnail: "ehentai.png",
