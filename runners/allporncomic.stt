@@ -77,7 +77,6 @@ const cheerio_1 = require("cheerio");
 const constants_1 = require("./constants");
 const parser_1 = require("./parser");
 const memory_cache_1 = __importDefault(require("memory-cache"));
-const store_1 = require("./store");
 class Controller {
     constructor() {
         this.client = new NetworkClient();
@@ -134,32 +133,16 @@ class Controller {
     }
     // Content
     async getContent(contentId) {
-        const webUrl = `${constants_1.ALLPORNCOMIC_DOMAIN}/${contentId}/`;
-        const $ = await this.fetchHTML(webUrl);
-        return this.parser.getContent($, webUrl);
+        const $ = await this.fetchHTML(contentId);
+        return this.parser.getContent($, contentId);
     }
     async getChapters(_) {
         return [];
     }
     async getChapterData(contentId, chapterId) {
-        let chapterData = this.cache.get(constants_1.PREF_KEYS.cache_chapter_images);
-        if (!chapterData) {
-            const $ = await this.fetchHTML(`${constants_1.ALLPORNCOMIC_DOMAIN}/${contentId}/`);
-            chapterData = this.parser.getChapterData($, contentId);
-        }
-        const totalImages = chapterData.pages?.filter(v => v).map(v => String(v.url)) || [];
-        const numberOfImages = await store_1.GlobalStore.getNumImages();
-        if (numberOfImages == 0) {
-            void this.preload(totalImages);
-            return chapterData;
-        }
-        const getChapterImages = (images, k, i) => images.slice(i * k, (i + 1) * k);
-        const images = getChapterImages(totalImages, numberOfImages, Number(chapterId) - 1);
-        void this.preload(images);
-        chapterData = {
-            pages: images.map(v => ({ url: v }))
+        return {
+            pages: []
         };
-        return chapterData;
     }
     async preload(images) {
         for (const image of images) {
@@ -184,7 +167,7 @@ class Controller {
 }
 exports.Controller = Controller;
 
-},{"./constants":1,"./parser":4,"./store":5,"cheerio":undefined,"memory-cache":70}],3:[function(require,module,exports){
+},{"./constants":1,"./parser":4,"cheerio":undefined,"memory-cache":70}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Target = void 0;
@@ -279,7 +262,6 @@ exports.Target = Target;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Parser = void 0;
-const store_1 = require("./store");
 class Parser {
     getSearchResults($) {
         const items = [];
@@ -295,10 +277,8 @@ class Parser {
         return items;
     }
     async getContent($, webUrl) {
-        const title = $('h2.font-semibold').text().trim();
-        const cover = $('div.bg-gradient-to-tr a img').attr('src') || "";
-        // const mediaAndLikes = $('div.divide-gray-300.divide-transparent.divide-x.grid.grid-cols-2.lg\\:text-left.lg\\:text-lg.mt-3.text-center.w-full.dark\\:text-gray-100').text().trim();
-        // const [_, _] = mediaAndLikes.split(/\s+/);
+        const title = $('div.summary_content_wrap h1').text().trim();
+        const cover = $('div.summary_image a img').attr('data-src') || "";
         const chapters = await this.getChapters($);
         return {
             title,
@@ -309,31 +289,23 @@ class Parser {
     }
     async getChapters($) {
         const chapters = [];
-        const mediaAndLikes = $('div.divide-gray-300.divide-transparent.divide-x.grid.grid-cols-2.lg\\:text-left.lg\\:text-lg.mt-3.text-center.w-full.dark\\:text-gray-100').text().trim();
-        const [images, _] = mediaAndLikes.split(/\s+/);
-        const numberOfImages = await store_1.GlobalStore.getNumImages();
-        if (numberOfImages == 0) {
+        let index = 0;
+        $('div.list-chapter > div.chapter-item').each((_, element) => {
+            const chapterLink = $(element).find('span.chapter > a');
+            const chapterId = chapterLink.attr('href')?.split('/').slice(-3).join('/') || "";
+            const time = $(element).find('span.post-on').text().trim();
+            const title = chapterLink.text().trim();
+            const number = parseFloat(title.split(' ')[0] || "");
             chapters.push({
-                chapterId: "chapter",
-                number: 1,
-                title: "Images",
-                index: 1,
-                language: 'en-us',
-                date: new Date(),
+                chapterId,
+                number,
+                title,
+                index,
+                language: "vi-vn",
+                date: new Date(time),
             });
-            return chapters;
-        }
-        const numberOfChapters = Math.ceil(Number(images) / numberOfImages);
-        for (let i = numberOfChapters; i >= 1; i--) {
-            chapters.push({
-                chapterId: i.toString(),
-                number: i,
-                title: `Image ${(i - 1) * numberOfImages + 1} - ${Math.min(i * numberOfImages, Number(images))}`,
-                index: numberOfChapters - i,
-                language: 'en-us',
-                date: new Date(),
-            });
-        }
+            index++;
+        });
         return chapters;
     }
     getChapterData($, contentId) {
@@ -354,7 +326,7 @@ class Parser {
 }
 exports.Parser = Parser;
 
-},{"./store":5}],5:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GlobalStore = exports.Store = void 0;
