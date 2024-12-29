@@ -179,11 +179,11 @@ class Controller {
         }
         if (query) {
             return {
-                url: `${constants_1.ALLPORNCOMIC_DOMAIN}?s=${encodeURI(query)}&post_type=wp-manga`,
+                url: `${constants_1.ALLPORNCOMIC_DOMAIN}/?s=${encodeURI(query)}&post_type=wp-manga`,
             };
         }
         if (tag) {
-            return { url: `${tag.tagId}/page/${page}/?m_orderby=${sort_id}` };
+            return { url: `${tag.tagId}page/${page}/?m_orderby=${sort_id}` };
         }
         return { url: `${constants_1.ALLPORNCOMIC_DOMAIN}/porncomic/page/${page}/?m_orderby=${sort_id}` };
     }
@@ -274,7 +274,7 @@ class Target {
         return [{
                 id: "genres",
                 title: "Genres",
-                tags: genres?.options?.map(genre => ({ id: genre.title, title: genre.title })) || []
+                tags: genres?.options?.map(genre => ({ id: genre.id, title: genre.title })) || []
             }];
     }
     // Directory
