@@ -262,6 +262,7 @@ exports.Target = Target;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Parser = void 0;
+const daisuke_1 = require("@suwatte/daisuke");
 class Parser {
     getSearchResults($) {
         const items = [];
@@ -277,16 +278,161 @@ class Parser {
         return items;
     }
     async getContent($, webUrl) {
-        const title = $('div.summary_content_wrap h1').text().trim();
-        const cover = $('div.summary_image a img').attr('data-src') || "";
-        const chapters = await this.getChapters($);
+        // Extract the main title
+        const title = $(".post-title h1").text().trim();
+        // Additional Titles (currently not available in the HTML, kept for compatibility)
+        const altTitle = $('p.subtitle').text().trim();
+        const additionalTitles = altTitle ? [altTitle] : [];
+        // Genres
+        const genres = $('.genres-content a').toArray();
+        // Artists
+        const artists = $('.artist-content a').toArray();
+        // Status
+        const statusText = $(".summary-heading:contains(Status)").next(".summary-content").text().trim();
+        const status = statusText === "Completed" ? daisuke_1.PublicationStatus.COMPLETED : daisuke_1.PublicationStatus.ONGOING;
+        // Rank (e.g., "2nd, it has 724.7K monthly views")
+        const rankText = $(".summary-heading:contains(Rank)").next(".summary-content").text().trim();
+        // Cover image
+        const coverElement = $('.summary_image img');
+        const cover = coverElement.attr('data-src') || coverElement.attr('src') || "";
+        // Average rating and total votes
+        const ratingValue = parseFloat($('#averagerate').text().trim()) || 0;
+        const ratingCount = $("#countrate").text().trim();
+        // Comments and bookmarks
+        const commentsCount = parseInt($(".count-comment .action_detail span").text().replace(/[^\d]/g, "")) || 0;
+        const bookmarksCount = parseInt($(".add-bookmark .action_detail span").text().replace(/[^\d]/g, "")) || 0;
+        // Extract genres as tags
+        const genreTags = this.createTags($, genres);
+        // Properties (e.g., artists, genres)
+        const properties = [];
+        if (genres.length > 0) {
+            properties.push({
+                id: "genres",
+                title: "Genres",
+                tags: genreTags,
+            });
+        }
+        if (artists.length > 0) {
+            properties.push({
+                id: "artists",
+                title: "Artists",
+                tags: this.createTags($, artists),
+            });
+        }
+        // Info section
+        const info = [
+            `Rating: ${ratingValue} / 5 (${ratingCount} votes)`,
+            `Rank: ${rankText}`,
+            `Comments: ${commentsCount}`,
+            `Bookmarks: ${bookmarksCount}`,
+        ];
+        // Return the structured content
         return {
             title,
+            additionalTitles,
             cover,
+            status,
+            recommendedPanelMode: daisuke_1.ReadingMode.PAGED_COMIC,
+            isNSFW: true,
             webUrl,
-            chapters,
+            properties,
+            info,
         };
     }
+    createTags($, elements) {
+        const tags = [];
+        for (const element of elements) {
+            tags.push({
+                title: $(element).text().trim(),
+                id: $(element).attr('href') || "",
+            });
+        }
+        return tags;
+    }
+    // async getContent($: CheerioAPI, chapterData: ChapterData, webUrl: string): Promise<Content> {
+    //     const title = $(".post-title h1").text().trim();
+    //
+    //     // Additional Titles
+    //     const additionalTitles = [];
+    //     const altTitle = $("p.subtitle").text().trim();
+    //     if (altTitle) additionalTitles.push(altTitle);
+    //
+    //     // Genres
+    //     const genres = $(".genres-content a").toArray();
+    //     const genreTags = this.createTags($, genres);
+    //
+    //     // Artists
+    //     const artists = $(".artist-content a").toArray();
+    //     const artistTags = this.createTags($, artists);
+    //
+    //     // Cover Image
+    //     const coverElement = $(".summary_image img").first();
+    //     const cover = coverElement.attr("data-src") || coverElement.attr("src") || "";
+    //
+    //     // Status
+    //     const statusText = $(".summary-content:contains('Completed')").text().trim();
+    //     const status = statusText === "Completed" ? PublicationStatus.COMPLETED : PublicationStatus.ONGOING;
+    //
+    //     // Ratings and Votes
+    //     const averageRating = parseFloat($("#averagerate").text().trim()) || 0;
+    //     const ratingCount = $("#countrate").text().trim();
+    //
+    //     const rank = $(".summary-content:contains('Rank')").text().trim();
+    //
+    //     const isNSFW = true;
+    //
+    //     const recommendedPanelMode = ReadingMode.PAGED_COMIC;
+    //
+    //     // Properties
+    //     const properties: Property[] = [];
+    //
+    //     if (genres.length > 0) {
+    //         properties.push({
+    //             id: "genres",
+    //             title: "Genres",
+    //             tags: genreTags,
+    //         });
+    //     }
+    //
+    //     if (artists.length > 0) {
+    //         properties.push({
+    //             id: "artists",
+    //             title: "Artists",
+    //             tags: artistTags,
+    //         });
+    //     }
+    //
+    //     // Chapters
+    //     const chapters = await this.getChapters($, chapterData);
+    //
+    //     // Information
+    //     const totalViews = $(".summary-content:contains('views')").text().trim();
+    //     const comments = $(".count-comment span").text().trim();
+    //     const bookmarks = $(".add-bookmark .action_detail span").text().trim();
+    //
+    //     const info = [
+    //         `⭐ Average Rating: ${averageRating} / 5`,
+    //         `👥 Votes: ${ratingCount}`,
+    //         `📊 Rank: ${rank}`,
+    //         `📖 Total Views: ${totalViews}`,
+    //         `💬 Comments: ${comments}`,
+    //         `🔖 Bookmarks: ${bookmarks}`,
+    //     ];
+    //
+    //
+    //     return {
+    //         title,
+    //         additionalTitles,
+    //         cover,
+    //         status,
+    //         recommendedPanelMode,
+    //         isNSFW,
+    //         webUrl,
+    //         chapters,
+    //         properties,
+    //         info,
+    //     };
+    // }
     async getChapters($) {
         const chapters = [];
         let index = 0;
@@ -326,7 +472,7 @@ class Parser {
 }
 exports.Parser = Parser;
 
-},{}],5:[function(require,module,exports){
+},{"@suwatte/daisuke":6}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GlobalStore = exports.Store = void 0;
