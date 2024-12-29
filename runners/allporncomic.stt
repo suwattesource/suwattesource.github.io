@@ -283,23 +283,14 @@ const store_1 = require("./store");
 class Parser {
     getSearchResults($) {
         const items = [];
-        $('div.page-listing-item').each((_index, element) => {
-            const itemElement = $(element);
-            // const linkElement = itemElement.find('div.page-item-detail > a[href]');
-            const linkElement = itemElement.find('div.page-item-detail > div > a[href]');
-            const coverElement = itemElement.find('div.item-thumb > a > img');
-            const idElement = linkElement.attr('href');
-            const cover = coverElement.attr('src') || "";
-            const title = linkElement.attr('title')?.trim() || "";
-            if (idElement && cover && title) {
-                // Extract the mangaId from the href attribute
-                const id = idElement.match(/\/\/[^/]+\/([^/]+)\//)?.[1] || "";
-                items.push({
-                    id: id,
-                    cover: cover,
-                    title: title,
-                });
-            }
+        $('div.page-listing-item').each((index, pageListingItem) => {
+            $(pageListingItem).find('div.col-6.col-md-2.badge-pos-1').each((index, element) => {
+                const linkElement = $(element).find('div.item-thumb > a').first();
+                const id = linkElement.attr('href') || "";
+                const title = linkElement.attr('title')?.trim() || "";
+                const cover = $(element).find('a>img').attr('data-src') || ""; // Changed to data-src
+                items.push({ id, title, cover });
+            });
         });
         return items;
     }
