@@ -25,6 +25,7 @@ exports.HOME_PAGE_SECTIONS = [
         id: "latest",
         title: "Latest",
         style: daisuke_1.SectionStyle.PADDED_LIST,
+        viewMoreLink: { request: { page: 1, sort: { id: "" } } },
     },
 ];
 exports.SEARCH_SORTERS = [
@@ -138,36 +139,53 @@ class Controller {
         return sections.filter(a => a.items?.length);
     }
     async getSearchResults(request) {
-        const url = await this.createSearchURL(request, constants_1.ALLPORNCOMIC_DOMAIN);
-        const $ = await this.fetchHTML(url);
-        const results = this.parser.getSearchResults($);
+        const searchConfig = await this.createSearchConfig(request);
+        const $ = await this.fetchHTML(searchConfig.url);
+        let parseFunction = this.parser.getSearchResults;
+        if (searchConfig.func) {
+            parseFunction = searchConfig.func.bind(this.parser);
+        }
+        const results = parseFunction($);
         return {
             results,
-            isLastPage: false
+            isLastPage: false,
         };
     }
-    async createSearchURL(request, domain) {
+    async createSearchConfig(request) {
         // eslint-disable-next-line prefer-const
-        let { query, tag, sort, page } = request;
-        if (!query && !tag && sort?.id) {
+        let { filters, query, tag, sort, page } = request;
+        if (!filters && !query && !tag && sort?.id) {
             request = this.cache.get(constants_1.PREF_KEYS.request) ?? request;
+            filters = request.filters;
             query = request.query;
             tag = request.tag;
         }
-        const sort_id = sort?.id || "0";
-        if (!query && !tag) {
+        const sort_id = sort?.id || "latest";
+        if (!filters && !query && !tag) {
             this.cache.del(constants_1.PREF_KEYS.request);
         }
-        if (query || tag) {
+        if (filters || query || tag) {
             this.cache.put(constants_1.PREF_KEYS.request, request);
         }
+        if (filters) {
+            const includeCategories = filters.categories?.included ?? [];
+            const excludeCategories = filters.categories?.excluded ?? [];
+            const categories = includeCategories.join(",");
+            const exCategories = excludeCategories.join(",");
+            const status = filters.status ?? "0";
+            return {
+                url: `${constants_1.ALLPORNCOMIC_DOMAIN}/timkiem/nangcao/1/${status}/${categories}/${exCategories}?p=${page}`,
+            };
+        }
         if (query) {
-            return `${domain}/tim-truyen${encodeURI(`?keyword=${query.trim()}&page=${page}`)}`;
+            return {
+                url: `${constants_1.ALLPORNCOMIC_DOMAIN}/timkiem/nangcao/1/0/-1/-1?txt=${encodeURI(query)}&p=${page}`,
+            };
         }
         if (tag) {
-            return `${tag.tagId}?sort=${sort_id}&page=${page}`;
+            return { url: `${constants_1.ALLPORNCOMIC_DOMAIN}?key=tatca&orderBy=${sort_id}&p=${page}` };
         }
-        return `${domain}/tim-truyen?sort=${sort_id}&page=${page}`;
+        return { url: `${constants_1.ALLPORNCOMIC_DOMAIN}/porncomic/page/${page}/?m_orderby=${sort_id}` };
     }
     // Content
     async getContent(contentId) {
