@@ -215,7 +215,7 @@ class Controller {
         }
         if (query) {
             return {
-                url: `${constants_1.ALLPORNCOMIC_DOMAIN}/?s=${encodeURI(query)}&post_type=wp-manga`,
+                url: `${constants_1.ALLPORNCOMIC_DOMAIN}/page/${page}/?s=${encodeURI(query)}&post_type=wp-manga`,
                 func: this.parser.getAdvancedSearchResults
             };
         }
