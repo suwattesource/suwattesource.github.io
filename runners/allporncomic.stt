@@ -199,8 +199,14 @@ class Controller {
                 status: "",
             };
             const title = filters.title ?? "";
-            const includeGenres = filters.genres ?? [];
-            const includeStatus = filters.status ?? [];
+            const includeGenres = (filters.genres ?? []).map((url) => {
+                const parts = url.split('/');
+                return parts[parts.length - 2] || "";
+            });
+            const includeStatus = filters.status ?? [].map((url) => {
+                const parts = url.split('/');
+                return parts[parts.length - 2] || "";
+            });
             search.genres = includeGenres.map((genre) => `genre[]=${encodeURIComponent(genre)}`).join("&");
             search.status = includeStatus.map((status) => `genre[]=${encodeURIComponent(status)}`).join("&");
             search.op = filters.hot ? "1" : "0";
