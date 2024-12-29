@@ -510,7 +510,7 @@ class Target {
         this.info = {
             id: "cmanga",
             website: constants_1.CMANGA_DOMAIN,
-            version: 0.2,
+            version: 0.3,
             name: "CManga",
             supportedLanguages: ["vi-vn"],
             thumbnail: "cmanga.png",

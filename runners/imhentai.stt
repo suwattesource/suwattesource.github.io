@@ -538,7 +538,7 @@ class Target {
         this.info = {
             id: "imhentai",
             website: constants_1.IMHENTAI_DOMAIN,
-            version: 1.1,
+            version: 1.2,
             name: "IMHentai",
             supportedLanguages: constants_1.LANGUAGES.map((v) => v.languageCode + "-" + v.regionCode),
             thumbnail: "imhentai.png",

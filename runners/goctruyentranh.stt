@@ -331,7 +331,7 @@ class Target {
         this.info = {
             id: "goctruyentranh",
             website: constants_1.GOCTRUYENTRANH_DOMAIN,
-            version: 0.1,
+            version: 0.3,
             name: "GocTruyenTranh",
             supportedLanguages: ["vi-vn"],
             thumbnail: "goctruyentranh.png",
