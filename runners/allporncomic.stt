@@ -210,11 +210,13 @@ class Controller {
             const params = `${search.genres}&op=${search.op}&author=${search.author}&artist=${search.artist}&release=${search.release}&${search.status}&m_orderby=${sort_id}`;
             return {
                 url: `${constants_1.ALLPORNCOMIC_DOMAIN}/page/${page}/?s=${encodeURI(title)}&post_type=wp-manga&${params}`,
+                func: this.parser.getAdvancedSearchResults
             };
         }
         if (query) {
             return {
                 url: `${constants_1.ALLPORNCOMIC_DOMAIN}/?s=${encodeURI(query)}&post_type=wp-manga`,
+                func: this.parser.getAdvancedSearchResults
             };
         }
         if (tag) {
@@ -384,6 +386,17 @@ class Parser {
                 const cover = $(element).find('a>img').attr('data-src') || ""; // Changed to data-src
                 items.push({ id, title, cover });
             });
+        });
+        return items;
+    }
+    getAdvancedSearchResults($) {
+        const items = [];
+        $('div.c-tabs-item__content').each((index, element) => {
+            const linkElement = $(element).find('div.tab-thumb a').first();
+            const id = linkElement.attr('href') || "";
+            const title = linkElement.attr('title')?.trim() || "";
+            const cover = $(element).find('div.tab-thumb img').attr('data-src') || "";
+            items.push({ id, title, cover });
         });
         return items;
     }
