@@ -320,6 +320,7 @@ class Parser {
                 tags: this.createTags($, artists),
             });
         }
+        const chapters = this.getChapters($);
         // Info section
         const info = [
             `⭐ Average Rating: ${averageRating} / 5`,
@@ -340,6 +341,7 @@ class Parser {
             webUrl,
             properties,
             info,
+            chapters,
         };
     }
     createTags($, elements) {
@@ -352,22 +354,22 @@ class Parser {
         }
         return tags;
     }
-    async getChapters($) {
+    getChapters($) {
         const chapters = [];
         let index = 0;
-        $('div.list-chapter > div.chapter-item').each((_, element) => {
-            const chapterLink = $(element).find('span.chapter > a');
-            const chapterId = chapterLink.attr('href')?.split('/').slice(-3).join('/') || "";
-            const time = $(element).find('span.post-on').text().trim();
+        $('ul.main.version-chap.no-volumn > li.wp-manga-chapter').each((_, element) => {
+            const chapterLink = $(element).find('a');
+            const chapterId = chapterLink.attr('href') || "";
             const title = chapterLink.text().trim();
-            const number = parseFloat(title.split(' ')[0] || "");
+            const number = Number(title.split(' ')[0]) || index + 1; // Fallback to index if parsing fails
+            const time = $(element).find('span.chapter-release-date a').attr('title') || "";
             chapters.push({
                 chapterId,
                 number,
                 title,
                 index,
-                language: "vi-vn",
-                date: new Date(time),
+                language: "en",
+                date: time ? new Date(time) : new Date(), // Fallback to current date
             });
             index++;
         });
