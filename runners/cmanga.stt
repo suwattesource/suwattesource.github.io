@@ -35,18 +35,28 @@ class API {
         console.log(setCookies);
         const sessionCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNameSession);
         const passwordCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNamePassword);
+        const cookies = [
+            {
+                name: constants_1.CookieNameSession,
+                value: sessionCookie
+            },
+            {
+                name: constants_1.CookieNamePassword,
+                value: passwordCookie,
+            }
+        ];
         const userId = await this.getUserId(sessionCookie, passwordCookie);
-        const userData = await this.getUserData(userId);
+        const userData = await this.getUserData(userId, cookies);
         await SecureStore.set(constants_1.UserId, userId);
         await SecureStore.set(constants_1.UserName, userData.name);
         await SecureStore.set(constants_1.Avatar, userData.avatar);
         await SecureStore.set(constants_1.CookieNameSession, sessionCookie);
         await SecureStore.set(constants_1.CookieNamePassword, passwordCookie);
     }
-    async getUserData(userId) {
+    async getUserData(userId, cookies) {
         const domain = await store_1.GlobalStore.getDomain();
         const url = `${domain}${constants_1.API_GET_USER_DATA}?data=info&user=${userId}`;
-        return this.requestJSON({ url, method: "GET" });
+        return this.requestJSON({ url, method: "GET", cookies: cookies });
     }
     async getGalleryInfo(galleryId) {
         const domain = await store_1.GlobalStore.getDomain();

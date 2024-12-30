@@ -267,7 +267,7 @@ class Target {
         this.info = {
             id: "allporncomic",
             website: constants_1.ALLPORNCOMIC_DOMAIN,
-            version: 0.,
+            version: 0.1,
             name: "AllPornComic",
             supportedLanguages: ["en-us"],
             thumbnail: "allporncomic.png",
