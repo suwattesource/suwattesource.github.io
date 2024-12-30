@@ -40,19 +40,18 @@ export async function AuthInterceptor(request: NetworkRequest) {
     return request;
 }
 
-export const getCookieValue = (cookieArray: string[], cookieName: string): string | null => {
-    const cookieString = cookieArray.find(cookie => cookie.trim().startsWith(`${cookieName}=`));
-    if (!cookieString) {
-        return null;
-    }
-    const firstPart = cookieString.split(';')[0];
-    const keyValue = firstPart?.split('=');
-    if (!keyValue) {
-        return null
-    }
-    return keyValue.length > 1 ? keyValue.slice(1).join('=') : null;
-};
+export const getCookieValue = (setCookies: string, cookieName: string): string => {
+    // Split the Set-Cookie header into individual cookies
+    const cookies = setCookies.split(/;\s*/);
 
+    // Find the cookie with the specified name and extract its value
+    for (const cookie of cookies) {
+        if (cookie.startsWith(`${cookieName}=`)) {
+            return cookie.substring(cookieName.length + 1);
+        }
+    }
+    return "";
+}
 
 export async function isLoggedIn(): Promise<boolean> {
     const userId = await SecureStore.string(UserId);
