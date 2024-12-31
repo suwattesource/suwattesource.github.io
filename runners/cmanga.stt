@@ -782,6 +782,7 @@ async function AuthInterceptor(request) {
             value: passwordCookie
         },
     ];
+    console.log(request);
     return request;
 }
 exports.AuthInterceptor = AuthInterceptor;
