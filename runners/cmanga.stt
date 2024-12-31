@@ -786,13 +786,18 @@ async function AuthInterceptor(request) {
 }
 exports.AuthInterceptor = AuthInterceptor;
 const getCookieValue = (setCookies, cookieName) => {
-    for (const cookie of setCookies) {
-        const parts = cookie.split(';');
-        for (const part of parts) {
-            const [name, value] = part.trim().split('=');
-            if (name === cookieName) {
-                return decodeURIComponent(value || '');
-            }
+    if (!setCookies)
+        return "";
+    const cookies = setCookies.split(/, ?/);
+    for (const cookie of cookies) {
+        let cleanedCookie = cookie;
+        if (cleanedCookie.startsWith('"')) {
+            cleanedCookie = cleanedCookie.substring(1);
+        }
+        const parts = cleanedCookie.split(";");
+        const [namePart, ...valueParts] = parts[0]?.split("=") || [];
+        if (namePart === cookieName) {
+            return valueParts.join("=");
         }
     }
     return "";
