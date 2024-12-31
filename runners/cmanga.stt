@@ -47,11 +47,11 @@ class API {
         ];
         const userId = await this.getUserId(cookies);
         const userData = await this.getUserData(userId, cookies);
-        await SecureStore.set(constants_1.UserId, userId);
-        await SecureStore.set(constants_1.UserName, userData.name);
-        await SecureStore.set(constants_1.Avatar, userData.avatar);
-        await SecureStore.set(constants_1.CookieNameSession, sessionCookie);
-        await SecureStore.set(constants_1.CookieNamePassword, passwordCookie);
+        await ObjectStore.set(constants_1.UserId, userId);
+        await ObjectStore.set(constants_1.UserName, userData.name);
+        await ObjectStore.set(constants_1.Avatar, userData.avatar);
+        await ObjectStore.set(constants_1.CookieNameSession, sessionCookie);
+        await ObjectStore.set(constants_1.CookieNamePassword, passwordCookie);
     }
     async getUserData(userId, cookies) {
         const domain = await store_1.GlobalStore.getDomain();
@@ -76,7 +76,7 @@ class API {
         return (0, utils_1.parseGalleries)(json.data);
     }
     async getSuggestGalleryList() {
-        const userId = await SecureStore.string(constants_1.UserId);
+        const userId = await ObjectStore.string(constants_1.UserId);
         if (!userId) {
             return [];
         }
@@ -86,7 +86,7 @@ class API {
         return (0, utils_1.parseGalleries)(galleries.data);
     }
     async getUserGalleryList(type, page) {
-        const userId = await SecureStore.string(constants_1.UserId);
+        const userId = await ObjectStore.string(constants_1.UserId);
         if (!userId) {
             return [];
         }
@@ -464,18 +464,18 @@ class Controller {
         await this.api.handleAuth(username, password);
     }
     async handleSignOut() {
-        await SecureStore.remove(constants_1.UserId);
-        await SecureStore.remove(constants_1.CookieNameSession);
-        await SecureStore.remove(constants_1.CookieNamePassword);
+        await ObjectStore.remove(constants_1.UserId);
+        await ObjectStore.remove(constants_1.CookieNameSession);
+        await ObjectStore.remove(constants_1.CookieNamePassword);
     }
     async getAuthUser() {
         const domain = await store_1.GlobalStore.getDomain();
-        const userId = await SecureStore.get(constants_1.UserId);
+        const userId = await ObjectStore.get(constants_1.UserId);
         if (!userId) {
             return null;
         }
-        const name = await SecureStore.string(constants_1.UserName) || "";
-        const avatar = `${domain}/assets/tmp/avatar/${await SecureStore.string(constants_1.Avatar) || ""}`;
+        const name = await ObjectStore.string(constants_1.UserName) || "";
+        const avatar = `${domain}/assets/tmp/avatar/${await ObjectStore.string(constants_1.Avatar) || ""}`;
         const user = {
             handle: name,
             avatar: avatar
@@ -764,8 +764,8 @@ function parseChapterImages(chapterImage) {
 }
 exports.parseChapterImages = parseChapterImages;
 async function AuthInterceptor(request) {
-    const sessionCookie = await SecureStore.string(constants_1.CookieNameSession);
-    const passwordCookie = await SecureStore.string(constants_1.CookieNamePassword);
+    const sessionCookie = await ObjectStore.string(constants_1.CookieNameSession);
+    const passwordCookie = await ObjectStore.string(constants_1.CookieNamePassword);
     if (!sessionCookie || !passwordCookie)
         return request;
     request.headers = {
@@ -798,7 +798,7 @@ const getCookieValue = (setCookies, cookieName) => {
 };
 exports.getCookieValue = getCookieValue;
 async function isLoggedIn() {
-    const userId = await SecureStore.string(constants_1.UserId);
+    const userId = await ObjectStore.string(constants_1.UserId);
     return userId != null;
 }
 exports.isLoggedIn = isLoggedIn;
