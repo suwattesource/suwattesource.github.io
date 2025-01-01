@@ -1,4 +1,4 @@
-import {Cookie, NetworkClientBuilder, NetworkRequest, NetworkRequestConfig} from "@suwatte/daisuke";
+import {NetworkClientBuilder, NetworkRequest, NetworkRequestConfig} from "@suwatte/daisuke";
 import {
     API_ALBUM_SUGGEST,
     API_CHAPTER_IMAGE,
@@ -45,34 +45,24 @@ export class API {
         }
         console.log(`Performing a request: ${JSON.stringify(request)}`)
         const response = await this.client.request(request)
-        console.log(response)
         const setCookies = response.headers['Set-Cookie']
         console.log(setCookies)
         const sessionCookie = getCookieValue(setCookies, CookieNameSession)
         const passwordCookie = getCookieValue(setCookies, CookieNamePassword)
-        const cookies = [
-            {
-                name: CookieNameSession,
-                value: sessionCookie
-            },
-            {
-                name: CookieNamePassword,
-                value: passwordCookie,
-            }
-        ]
-        const userId = await this.getUserId(cookies)
-        const userData = await this.getUserData(userId, cookies)
+        console.log(sessionCookie, passwordCookie)
+        await SecureStore.set(CookieNameSession, sessionCookie);
+        await SecureStore.set(CookieNamePassword, passwordCookie);
+        const userId = await this.getUserId()
+        const userData = await this.getUserData(userId)
         await SecureStore.set(UserId, userId)
         await SecureStore.set(UserName, userData.name)
         await SecureStore.set(Avatar, userData.avatar)
-        await SecureStore.set(CookieNameSession, sessionCookie);
-        await SecureStore.set(CookieNamePassword, passwordCookie);
     }
 
-    async getUserData(userId: string, cookies: Cookie[]): Promise<UserData> {
+    async getUserData(userId: string): Promise<UserData> {
         const domain = await GlobalStore.getDomain()
         const url = `${domain}${API_GET_USER_DATA}?data=info&user=${userId}`
-        return this.requestJSON({url, method: "GET", cookies:cookies});
+        return this.requestJSON({url, method: "GET"});
     }
 
     async getGalleryInfo(galleryId: string): Promise<GalleryInfo> {
@@ -164,8 +154,8 @@ export class API {
         return this.requestJSON({url, method: "GET"});
     }
 
-    async getUserId(cookies: Cookie[]) {
-        const $ = await this.fetchHTML(await GlobalStore.getDomain(), {cookies: cookies})
+    async getUserId() {
+        const $ = await this.fetchHTML(await GlobalStore.getDomain())
         const scriptTag = $('script:contains("token_user")');
         let userId = '';
         if (scriptTag.length > 0) {
@@ -230,6 +220,7 @@ export class API {
         try {
             console.log(`Performing JSON request: ${JSON.stringify(request)}`);
             const {data: resp} = await this.client.request(request);
+            console.log(`Received response: ${resp}`)
             return JSON.parse(resp) ?? resp;
         } catch (ex) {
             const err = <NetworkError>ex

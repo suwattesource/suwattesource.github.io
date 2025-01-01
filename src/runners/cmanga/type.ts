@@ -79,7 +79,6 @@ export interface ChapterImage {
 }
 
 
-
 export interface Genre {
     name: string;
     url: string;

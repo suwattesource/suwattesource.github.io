@@ -37,7 +37,7 @@ export async function AuthInterceptor(request: NetworkRequest) {
             value: passwordCookie
         },
     ]
-
+    console.log(request)
     return request;
 }
 
@@ -47,7 +47,7 @@ export const getCookieValue = (setCookies: string, cookieName: string): string =
 
     for (const cookie of cookies) {
         let cleanedCookie = cookie;
-        if(cleanedCookie.startsWith('"')) {
+        if (cleanedCookie.startsWith('"')) {
             cleanedCookie = cleanedCookie.substring(1);
         }
         const parts = cleanedCookie.split(";");

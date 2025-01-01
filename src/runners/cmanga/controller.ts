@@ -179,6 +179,9 @@ export class Controller {
         await SecureStore.remove(UserId)
         await SecureStore.remove(CookieNameSession);
         await SecureStore.remove(CookieNamePassword);
+        console.log(await SecureStore.get(UserId))
+        console.log(await SecureStore.get(CookieNameSession))
+        console.log(await SecureStore.get(CookieNamePassword))
     }
 
     async getAuthUser() {
