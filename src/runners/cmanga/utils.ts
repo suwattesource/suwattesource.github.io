@@ -21,6 +21,7 @@ export function parseChapterImages(chapterImage: ChapterImage): string[] {
 export async function AuthInterceptor(request: NetworkRequest) {
     const sessionCookie = await SecureStore.string(CookieNameSession);
     const passwordCookie = await SecureStore.string(CookieNamePassword)
+    console.log(sessionCookie, passwordCookie)
     if (!sessionCookie || !passwordCookie) return request;
     request.headers = {
         ...request.headers,
