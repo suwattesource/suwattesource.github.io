@@ -30,33 +30,23 @@ class API {
         };
         console.log(`Performing a request: ${JSON.stringify(request)}`);
         const response = await this.client.request(request);
-        console.log(response);
         const setCookies = response.headers['Set-Cookie'];
         console.log(setCookies);
         const sessionCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNameSession);
         const passwordCookie = (0, utils_1.getCookieValue)(setCookies, constants_1.CookieNamePassword);
-        const cookies = [
-            {
-                name: constants_1.CookieNameSession,
-                value: sessionCookie
-            },
-            {
-                name: constants_1.CookieNamePassword,
-                value: passwordCookie,
-            }
-        ];
-        const userId = await this.getUserId(cookies);
-        const userData = await this.getUserData(userId, cookies);
+        console.log(sessionCookie, passwordCookie);
+        await SecureStore.set(constants_1.CookieNameSession, sessionCookie);
+        await SecureStore.set(constants_1.CookieNamePassword, passwordCookie);
+        const userId = await this.getUserId();
+        const userData = await this.getUserData(userId);
         await SecureStore.set(constants_1.UserId, userId);
         await SecureStore.set(constants_1.UserName, userData.name);
         await SecureStore.set(constants_1.Avatar, userData.avatar);
-        await SecureStore.set(constants_1.CookieNameSession, sessionCookie);
-        await SecureStore.set(constants_1.CookieNamePassword, passwordCookie);
     }
-    async getUserData(userId, cookies) {
+    async getUserData(userId) {
         const domain = await store_1.GlobalStore.getDomain();
         const url = `${domain}${constants_1.API_GET_USER_DATA}?data=info&user=${userId}`;
-        return this.requestJSON({ url, method: "GET", cookies: cookies });
+        return this.requestJSON({ url, method: "GET" });
     }
     async getGalleryInfo(galleryId) {
         const domain = await store_1.GlobalStore.getDomain();
@@ -133,8 +123,8 @@ class API {
         const url = domain + constants_1.API_GET_TAGS;
         return this.requestJSON({ url, method: "GET" });
     }
-    async getUserId(cookies) {
-        const $ = await this.fetchHTML(await store_1.GlobalStore.getDomain(), { cookies: cookies });
+    async getUserId() {
+        const $ = await this.fetchHTML(await store_1.GlobalStore.getDomain());
         const scriptTag = $('script:contains("token_user")');
         let userId = '';
         if (scriptTag.length > 0) {
@@ -195,6 +185,7 @@ class API {
         try {
             console.log(`Performing JSON request: ${JSON.stringify(request)}`);
             const { data: resp } = await this.client.request(request);
+            console.log(`Received response: ${resp}`);
             return JSON.parse(resp) ?? resp;
         }
         catch (ex) {
@@ -766,7 +757,6 @@ exports.parseChapterImages = parseChapterImages;
 async function AuthInterceptor(request) {
     const sessionCookie = await SecureStore.string(constants_1.CookieNameSession);
     const passwordCookie = await SecureStore.string(constants_1.CookieNamePassword);
-    console.log(sessionCookie, passwordCookie);
     if (!sessionCookie || !passwordCookie)
         return request;
     request.headers = {
@@ -783,6 +773,7 @@ async function AuthInterceptor(request) {
             value: passwordCookie
         },
     ];
+    console.log(request);
     return request;
 }
 exports.AuthInterceptor = AuthInterceptor;
