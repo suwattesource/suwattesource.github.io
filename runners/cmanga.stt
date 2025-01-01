@@ -766,6 +766,7 @@ exports.parseChapterImages = parseChapterImages;
 async function AuthInterceptor(request) {
     const sessionCookie = await SecureStore.string(constants_1.CookieNameSession);
     const passwordCookie = await SecureStore.string(constants_1.CookieNamePassword);
+    console.log(sessionCookie, passwordCookie);
     if (!sessionCookie || !passwordCookie)
         return request;
     request.headers = {
