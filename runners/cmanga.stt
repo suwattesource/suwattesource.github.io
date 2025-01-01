@@ -458,6 +458,9 @@ class Controller {
         await SecureStore.remove(constants_1.UserId);
         await SecureStore.remove(constants_1.CookieNameSession);
         await SecureStore.remove(constants_1.CookieNamePassword);
+        console.log(await SecureStore.get(constants_1.UserId));
+        console.log(await SecureStore.get(constants_1.CookieNameSession));
+        console.log(await SecureStore.get(constants_1.CookieNamePassword));
     }
     async getAuthUser() {
         const domain = await store_1.GlobalStore.getDomain();
@@ -757,6 +760,7 @@ exports.parseChapterImages = parseChapterImages;
 async function AuthInterceptor(request) {
     const sessionCookie = await SecureStore.string(constants_1.CookieNameSession);
     const passwordCookie = await SecureStore.string(constants_1.CookieNamePassword);
+    console.log(sessionCookie, passwordCookie);
     if (!sessionCookie || !passwordCookie)
         return request;
     request.headers = {
